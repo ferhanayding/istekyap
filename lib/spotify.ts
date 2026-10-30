@@ -21,7 +21,7 @@ type PlaylistPage = {
     next: string | null;
 };
 
-async function getAccessToken(): Promise<string> {
+export async function getAccessToken(): Promise<string> {
     const basic = Buffer.from(
         `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
     ).toString("base64");
