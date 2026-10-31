@@ -1,4 +1,4 @@
-import { Headphones, Music2 } from "lucide-react";
+import { Music2 } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 
 const COLORS = ["#9B87FF", "#37D9BD", "#FF729B", "#FFBD59"];
@@ -46,25 +46,16 @@ export default function TrackItem({
                 <p className="mt-1 truncate text-[10px] text-[#625D78]">{t.album}</p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-                <a
-                    href={t.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Spotify'da aç"
-                    className="flex size-9 items-center justify-center rounded-full bg-white/[0.05] text-[#AAA2C6] transition hover:bg-white/10"
-                >
-                    <Headphones size={16} />
-                </a>
-
-                <button
-                    type="button"
-                    aria-label={`${t.name} şarkısının sözlerini gör`}
-                    className="flex size-9 items-center justify-center rounded-full bg-[#8C70FF]/15 text-[#AA96FF] transition hover:bg-[#8C70FF]/25"
-                >
-                    <Music2 size={17} />
-                </button>
-            </div>
+            <a
+                href={t.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${t.name} şarkısını Spotify'da aç, sözlerine bak`}
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#8C70FF]/15 px-3 text-xs font-bold text-[#AA96FF] transition hover:bg-[#8C70FF]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
+            >
+                <Music2 size={15} />
+                Sözler
+            </a>
         </div>
     );
 }
