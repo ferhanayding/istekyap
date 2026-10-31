@@ -1,9 +1,9 @@
 import { Bricolage_Grotesque } from "next/font/google";
-
-import BottomNav from "./components/BottomNav";
 import Header from "./components/header";
 import RequestButton from "./components/RequestButton";
+import AppTabs from "./components/AppTabs";
 import PlaylistSection from "./components/PlaylistSection";
+
 
 const font = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
@@ -21,8 +21,7 @@ export default function Home() {
 
         <Header />
         <RequestButton />
-        <PlaylistSection />
-        <BottomNav />
+        <AppTabs playlist={<PlaylistSection />} />
       </div>
     </main>
   );

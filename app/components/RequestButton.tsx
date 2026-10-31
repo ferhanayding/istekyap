@@ -3,16 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
+import { REQUEST_SENT_EVENT } from "@/lib/use-request-feed";
+type Result = Track & { inPlaylist?: boolean };
+
+const SEND_ERROR = "İstek gönderilemedi. Tekrar dokun.";
 
 export default function RequestButton() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
-    const [result, setResult] = useState<{ q: string; items: Track[] } | null>(
+    const [result, setResult] = useState<{ q: string; items: Result[] } | null>(
         null
     );
     const [failedQ, setFailedQ] = useState<string | null>(null);
     const [sendingId, setSendingId] = useState<string | null>(null);
-    const [sendError, setSendError] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
     const [sent, setSent] = useState<Track | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,7 +29,7 @@ export default function RequestButton() {
         setQuery("");
         setResult(null);
         setFailedQ(null);
-        setSendError(false);
+        setSendError(null);
         setSent(null);
         setOpen(true);
     }
@@ -46,7 +50,7 @@ export default function RequestButton() {
                 });
                 const data: unknown = await res.json();
                 if (!res.ok || !Array.isArray(data)) throw new Error();
-                setResult({ q, items: data as Track[] });
+                setResult({ q, items: data as Result[] });
             } catch (e) {
                 if ((e as Error).name !== "AbortError") setFailedQ(q);
             }
@@ -60,18 +64,23 @@ export default function RequestButton() {
 
     async function pick(t: Track) {
         setSendingId(t.id);
-        setSendError(false);
+        setSendError(null);
         try {
             const res = await fetch("/api/requests", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: t.id, name: t.name, artists: t.artists }),
+                body: JSON.stringify({ id: t.id }),
             });
-            if (!res.ok) throw new Error();
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                setSendError(data?.error ?? SEND_ERROR);
+                return;
+            }
             setSent(t);
+            window.dispatchEvent(new Event(REQUEST_SENT_EVENT));
             setTimeout(() => setOpen(false), 2200);
         } catch {
-            setSendError(true);
+            setSendError(SEND_ERROR);
         } finally {
             setSendingId(null);
         }
@@ -143,8 +152,8 @@ export default function RequestButton() {
                                         <button
                                             type="button"
                                             onClick={() => pick(t)}
-                                            disabled={sendingId !== null}
-                                            className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-white/[0.06] disabled:opacity-50"
+                                            disabled={t.inPlaylist || sendingId !== null}
+                                            className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             {t.cover ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
@@ -153,7 +162,8 @@ export default function RequestButton() {
                                                     alt=""
                                                     width={40}
                                                     height={40}
-                                                    className="size-10 shrink-0 rounded-lg object-cover"
+                                                    className={`size-10 shrink-0 rounded-lg object-cover ${t.inPlaylist ? "grayscale" : ""
+                                                        }`}
                                                 />
                                             ) : (
                                                 <div className="size-10 shrink-0 rounded-lg bg-white/10" />
@@ -166,8 +176,15 @@ export default function RequestButton() {
                                                     {t.artists}
                                                 </span>
                                             </span>
-                                            <span className="shrink-0 text-xs font-bold text-[#B9A6FF]">
-                                                {sendingId === t.id ? "Gönderiliyor…" : "İste"}
+                                            <span
+                                                className={`shrink-0 text-xs font-bold ${t.inPlaylist ? "text-[#89839F]" : "text-[#B9A6FF]"
+                                                    }`}
+                                            >
+                                                {t.inPlaylist
+                                                    ? "Playlistte var"
+                                                    : sendingId === t.id
+                                                        ? "Gönderiliyor…"
+                                                        : "İste"}
                                             </span>
                                         </button>
                                     </li>
@@ -189,9 +206,7 @@ export default function RequestButton() {
                             </p>
                         )}
                         {sendError && (
-                            <p className="p-3 text-sm text-[#FF729B]">
-                                İstek gönderilemedi. Tekrar dokun.
-                            </p>
+                            <p className="p-3 text-sm text-[#FF729B]">{sendError}</p>
                         )}
                     </div>
                 )}

@@ -1,0 +1,81 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export type RequestItem = {
+    id: string;
+    spotify_id: string;
+    name: string;
+    artists: string;
+    cover: string | null;
+    created_at: string;
+};
+
+export const REQUEST_SENT_EVENT = "istek:gonderildi";
+export const POLL_MS = 20_000;
+
+export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
+    const [items, setItems] = useState<RequestItem[] | null>(null);
+    const [failed, setFailed] = useState(false);
+    const [now, setNow] = useState(0);
+    const known = useRef<Set<string> | null>(null);
+    const onNewRef = useRef(onNew);
+
+    useEffect(() => {
+        onNewRef.current = onNew;
+    });
+
+    const load = useCallback(
+        async (opts: { silent?: boolean; fresh?: boolean } = {}) => {
+            try {
+                // fresh: kendi isteğimizden sonra ortak önbelleği atla
+                const url = opts.fresh
+                    ? `/api/requests?t=${Date.now()}`
+                    : "/api/requests";
+                const res = await fetch(url, { cache: "no-store" });
+                const data: unknown = await res.json();
+                if (!res.ok || !Array.isArray(data)) throw new Error();
+
+                const list = data as RequestItem[];
+                const prev = known.current;
+                const fresh = prev ? list.filter((r) => !prev.has(r.id)) : [];
+                known.current = new Set(list.map((r) => r.id));
+
+                setItems(list);
+                setNow(Date.now());
+                setFailed(false);
+                if (fresh.length > 0 && !opts.silent) onNewRef.current(fresh);
+            } catch {
+                setFailed(true);
+            }
+        },
+        []
+    );
+
+    useEffect(() => {
+        // İlk yükleme: efektin içinde değil, hemen ardından çalışsın
+        const first = setTimeout(() => load(), 0);
+
+        // Sekme arka plandayken yenileme, geri dönünce hemen yenile
+        const timer = setInterval(() => {
+            if (!document.hidden) load();
+        }, POLL_MS);
+        const onVisible = () => {
+            if (!document.hidden) load();
+        };
+        const onSent = () => load({ silent: true, fresh: true });
+
+        document.addEventListener("visibilitychange", onVisible);
+        window.addEventListener(REQUEST_SENT_EVENT, onSent);
+        return () => {
+            clearTimeout(first);
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", onVisible);
+            window.removeEventListener(REQUEST_SENT_EVENT, onSent);
+        };
+    }, [load]);
+
+    return { items, failed, now };
+}
+
+export type RequestFeed = ReturnType<typeof useRequestFeed>;
