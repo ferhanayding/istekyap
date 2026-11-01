@@ -19,7 +19,7 @@ export default function PlaylistHeading({
                     </span>
                 </div>
 
-                <h2 className="text-2xl font-extrabold tracking-tight">Playlistimiz</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight">Repertuarımız</h2>
 
                 <p className="mt-1 text-xs text-[#817A98]">{subtitle} · LƏYSAN</p>
             </div>
