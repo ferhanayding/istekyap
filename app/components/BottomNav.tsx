@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, ListMusic, Music2 } from "lucide-react";
+import { ListMusic, Music2 } from "lucide-react";
 
 export type Tab = "playlist" | "requests";
 
