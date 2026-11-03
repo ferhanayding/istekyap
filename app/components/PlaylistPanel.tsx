@@ -1,5 +1,5 @@
 "use client";
-
+import { useVotes } from "@/lib/use-votes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import type { Track } from "@/lib/spotify";
@@ -19,6 +19,7 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
     const [query, setQuery] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const { votes, vote, error: voteError } = useVotes();
 
     // i: şarkının asıl sırası, renkler arama yapınca da aynı kalsın
     const indexed = useMemo(
@@ -95,10 +96,25 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                 ref={scrollRef}
                 className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
             >
+                {voteError && (
+                    <p
+                        role="alert"
+                        className="mb-2 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-xs text-[#FF729B]"
+                    >
+                        {voteError}
+                    </p>
+                )}
                 {visible.length > 0 ? (
                     <div className="space-y-2">
                         {visible.map(({ t, i }) => (
-                            <TrackItem key={`${t.id}-${i}`} track={t} index={i} />
+                            <TrackItem
+                                key={`${t.id}-${i}`}
+                                track={t}
+                                index={i}
+                                likes={votes[t.id]?.likes ?? 0}
+                                mine={votes[t.id]?.mine ?? 0}
+                                onVote={vote}
+                            />
                         ))}
                     </div>
                 ) : (

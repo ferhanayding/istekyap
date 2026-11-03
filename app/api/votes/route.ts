@@ -1,0 +1,113 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getIp, rateLimit } from "@/lib/rate-limit";
+import { getOrCreateDeviceId, readDeviceId } from "@/lib/device";
+import { getPlaylistIndex } from "@/lib/playlist-index";
+import { clearLikeCountsCache, getLikeCounts } from "@/lib/votes";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+
+const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
+
+export async function GET() {
+    try {
+        const out: Record<string, { likes: number; mine: number }> = {};
+
+        for (const c of await getLikeCounts()) {
+            out[c.spotify_id] = { likes: c.likes, mine: 0 };
+        }
+
+        // Bu cihazın kendi oyları
+        const deviceId = await readDeviceId();
+        if (deviceId) {
+            const { data, error } = await supabaseAdmin
+                .from("song_votes")
+                .select("spotify_id, value")
+                .eq("device_id", deviceId);
+            if (error) throw error;
+
+            for (const v of data ?? []) {
+                const id = String(v.spotify_id);
+                out[id] = { likes: out[id]?.likes ?? 0, mine: Number(v.value) };
+            }
+        }
+
+        return NextResponse.json(out, { headers: { "Cache-Control": "no-store" } });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ error: "Oylar alınamadı." }, { status: 500 });
+    }
+}
+
+export async function POST(req: NextRequest) {
+    // Ortak Wi-Fi'de herkes aynı IP'yi kullanır, o yüzden IP sınırı geniş
+    const ipLimit = rateLimit(`vote-ip:${getIp(req)}`, 300, 60_000);
+    if (!ipLimit.ok) {
+        return NextResponse.json({ error: "Çok fazla işlem." }, { status: 429 });
+    }
+
+    const body = await req.json().catch(() => null);
+    const id = body?.id;
+    const value = body?.value;
+    if (
+        typeof id !== "string" ||
+        !SPOTIFY_ID.test(id) ||
+        (value !== 1 && value !== -1 && value !== 0)
+    ) {
+        return NextResponse.json({ error: "Geçersiz oy." }, { status: 400 });
+    }
+
+    try {
+        const deviceId = await getOrCreateDeviceId();
+
+        const deviceLimit = rateLimit(`vote-dev:${deviceId}`, 30, 60_000);
+        if (!deviceLimit.ok) {
+            return NextResponse.json(
+                { error: "Çok hızlı oy veriyorsun, biraz bekle." },
+                { status: 429 }
+            );
+        }
+
+        // Sadece playlistteki şarkılara oy verilebilir
+        const index = await getPlaylistIndex().catch(() => null);
+        if (!index) {
+            return NextResponse.json(
+                { error: "Şu an oy verilemiyor." },
+                { status: 503 }
+            );
+        }
+        if (!index.ids.has(id)) {
+            return NextResponse.json(
+                { error: "Bu şarkı playlistte değil." },
+                { status: 404 }
+            );
+        }
+
+        if (value === 0) {
+            const { error } = await supabaseAdmin
+                .from("song_votes")
+                .delete()
+                .eq("spotify_id", id)
+                .eq("device_id", deviceId);
+            if (error) throw error;
+        } else {
+            const { error } = await supabaseAdmin.from("song_votes").upsert(
+                {
+                    spotify_id: id,
+                    device_id: deviceId,
+                    value,
+                    updated_at: new Date().toISOString(),
+                },
+                { onConflict: "spotify_id,device_id" }
+            );
+            if (error) throw error;
+        }
+
+        clearLikeCountsCache();
+        return NextResponse.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json(
+            { error: "Oy gönderilemedi. Tekrar dene." },
+            { status: 500 }
+        );
+    }
+}

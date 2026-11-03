@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+export type RequestStatus = "pending" | "approved" | "played" | "rejected";
+
 export type RequestItem = {
     id: string;
     spotify_id: string;
     name: string;
     artists: string;
     cover: string | null;
+    status: RequestStatus;
     created_at: string;
 };
 
@@ -38,8 +41,11 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
 
                 const list = data as RequestItem[];
                 const prev = known.current;
-                const fresh = prev ? list.filter((r) => !prev.has(r.id)) : [];
-                known.current = new Set(list.map((r) => r.id));
+                // Bildirim sadece daha önce görmediğimiz yeni bekleyen istekler için
+                const fresh = prev
+                    ? list.filter((r) => r.status === "pending" && !prev.has(r.id))
+                    : [];
+                known.current = new Set([...(prev ?? []), ...list.map((r) => r.id)]);
 
                 setItems(list);
                 setNow(Date.now());
@@ -53,7 +59,6 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
     );
 
     useEffect(() => {
-        // İlk yükleme: efektin içinde değil, hemen ardından çalışsın
         const first = setTimeout(() => load(), 0);
 
         // Sekme arka plandayken yenileme, geri dönünce hemen yenile

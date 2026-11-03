@@ -5,6 +5,8 @@ export type Track = {
     album: string;
     cover: string | null;
     url: string;
+    addedAt?: string | null | undefined;
+
 };
 
 type SpotifyTrack = {
@@ -14,10 +16,14 @@ type SpotifyTrack = {
     artists: { name: string }[];
     album: { name: string; images?: { url: string }[] };
     external_urls: { spotify: string };
+    added_at?: string | null | undefined;
 };
-
 type PlaylistPage = {
-    items?: { item?: SpotifyTrack | null; track?: SpotifyTrack | null }[];
+    items?: {
+        added_at?: string | null;
+        item?: SpotifyTrack | null;
+        track?: SpotifyTrack | null;
+    }[];
     next: string | null;
 };
 
@@ -73,6 +79,7 @@ export async function getPlaylistTracks(): Promise<Track[]> {
                 album: t.album.name,
                 cover: t.album.images?.[1]?.url ?? t.album.images?.[0]?.url ?? null,
                 url: t.external_urls.spotify,
+                addedAt: entry.added_at ?? null,
             });
         }
         url = page.next;

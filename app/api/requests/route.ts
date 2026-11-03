@@ -6,6 +6,14 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
+// Listede önce onaylılar, sonra bekleyenler, sonra çalınanlar, en altta reddedilenler
+const RANK: Record<string, number> = {
+    approved: 0,
+    pending: 1,
+    played: 2,
+    rejected: 3,
+};
+
 export async function POST(req: NextRequest) {
     const limit = rateLimit(`request:${getIp(req)}`, 5, 10 * 60_000);
     if (!limit.ok) {
@@ -42,12 +50,23 @@ export async function POST(req: NextRequest) {
             cover: track.cover,
         });
 
-        // 23505: aynı şarkı zaten bekliyor (veritabanındaki benzersiz kural)
+        // 23505: bu şarkı zaten bekliyor, onaylı ya da reddedilmiş
         if (error?.code === "23505") {
-            return NextResponse.json(
-                { error: "Bu şarkı zaten istendi." },
-                { status: 409 }
-            );
+            const { data: existing } = await supabaseAdmin
+                .from("requests")
+                .select("status")
+                .eq("spotify_id", track.id)
+                .in("status", ["pending", "approved", "rejected"])
+                .limit(1)
+                .maybeSingle();
+
+            const message =
+                existing?.status === "approved"
+                    ? "Bu şarkı onaylandı, çalınacak."
+                    : existing?.status === "rejected"
+                        ? "Bu şarkı reddedildi."
+                        : "Bu şarkı zaten istendi.";
+            return NextResponse.json({ error: message }, { status: 409 });
         }
         if (error) throw error;
 
@@ -60,21 +79,26 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+
 export async function GET() {
     const { data, error } = await supabaseAdmin
         .from("requests")
-        .select("id, spotify_id, name, artists, cover, created_at")
-        .eq("status", "pending")
+        .select("id, spotify_id, name, artists, cover, status, created_at")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
     if (error) {
         console.error(error);
         return NextResponse.json({ error: "Liste alınamadı." }, { status: 500 });
     }
 
+    // sort kararlıdır: aynı durumdakiler yeniden eskiye sıralı kalır
+    const sorted = [...(data ?? [])].sort(
+        (a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9)
+    );
+
     // Vercel 10 sn boyunca herkese aynı cevabı verir, veritabanı yorulmaz
-    return NextResponse.json(data, {
+    return NextResponse.json(sorted, {
         headers: {
             "Cache-Control": "public, s-maxage=10, stale-while-revalidate=10",
         },

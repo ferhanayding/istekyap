@@ -51,13 +51,13 @@ export default function BottomNav({
                     </span>
                 </button>
 
-                <button
+                {/* <button
                     type="button"
                     className="flex flex-col items-center gap-1.5 text-[#77708F]"
                 >
                     <Heart size={21} />
                     <span className="text-[10px] font-medium">Popüler</span>
-                </button>
+                </button> */}
             </div>
         </nav>
     );
