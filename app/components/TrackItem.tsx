@@ -48,17 +48,18 @@ export default function TrackItem({
             <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-bold text-[#F5F2FF]">{t.name}</p>
                 <p className="mt-0.5 truncate text-xs text-[#89839F]">{t.artists}</p>
-                <p className="mt-0.5 truncate text-[10px] text-[#625D78]">{t.album}</p>
-                {added && (
-                    <p className="mt-0.5 truncate text-[10px] text-[#625D78]">
-                        {added.label}
-                        {added.isNew && (
-                            <span className="ml-1 rounded-full bg-[#37D9BD]/20 px-1.5 py-0.5 text-[9px] font-bold text-[#37D9BD]">
-                                Yeni
-                            </span>
-                        )}
-                    </p>
-                )}
+                <div className="flex items-center gap-1.5">
+                    {added && (
+                        <p className="mt-0.5 truncate text-[10px] text-[#625D78]">
+                            {added.label}
+                            {added.isNew && (
+                                <span className="ml-1 rounded-full bg-[#37D9BD]/20 px-1.5 py-0.5 text-[9px] font-bold text-[#37D9BD]">
+                                    Yeni
+                                </span>
+                            )}
+                        </p>
+                    )}
+                </div>
             </div>
 
             <div className="flex w-[92px] shrink-0 flex-col gap-1.5">

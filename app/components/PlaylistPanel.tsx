@@ -1,9 +1,9 @@
 "use client";
-import { useVotes } from "@/lib/use-votes";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
+
+import { useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
-import PlaylistHeading from "./PlaylistHeading";
+import { useVotes } from "@/lib/use-votes";
 import TrackItem from "./TrackItem";
 
 // Küçük harfe çevir, Türkçe karakterleri ve aksanları sadeleştir
@@ -15,10 +15,9 @@ const fold = (s: string) =>
         .replace(/ı/g, "i");
 
 export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
-    const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
-    const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const { votes, vote, error: voteError } = useVotes();
 
     // i: şarkının asıl sırası, renkler arama yapınca da aynı kalsın
@@ -40,56 +39,48 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
 
     const searching = query.trim() !== "";
 
-    useEffect(() => {
-        if (open) inputRef.current?.focus();
-    }, [open]);
-
-    function toggle() {
-        if (open) setQuery("");
-        setOpen(!open);
+    function clear() {
+        setQuery("");
+        inputRef.current?.focus();
     }
 
     return (
         <>
-            <PlaylistHeading
-                subtitle={
-                    searching
-                        ? `${visible.length} / ${tracks.length} şarkı`
-                        : `${tracks.length} şarkı`
-                }
-                searchOpen={open}
-                onToggleSearch={toggle}
-            />
-
-            {/* Arama kutusu: açılırken yukarıdan aşağı büyür */}
-            <div
-                inert={!open}
-                className={`grid shrink-0 transition-all duration-300 ease-out motion-reduce:transition-none ${open ? "mb-3 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                    }`}
-            >
-                <div className="overflow-hidden">
-                    <div className="flex h-12 items-center gap-2 rounded-2xl border border-[#9B80FF]/40 bg-[#1E1A3D] px-3">
-                        <Search size={18} className="shrink-0 text-[#A99EC9]" />
-                        <input
-                            ref={inputRef}
-                            value={query}
-                            onChange={(e) => {
-                                setQuery(e.target.value);
-                                scrollRef.current?.scrollTo({ top: 0 });
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Escape") toggle();
-                                if (e.key === "Enter") e.currentTarget.blur(); // telefonda klavye kapansın
-                            }}
-                            placeholder="Playlistte şarkı ara"
-                            aria-label="Playlistte şarkı ara"
-                            enterKeyHint="search"
-                            autoComplete="off"
-                            maxLength={100}
-                            className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#7E769B]"
-                        />
-                    </div>
-                </div>
+            <div className="mb-3 flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-white/[0.08] bg-[#1E1A3D] px-3 transition focus-within:border-[#9B80FF]/60">
+                <Search size={17} className="shrink-0 text-[#A99EC9]" />
+                <input
+                    ref={inputRef}
+                    value={query}
+                    onChange={(e) => {
+                        setQuery(e.target.value);
+                        scrollRef.current?.scrollTo({ top: 0 });
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") setQuery("");
+                        if (e.key === "Enter") e.currentTarget.blur(); // telefonda klavye kapansın
+                    }}
+                    placeholder={`${tracks.length} şarkı içinde ara`}
+                    aria-label="Playlistte şarkı ara"
+                    enterKeyHint="search"
+                    autoComplete="off"
+                    maxLength={100}
+                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#7E769B]"
+                />
+                {searching && (
+                    <>
+                        <span className="shrink-0 text-xs font-bold text-[#817A98]">
+                            {visible.length} / {tracks.length}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={clear}
+                            aria-label="Aramayı temizle"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-[#A99EC9] transition hover:bg-white/[0.12]"
+                        >
+                            <X size={14} />
+                        </button>
+                    </>
+                )}
             </div>
 
             <div
@@ -104,6 +95,7 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                         {voteError}
                     </p>
                 )}
+
                 {visible.length > 0 ? (
                     <div className="space-y-2">
                         {visible.map(({ t, i }) => (
