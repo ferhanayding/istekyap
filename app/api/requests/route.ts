@@ -3,7 +3,7 @@ import { getIp, rateLimit } from "@/lib/rate-limit";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { getTrackById } from "@/lib/search";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-
+import { getAppState } from "@/lib/app-state";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 // Listede önce onaylılar, sonra bekleyenler, sonra çalınanlar, en altta reddedilenler
@@ -15,6 +15,13 @@ const RANK: Record<string, number> = {
 };
 
 export async function POST(req: NextRequest) {
+    const state = await getAppState().catch(() => null);
+    if (!state?.requestsOpen) {
+        return NextResponse.json(
+            { error: "İstekler şu an kapalı." },
+            { status: 403 }
+        );
+    }
     const limit = rateLimit(`request:${getIp(req)}`, 5, 10 * 60_000);
     if (!limit.ok) {
         return NextResponse.json(
@@ -62,10 +69,10 @@ export async function POST(req: NextRequest) {
 
             const message =
                 existing?.status === "approved"
-                    ? "Bu şarkı onaylandı, çalınacak."
+                    ? "Bu istek zaten yapıldı ve onaylandı, çalınacak."
                     : existing?.status === "rejected"
-                        ? "Bu şarkı reddedildi."
-                        : "Bu şarkı zaten istendi.";
+                        ? "Bu istek zaten yapıldı ama reddedildi."
+                        : "Bu istek zaten yapıldı.";
             return NextResponse.json({ error: message }, { status: 409 });
         }
         if (error) throw error;

@@ -1,5 +1,6 @@
 "use client";
-
+import { Lock } from "lucide-react";
+import { useSystem } from "@/lib/system-context";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
@@ -19,7 +20,8 @@ export default function RequestButton() {
     const [sendError, setSendError] = useState<string | null>(null);
     const [sent, setSent] = useState<Track | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-
+    const { loaded, requestsOpen } = useSystem();
+    const closed = loaded && !requestsOpen;
     const q = query.trim();
     const active = open && !sent && q.length >= 2;
     const fresh = result?.q === q;
@@ -94,14 +96,22 @@ export default function RequestButton() {
                     type="button"
                     onClick={openPanel}
                     inert={open}
-                    className={`absolute inset-0 flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-[#7555E9] to-[#5A3FC0] px-4 text-sm font-extrabold shadow-[0_10px_30px_-14px_#795BFF] transition duration-300 ease-out motion-reduce:transition-none ${open ? "scale-95 opacity-0" : "opacity-100 active:scale-[0.98]"
+                    disabled={!loaded || !requestsOpen}
+                    className={`absolute inset-0 flex w-full items-center justify-between rounded-2xl px-4 text-sm font-extrabold transition duration-300 ease-out motion-reduce:transition-none ${closed
+                        ? "cursor-not-allowed bg-white/[0.05] text-[#8D84AB]"
+                        : "bg-gradient-to-r from-[#7555E9] to-[#5A3FC0] shadow-[0_10px_30px_-14px_#795BFF] disabled:opacity-70"
+                        } ${open ? "scale-95 opacity-0" : "opacity-100 enabled:active:scale-[0.98]"
                         }`}
                 >
                     <span className="flex items-center gap-2">
-                        <Sparkles size={17} className="text-[#E5D9FF]" />
-                        İstek Parça Yap
+                        {closed ? (
+                            <Lock size={17} />
+                        ) : (
+                            <Sparkles size={17} className="text-[#E5D9FF]" />
+                        )}
+                        {closed ? "İstekler şu an kapalı" : "İstek Parça Yap"}
                     </span>
-                    <ChevronRight size={18} className="text-white/70" />
+                    {!closed && <ChevronRight size={18} className="text-white/70" />}
                 </button>
 
                 {/* Arama kutusu */}

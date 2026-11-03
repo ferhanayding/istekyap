@@ -4,7 +4,7 @@ import { getOrCreateDeviceId, readDeviceId } from "@/lib/device";
 import { getPlaylistIndex } from "@/lib/playlist-index";
 import { clearLikeCountsCache, getLikeCounts } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-
+import { getAppState } from "@/lib/app-state";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 export async function GET() {
@@ -65,7 +65,19 @@ export async function POST(req: NextRequest) {
                 { status: 429 }
             );
         }
-
+        const state = await getAppState();
+        if (!state.votingOpen) {
+            return NextResponse.json(
+                { error: "Oylama şu an kapalı." },
+                { status: 403 }
+            );
+        }
+        if (!state.played.includes(id)) {
+            return NextResponse.json(
+                { error: "Bu şarkı henüz çalınmadı. Çalınca oy verebilirsin." },
+                { status: 403 }
+            );
+        }
         // Sadece playlistteki şarkılara oy verilebilir
         const index = await getPlaylistIndex().catch(() => null);
         if (!index) {

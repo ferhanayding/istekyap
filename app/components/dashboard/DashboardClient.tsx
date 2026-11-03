@@ -6,7 +6,9 @@ import {
     CheckCheck,
     ExternalLink,
     LogOut,
+    Play,
     RefreshCw,
+    Square,
     Trash2,
     Undo2,
     Volume2,
@@ -14,11 +16,14 @@ import {
     X,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
+import { useDashboardSystem } from "@/lib/use-dashboard-system";
+import NowPlayingBadge from "../NowPlayingBadge";
 import LoadingTracks from "../LoadingTracks";
 import SongStats from "./SongStats";
+import SystemPanel from "./SystemPanel";
 
 type Status = "pending" | "approved" | "played" | "rejected";
-type Main = "requests" | "playlist";
+type Main = "requests" | "playlist" | "system";
 
 type RequestRow = {
     id: string;
@@ -37,6 +42,12 @@ const TABS: { key: Status; label: string }[] = [
     { key: "approved", label: "Onaylı" },
     { key: "played", label: "Çalındı" },
     { key: "rejected", label: "Reddedilen" },
+];
+
+const MAIN_TABS: { key: Main; label: string }[] = [
+    { key: "requests", label: "İstekler" },
+    { key: "playlist", label: "Playlist" },
+    { key: "system", label: "Sistem" },
 ];
 
 const EMPTY: Record<Status, string> = {
@@ -60,6 +71,8 @@ function ago(iso: string, now: number): string {
 
 const btn =
     "flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold transition active:scale-95 disabled:opacity-50";
+const iconBtn =
+    "flex size-10 shrink-0 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-50";
 
 export default function DashboardClient() {
     const [items, setItems] = useState<RequestRow[] | null>(null);
@@ -71,6 +84,9 @@ export default function DashboardClient() {
     const [sound, setSound] = useState(false);
     const [now, setNow] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+
+    const system = useDashboardSystem();
+    const nowPlaying = system.state?.nowPlaying ?? null;
 
     const known = useRef<Set<string> | null>(null);
     const audio = useRef<AudioContext | null>(null);
@@ -162,11 +178,21 @@ export default function DashboardClient() {
 
     async function refresh() {
         setRefreshing(true);
-        await load();
+        await Promise.all([load(), system.load()]);
         setRefreshing(false);
     }
 
+    // Çal: öncekini otomatik durdurur, çalan istekse listesi yenilenir
+    async function play(id: string, title: string) {
+        if (await system.act({ action: "play", id, title })) void load();
+    }
+
+    async function stop() {
+        if (await system.act({ action: "stop" })) void load();
+    }
+
     async function changeStatus(id: string, status: Status) {
+        const row = items?.find((r) => r.id === id);
         setBusyId(id);
         setError(null);
         try {
@@ -188,6 +214,10 @@ export default function DashboardClient() {
                 list ? list.map((r) => (r.id === id ? { ...r, status } : r)) : list
             );
             dismiss(id);
+            // Çalan istek elle başka duruma alınırsa çalma işareti de kalksın
+            if (row && nowPlaying === row.spotify_id) {
+                await system.act({ action: "stop" });
+            }
         } catch {
             setError("İşlem yapılamadı.");
         } finally {
@@ -197,6 +227,7 @@ export default function DashboardClient() {
 
     async function remove(id: string) {
         if (!window.confirm("Bu isteği silmek istediğine emin misin?")) return;
+        const row = items?.find((r) => r.id === id);
         setBusyId(id);
         setError(null);
         try {
@@ -209,6 +240,9 @@ export default function DashboardClient() {
             }
             setItems((list) => (list ? list.filter((r) => r.id !== id) : list));
             dismiss(id);
+            if (row && nowPlaying === row.spotify_id) {
+                await system.act({ action: "stop" });
+            }
         } catch {
             setError("Silinemedi.");
         } finally {
@@ -218,6 +252,7 @@ export default function DashboardClient() {
 
     const count = (s: Status) => items?.filter((r) => r.status === s).length ?? 0;
     const visible = items?.filter((r) => r.status === tab) ?? [];
+    const shownError = error ?? system.error;
 
     return (
         <div className="mx-auto flex h-dvh max-w-2xl flex-col px-5 pt-8">
@@ -266,15 +301,10 @@ export default function DashboardClient() {
 
             {/* Ana sekmeler */}
             <div
-                className="mb-4 grid shrink-0 grid-cols-2 rounded-2xl bg-white/[0.04] p-1"
+                className="mb-3 grid shrink-0 grid-cols-3 rounded-2xl bg-white/[0.04] p-1"
                 role="tablist"
             >
-                {(
-                    [
-                        { key: "requests", label: "İstekler" },
-                        { key: "playlist", label: "Playlist" },
-                    ] as { key: Main; label: string }[]
-                ).map((m) => (
+                {MAIN_TABS.map((m) => (
                     <button
                         key={m.key}
                         type="button"
@@ -296,8 +326,46 @@ export default function DashboardClient() {
                 ))}
             </div>
 
-            {main === "playlist" ? (
-                <SongStats />
+            {/* Çalan şarkı: her sekmede görünür */}
+            {nowPlaying && (
+                <div className="mb-3 flex shrink-0 items-center gap-3 rounded-2xl border border-[#37D9BD]/40 bg-gradient-to-r from-[#17342F] to-[#19162D] px-3 py-2.5 shadow-[0_0_24px_-8px_#37D9BD]">
+                    <div className="min-w-0 flex-1">
+                        <NowPlayingBadge />
+                        <p className="mt-0.5 truncate text-sm font-bold text-[#F5F2FF]">
+                            {system.state?.nowPlayingTitle ?? "Şarkı"}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={system.busy}
+                        onClick={stop}
+                        className={`${btn} bg-[#FF729B]/15 text-[#FF729B]`}
+                    >
+                        <Square size={14} fill="currentColor" />
+                        Durdur
+                    </button>
+                </div>
+            )}
+
+            {shownError && (
+                <p
+                    role="alert"
+                    className="mb-3 shrink-0 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-sm text-[#FF729B]"
+                >
+                    {shownError}
+                </p>
+            )}
+
+            {main === "system" ? (
+                <SystemPanel system={system} onChanged={() => void load()} />
+            ) : main === "playlist" ? (
+                <SongStats
+                    nowPlaying={nowPlaying}
+                    played={system.state?.played ?? []}
+                    busy={system.busy}
+                    onPlay={play}
+                    onStop={stop}
+                />
             ) : (
                 <>
                     {newIds.size > 0 && (
@@ -313,18 +381,8 @@ export default function DashboardClient() {
                         </div>
                     )}
 
-                    {error && (
-                        <p
-                            role="alert"
-                            className="mb-4 shrink-0 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-sm text-[#FF729B]"
-                        >
-                            {error}
-                        </p>
-                    )}
-
                     <div
-                        className="mb-4 flex shrink-0 gap-2 overflow-x-auto"
-                        role="tablist"
+                        className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]" role="tablist"
                     >
                         {TABS.map((t) => (
                             <button
@@ -358,10 +416,15 @@ export default function DashboardClient() {
                                 {visible.map((r) => {
                                     const isNew = newIds.has(r.id);
                                     const busy = busyId === r.id;
+                                    const playing = nowPlaying === r.spotify_id;
                                     return (
                                         <li
                                             key={r.id}
-                                            className={`rounded-2xl border bg-[#19162D] p-3 ${isNew ? "border-[#9B80FF]/60" : "border-white/[0.04]"
+                                            className={`rounded-2xl border p-3 ${playing
+                                                ? "border-[#37D9BD]/50 bg-gradient-to-r from-[#17342F] to-[#19162D] shadow-[0_0_24px_-8px_#37D9BD]"
+                                                : isNew
+                                                    ? "border-[#9B80FF]/60 bg-[#19162D]"
+                                                    : "border-white/[0.04] bg-[#19162D]"
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
@@ -385,6 +448,7 @@ export default function DashboardClient() {
                                                     <p className="mt-0.5 truncate text-xs text-[#89839F]">
                                                         {r.artists}
                                                     </p>
+                                                    {playing && <NowPlayingBadge className="mt-1" />}
                                                     <p className="mt-0.5 text-[11px] text-[#817A98]">
                                                         {isNew && (
                                                             <span className="mr-1.5 rounded-full bg-[#9B80FF] px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -432,6 +496,29 @@ export default function DashboardClient() {
                                                     <>
                                                         <button
                                                             type="button"
+                                                            disabled={busy || system.busy}
+                                                            onClick={() =>
+                                                                playing
+                                                                    ? stop()
+                                                                    : play(
+                                                                        r.spotify_id,
+                                                                        `${r.name} · ${r.artists}`
+                                                                    )
+                                                            }
+                                                            className={`${btn} flex-1 ${playing
+                                                                ? "bg-[#FF729B]/15 text-[#FF729B]"
+                                                                : "bg-[#37D9BD]/15 text-[#37D9BD]"
+                                                                }`}
+                                                        >
+                                                            {playing ? (
+                                                                <Square size={14} fill="currentColor" />
+                                                            ) : (
+                                                                <Play size={15} fill="currentColor" />
+                                                            )}
+                                                            {playing ? "Durdur" : "Çal"}
+                                                        </button>
+                                                        <button
+                                                            type="button"
                                                             disabled={busy}
                                                             onClick={() => changeStatus(r.id, "played")}
                                                             className={`${btn} flex-1 bg-[#9B80FF]/20 text-[#B9A6FF]`}
@@ -443,10 +530,10 @@ export default function DashboardClient() {
                                                             type="button"
                                                             disabled={busy}
                                                             onClick={() => changeStatus(r.id, "pending")}
-                                                            className={`${btn} flex-1 bg-white/[0.06] text-[#C9C2E4]`}
+                                                            aria-label="Bekleyene al"
+                                                            className={`${iconBtn} bg-white/[0.06] text-[#C9C2E4]`}
                                                         >
                                                             <Undo2 size={16} />
-                                                            Bekleyene al
                                                         </button>
                                                     </>
                                                 ) : (

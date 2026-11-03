@@ -4,8 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const STATUSES = ["pending", "played", "rejected"];
-
+const STATUSES = ["pending", "approved", "played", "rejected"];
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {

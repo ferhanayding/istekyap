@@ -6,8 +6,10 @@ import {
     type RequestFeed,
     type RequestStatus,
 } from "@/lib/use-request-feed";
+import { useSystem } from "@/lib/system-context";
 import LoadingTracks from "./LoadingTracks";
-
+import NowPlayingBadge from "./NowPlayingBadge";
+import { lyricsUrl } from "@/lib/lyrics";
 const COLORS = ["#9B87FF", "#37D9BD", "#FF729B", "#FFBD59"];
 const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
 
@@ -34,6 +36,7 @@ function ago(iso: string, now: number): string {
 
 export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
     const { items, failed, now } = feed;
+    const { nowPlaying } = useSystem();
     const pendingCount = items?.filter((r) => r.status === "pending").length;
 
     return (
@@ -73,12 +76,15 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                             const color = COLORS[i % COLORS.length];
                             const badge = BADGE[r.status] ?? BADGE.pending;
                             const rejected = r.status === "rejected";
+                            const playing = nowPlaying === r.spotify_id;
                             return (
                                 <li
                                     key={r.id}
-                                    className={`flex items-center gap-3 rounded-2xl border p-3 ${r.status === "approved"
-                                        ? "border-[#37D9BD]/30 bg-[#19162D]"
-                                        : "border-white/[0.04] bg-[#19162D]"
+                                    className={`flex items-center gap-3 rounded-2xl border p-3 ${playing
+                                        ? "border-[#37D9BD]/50 bg-gradient-to-r from-[#17342F] to-[#19162D] shadow-[0_0_24px_-8px_#37D9BD]"
+                                        : r.status === "approved"
+                                            ? "border-[#37D9BD]/30 bg-[#19162D]"
+                                            : "border-white/[0.04] bg-[#19162D]"
                                         } ${rejected ? "opacity-70" : ""}`}
                                 >
                                     <div className="relative shrink-0">
@@ -108,11 +114,15 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                                             {r.artists}
                                         </p>
                                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <span
-                                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.className}`}
-                                            >
-                                                {badge.text}
-                                            </span>
+                                            {playing ? (
+                                                <NowPlayingBadge />
+                                            ) : (
+                                                <span
+                                                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.className}`}
+                                                >
+                                                    {badge.text}
+                                                </span>
+                                            )}
                                             <span className="text-[11px] text-[#817A98]">
                                                 {ago(r.created_at, now)}
                                             </span>
@@ -120,10 +130,10 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                                     </div>
 
                                     <a
-                                        href={`https://open.spotify.com/track/${r.spotify_id}`}
+                                        href={lyricsUrl(r.name, r.artists)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        aria-label={`${r.name} şarkısını Spotify'da aç, sözlerine bak`}
+                                        aria-label={`${r.name} şarkısının sözlerini Google'da ara`}
                                         className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#8C70FF]/15 px-3 text-xs font-bold text-[#AA96FF] transition hover:bg-[#8C70FF]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
                                     >
                                         <Music2 size={15} />

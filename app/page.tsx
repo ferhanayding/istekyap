@@ -3,7 +3,7 @@ import Header from "./components/header";
 import RequestButton from "./components/RequestButton";
 import AppTabs from "./components/AppTabs";
 import PlaylistSection from "./components/PlaylistSection";
-
+import { SystemProvider } from "@/lib/system-context";
 
 const font = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
@@ -18,10 +18,13 @@ export default function Home() {
         {/* Arka plan süsleri */}
         <div className="pointer-events-none absolute -right-32 -top-32 size-80 rounded-full bg-[#805CFF]/10 blur-[100px]" />
         <div className="pointer-events-none absolute -left-32 top-[500px] size-64 rounded-full bg-[#00D1B2]/[0.06] blur-[100px]" />
+        <SystemProvider>
 
-        <Header />
-        <RequestButton />
-        <AppTabs playlist={<PlaylistSection />} />
+
+          <Header />
+          <RequestButton />
+          <AppTabs playlist={<PlaylistSection />} />
+        </SystemProvider>
       </div>
     </main>
   );

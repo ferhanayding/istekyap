@@ -1,11 +1,11 @@
 "use client";
-
+import { useSystem } from "@/lib/system-context";
 import { useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { useVotes } from "@/lib/use-votes";
 import TrackItem from "./TrackItem";
-
+import NowPlayingCard from "./NowPlayingCard";
 // Küçük harfe çevir, Türkçe karakterleri ve aksanları sadeleştir
 const fold = (s: string) =>
     s
@@ -19,7 +19,7 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const { votes, vote, error: voteError } = useVotes();
-
+    const system = useSystem();
     // i: şarkının asıl sırası, renkler arama yapınca da aynı kalsın
     const indexed = useMemo(
         () =>
@@ -38,14 +38,45 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
     }, [indexed, query]);
 
     const searching = query.trim() !== "";
+    const currentId = system.nowPlaying;
+    const current = currentId
+        ? tracks.find((t) => t.id === currentId)
+        : undefined;
 
+    // Çalan şarkıya yumuşakça kay. Aramayla gizlenmişse önce aramayı temizler
+    function jumpToCurrent() {
+        if (!current) return;
+        const scroll = () => {
+            const box = scrollRef.current;
+            const el = document.getElementById(`track-${current.id}`);
+            if (!box || !el) return;
+            const b = box.getBoundingClientRect();
+            const r = el.getBoundingClientRect();
+            const top =
+                box.scrollTop + (r.top - b.top) - (box.clientHeight - r.height) / 2;
+            box.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        };
+        if (visible.some((x) => x.t.id === current.id)) {
+            scroll();
+        } else {
+            setQuery("");
+            setTimeout(scroll, 80);
+        }
+    }
     function clear() {
         setQuery("");
         inputRef.current?.focus();
     }
 
     return (
-        <>
+        <>  {currentId && (
+            <NowPlayingCard
+                id={currentId}
+                name={current?.name ?? system.nowPlayingTitle ?? "Şarkı"}
+                artists={current?.artists}
+                onClick={current ? jumpToCurrent : undefined}
+            />
+        )}
             <div className="mb-3 flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-white/[0.08] bg-[#1E1A3D] px-3 transition focus-within:border-[#9B80FF]/60">
                 <Search size={17} className="shrink-0 text-[#A99EC9]" />
                 <input
@@ -95,7 +126,11 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                         {voteError}
                     </p>
                 )}
-
+                {system.loaded && !system.votingOpen && (
+                    <p className="mb-2 rounded-xl bg-white/[0.04] px-3 py-2 text-xs text-[#A99EC9]">
+                        Oylama şu an kapalı.
+                    </p>
+                )}
                 {visible.length > 0 ? (
                     <div className="space-y-2">
                         {visible.map(({ t, i }) => (
@@ -106,6 +141,9 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                                 likes={votes[t.id]?.likes ?? 0}
                                 mine={votes[t.id]?.mine ?? 0}
                                 onVote={vote}
+                                played={system.played.has(t.id)}
+                                votingOpen={system.votingOpen}
+                                playing={system.nowPlaying === t.id}
                             />
                         ))}
                     </div>
