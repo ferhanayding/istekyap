@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "app/components/TrackList.tsx.ban"  ],
   "exclude": ["node_modules"]
 }
