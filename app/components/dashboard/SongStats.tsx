@@ -1,5 +1,6 @@
 "use client";
-
+import { useRouter } from "next/navigation";
+import { useToast } from "../Toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ExternalLink,
@@ -72,14 +73,18 @@ export default function SongStats({
     const [sort, setSort] = useState<Sort>("playlist");
     const [error, setError] = useState<string | null>(null);
     const [now, setNow] = useState(0);
-
+    const router = useRouter();
+    const toast = useToast();
+    useEffect(() => {
+        if (error) toast.error(error);
+    }, [error, toast]);
     const playedSet = useMemo(() => new Set(played), [played]);
 
     const load = useCallback(async () => {
         try {
             const res = await fetch("/api/dashboard/songs", { cache: "no-store" });
             if (res.status === 401) {
-                window.location.assign("/login");
+                router.replace("/login");
                 return;
             }
             const data: unknown = await res.json();
@@ -90,7 +95,7 @@ export default function SongStats({
         } catch {
             setError("Liste güncellenemedi, tekrar denenecek.");
         }
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
@@ -149,14 +154,7 @@ export default function SongStats({
                 </div>
             )}
 
-            {error && (
-                <p
-                    role="alert"
-                    className="mb-3 shrink-0 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-sm text-[#FF729B]"
-                >
-                    {error}
-                </p>
-            )}
+
 
             <div
                 className="mb-1 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"

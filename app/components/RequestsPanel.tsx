@@ -1,5 +1,6 @@
 "use client";
-
+import { useEffect } from "react";
+import { useToast } from "./Toast";
 import { ListMusic, Music2 } from "lucide-react";
 import {
     POLL_MS,
@@ -38,6 +39,10 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
     const { items, failed, now } = feed;
     const { nowPlaying } = useSystem();
     const pendingCount = items?.filter((r) => r.status === "pending").length;
+    const toast = useToast();
+    useEffect(() => {
+        if (failed) toast.error("Liste güncellenemedi, tekrar denenecek.");
+    }, [failed, toast]);
 
     return (
         <section className="relative mt-5 flex min-h-0 flex-1 flex-col px-5">
@@ -57,11 +62,6 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                 </p>
             </div>
 
-            {failed && (
-                <p className="mb-3 shrink-0 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-xs text-[#FF729B]">
-                    Liste güncellenemedi, tekrar denenecek.
-                </p>
-            )}
 
             <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
                 {items === null ? (

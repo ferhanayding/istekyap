@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Check,
@@ -18,7 +19,9 @@ import {
 import { logout } from "@/app/login/actions";
 import { useDashboardSystem } from "@/lib/use-dashboard-system";
 import NowPlayingBadge from "../NowPlayingBadge";
+import { ToastProvider, useToast } from "../Toast";
 import LoadingTracks from "../LoadingTracks";
+import LyricsBar from "./LyricsBar";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
 
@@ -74,7 +77,7 @@ const btn =
 const iconBtn =
     "flex size-10 shrink-0 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-50";
 
-export default function DashboardClient() {
+function DashboardInner() {
     const [items, setItems] = useState<RequestRow[] | null>(null);
     const [main, setMain] = useState<Main>("requests");
     const [tab, setTab] = useState<Status>("pending");
@@ -84,9 +87,16 @@ export default function DashboardClient() {
     const [sound, setSound] = useState(false);
     const [now, setNow] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
-
+    const router = useRouter();
+    const toast = useToast();
     const system = useDashboardSystem();
     const nowPlaying = system.state?.nowPlaying ?? null;
+
+    // Tüm hata mesajları toast olarak gelir
+    const shownError = error ?? system.error;
+    useEffect(() => {
+        if (shownError) toast.error(shownError);
+    }, [shownError, toast]);
 
     const known = useRef<Set<string> | null>(null);
     const audio = useRef<AudioContext | null>(null);
@@ -112,7 +122,7 @@ export default function DashboardClient() {
         try {
             const res = await fetch("/api/dashboard/requests", { cache: "no-store" });
             if (res.status === 401) {
-                window.location.assign("/login");
+                router.replace("/login");
                 return;
             }
             const data: unknown = await res.json();
@@ -136,7 +146,7 @@ export default function DashboardClient() {
         } catch {
             setError("Liste güncellenemedi, tekrar denenecek.");
         }
-    }, [beep]);
+    }, [beep, router]);
 
     // Dashboard arka plandayken de yenilenir, yeni istek sekme başlığına yazılır
     useEffect(() => {
@@ -252,11 +262,10 @@ export default function DashboardClient() {
 
     const count = (s: Status) => items?.filter((r) => r.status === s).length ?? 0;
     const visible = items?.filter((r) => r.status === tab) ?? [];
-    const shownError = error ?? system.error;
 
     return (
         <div className="mx-auto flex h-dvh max-w-2xl flex-col px-5 pt-8">
-            <header className="mb-5 flex shrink-0 items-start justify-between gap-3">
+            <header className="mb-4 flex shrink-0 items-start justify-between gap-3">
                 <div>
                     <h1 className="text-[32px] font-extrabold leading-none tracking-[-1.5px]">
                         Dashboard
@@ -299,6 +308,9 @@ export default function DashboardClient() {
                 </div>
             </header>
 
+            {/* Şarkı sözü araması: her sekmede sabit */}
+            <LyricsBar />
+
             {/* Ana sekmeler */}
             <div
                 className="mb-3 grid shrink-0 grid-cols-3 rounded-2xl bg-white/[0.04] p-1"
@@ -326,36 +338,6 @@ export default function DashboardClient() {
                 ))}
             </div>
 
-            {/* Çalan şarkı: her sekmede görünür */}
-            {nowPlaying && (
-                <div className="mb-3 flex shrink-0 items-center gap-3 rounded-2xl border border-[#37D9BD]/40 bg-gradient-to-r from-[#17342F] to-[#19162D] px-3 py-2.5 shadow-[0_0_24px_-8px_#37D9BD]">
-                    <div className="min-w-0 flex-1">
-                        <NowPlayingBadge />
-                        <p className="mt-0.5 truncate text-sm font-bold text-[#F5F2FF]">
-                            {system.state?.nowPlayingTitle ?? "Şarkı"}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        disabled={system.busy}
-                        onClick={stop}
-                        className={`${btn} bg-[#FF729B]/15 text-[#FF729B]`}
-                    >
-                        <Square size={14} fill="currentColor" />
-                        Durdur
-                    </button>
-                </div>
-            )}
-
-            {shownError && (
-                <p
-                    role="alert"
-                    className="mb-3 shrink-0 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-sm text-[#FF729B]"
-                >
-                    {shownError}
-                </p>
-            )}
-
             {main === "system" ? (
                 <SystemPanel system={system} onChanged={() => void load()} />
             ) : main === "playlist" ? (
@@ -382,7 +364,8 @@ export default function DashboardClient() {
                     )}
 
                     <div
-                        className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]" role="tablist"
+                        className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                        role="tablist"
                     >
                         {TABS.map((t) => (
                             <button
@@ -568,5 +551,13 @@ export default function DashboardClient() {
                 </>
             )}
         </div>
+    );
+}
+
+export default function DashboardClient() {
+    return (
+        <ToastProvider fixed>
+            <DashboardInner />
+        </ToastProvider>
     );
 }

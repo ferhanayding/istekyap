@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { REQUEST_SENT_EVENT } from "@/lib/use-request-feed";
+import { useToast } from "./Toast";
 type Result = Track & { inPlaylist?: boolean };
 
 const SEND_ERROR = "İstek gönderilemedi. Tekrar dokun.";
@@ -17,8 +18,7 @@ export default function RequestButton() {
     );
     const [failedQ, setFailedQ] = useState<string | null>(null);
     const [sendingId, setSendingId] = useState<string | null>(null);
-    const [sendError, setSendError] = useState<string | null>(null);
-    const [sent, setSent] = useState<Track | null>(null);
+    const toast = useToast(); const [sent, setSent] = useState<Track | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const { loaded, requestsOpen } = useSystem();
     const closed = loaded && !requestsOpen;
@@ -31,7 +31,6 @@ export default function RequestButton() {
         setQuery("");
         setResult(null);
         setFailedQ(null);
-        setSendError(null);
         setSent(null);
         setOpen(true);
     }
@@ -54,7 +53,10 @@ export default function RequestButton() {
                 if (!res.ok || !Array.isArray(data)) throw new Error();
                 setResult({ q, items: data as Result[] });
             } catch (e) {
-                if ((e as Error).name !== "AbortError") setFailedQ(q);
+                if ((e as Error).name !== "AbortError") {
+                    setFailedQ(q);
+                    toast.error("Arama yapılamadı. Biraz sonra tekrar dene.");
+                }
             }
         }, 300);
 
@@ -62,11 +64,10 @@ export default function RequestButton() {
             clearTimeout(timer);
             ctrl.abort();
         };
-    }, [q, open, sent]);
+    }, [q, open, sent, toast]);
 
     async function pick(t: Track) {
         setSendingId(t.id);
-        setSendError(null);
         try {
             const res = await fetch("/api/requests", {
                 method: "POST",
@@ -75,14 +76,14 @@ export default function RequestButton() {
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
-                setSendError(data?.error ?? SEND_ERROR);
+                toast.error(data?.error ?? SEND_ERROR);
                 return;
             }
             setSent(t);
             window.dispatchEvent(new Event(REQUEST_SENT_EVENT));
             setTimeout(() => setOpen(false), 2200);
         } catch {
-            setSendError(SEND_ERROR);
+            toast.error(SEND_ERROR);
         } finally {
             setSendingId(null);
         }
@@ -153,7 +154,7 @@ export default function RequestButton() {
                 </div>
 
                 {/* Öneriler */}
-                {active && (
+                {active && failedQ !== q && (
                     <div className="absolute inset-x-0 top-14 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
                         {hasItems && (
                             <ul className={fresh ? "" : "opacity-60"}>
@@ -215,9 +216,7 @@ export default function RequestButton() {
                                 Arama yapılamadı. Biraz sonra tekrar dene.
                             </p>
                         )}
-                        {sendError && (
-                            <p className="p-3 text-sm text-[#FF729B]">{sendError}</p>
-                        )}
+
                     </div>
                 )}
             </div>

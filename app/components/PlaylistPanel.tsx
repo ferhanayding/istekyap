@@ -1,11 +1,12 @@
 "use client";
 import { useSystem } from "@/lib/system-context";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { useVotes } from "@/lib/use-votes";
 import TrackItem from "./TrackItem";
 import NowPlayingCard from "./NowPlayingCard";
+import { useToast } from "./Toast";
 // Küçük harfe çevir, Türkçe karakterleri ve aksanları sadeleştir
 const fold = (s: string) =>
     s
@@ -19,7 +20,11 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const { votes, vote, error: voteError } = useVotes();
+    const toast = useToast();
     const system = useSystem();
+    useEffect(() => {
+        if (voteError) toast.error(voteError);
+    }, [voteError, toast]);
     // i: şarkının asıl sırası, renkler arama yapınca da aynı kalsın
     const indexed = useMemo(
         () =>
@@ -126,9 +131,11 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                         {voteError}
                     </p>
                 )}
-                {system.loaded && !system.votingOpen && (
+                {system.loaded && (
                     <p className="mb-2 rounded-xl bg-white/[0.04] px-3 py-2 text-xs text-[#A99EC9]">
-                        Oylama şu an kapalı.
+                        {system.votingOpen
+                            ? "Sadece çalınan şarkılara oy verilir."
+                            : "Oylama şu an kapalı."}
                     </p>
                 )}
                 {visible.length > 0 ? (

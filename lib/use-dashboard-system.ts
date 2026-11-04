@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
+import { useRouter } from "next/navigation";
 export type SystemState = {
     requestsOpen: boolean;
     votingOpen: boolean;
@@ -25,12 +25,12 @@ export function useDashboardSystem() {
     const [state, setState] = useState<SystemState | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
+    const router = useRouter();
     const load = useCallback(async () => {
         try {
             const res = await fetch("/api/dashboard/system", { cache: "no-store" });
             if (res.status === 401) {
-                window.location.assign("/login");
+                router.replace("/login");
                 return;
             }
             const data: unknown = await res.json();
@@ -41,7 +41,7 @@ export function useDashboardSystem() {
         } catch {
             // Sessiz geç, bir sonraki turda tekrar dener
         }
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
@@ -62,7 +62,7 @@ export function useDashboardSystem() {
                 body: JSON.stringify(body),
             });
             if (res.status === 401) {
-                window.location.assign("/login");
+                router.replace("/login");
                 return false;
             }
             const data = await res.json().catch(() => null);
@@ -78,7 +78,7 @@ export function useDashboardSystem() {
         } finally {
             setBusy(false);
         }
-    }, []);
+    }, [router]);
 
     return { state, busy, error, load, act };
 }
