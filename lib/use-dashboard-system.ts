@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 export type SystemState = {
+    playlistVisible: boolean;
     requestsOpen: boolean;
     votingOpen: boolean;
     nowPlaying: string | null;
@@ -11,7 +12,11 @@ export type SystemState = {
 };
 
 export type SystemAction =
-    | { action: "set"; key: "requests_open" | "voting_open"; value: boolean }
+    | {
+        action: "set";
+        key: "requests_open" | "voting_open" | "playlist_visible";
+        value: boolean;
+    }
     | { action: "play"; id: string; title?: string }
     | { action: "stop" }
     | { action: "reset_played" }

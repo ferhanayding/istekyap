@@ -1,14 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Music2, Search, X } from "lucide-react";
+import { Music2, Play, Search, Square, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { lyricsUrl } from "@/lib/lyrics";
 import { useToast } from "../Toast";
 
 type Result = Track & { inPlaylist?: boolean };
 
-export default function LyricsBar() {
+export default function LyricsBar({
+    nowPlaying,
+    busy,
+    onPlay,
+    onStop,
+}: {
+    nowPlaying: string | null;
+    busy: boolean;
+    onPlay: (id: string, title: string) => void;
+    onStop: () => void;
+}) {
     const [query, setQuery] = useState("");
     const [open, setOpen] = useState(false);
     const [result, setResult] = useState<{ q: string; items: Result[] } | null>(
@@ -86,8 +96,8 @@ export default function LyricsBar() {
                     }}
                     onFocus={() => setOpen(true)}
                     onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-                    placeholder="Şarkı sözü ara: şarkı adı yaz"
-                    aria-label="Sözleri aranacak şarkı"
+                    placeholder="Şarkı ara: çal ya da sözlerine bak"
+                    aria-label="Şarkı ara"
                     enterKeyHint="search"
                     autoComplete="off"
                     maxLength={150}
@@ -109,17 +119,16 @@ export default function LyricsBar() {
             </form>
 
             {active && (
-                <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
+                <div className="absolute inset-x-0 top-12 max-h-80 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
                     {hasItems && (
                         <ul className={fresh ? "" : "opacity-60"}>
-                            {result.items.map((t) => (
-                                <li key={t.id}>
-                                    <a
-                                        href={lyricsUrl(t.name, t.artists)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={() => setOpen(false)}
-                                        className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-white/[0.06]"
+                            {result.items.map((t) => {
+                                const playing = nowPlaying === t.id;
+                                return (
+                                    <li
+                                        key={t.id}
+                                        className={`flex items-center gap-2 rounded-xl p-2 transition ${playing ? "bg-[#37D9BD]/10" : "hover:bg-white/[0.06]"
+                                            }`}
                                     >
                                         {t.cover ? (
                                             // eslint-disable-next-line @next/next/no-img-element
@@ -133,6 +142,7 @@ export default function LyricsBar() {
                                         ) : (
                                             <div className="size-9 shrink-0 rounded-lg bg-white/10" />
                                         )}
+
                                         <span className="min-w-0 flex-1">
                                             <span className="block truncate text-sm font-bold">
                                                 {t.name}
@@ -141,13 +151,45 @@ export default function LyricsBar() {
                                                 {t.artists}
                                             </span>
                                         </span>
-                                        <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#8C70FF]/15 px-2.5 py-1 text-xs font-bold text-[#AA96FF]">
+
+                                        <button
+                                            type="button"
+                                            disabled={busy}
+                                            onClick={() => {
+                                                if (playing) onStop();
+                                                else onPlay(t.id, `${t.name} · ${t.artists}`);
+                                                setOpen(false);
+                                            }}
+                                            aria-label={
+                                                playing ? `${t.name} durdur` : `${t.name} çal`
+                                            }
+                                            className={`flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-bold transition active:scale-95 disabled:opacity-50 ${playing
+                                                ? "bg-[#FF729B]/15 text-[#FF729B]"
+                                                : "bg-[#37D9BD]/15 text-[#37D9BD]"
+                                                }`}
+                                        >
+                                            {playing ? (
+                                                <Square size={11} fill="currentColor" />
+                                            ) : (
+                                                <Play size={12} fill="currentColor" />
+                                            )}
+                                            {playing ? "Durdur" : "Çal"}
+                                        </button>
+
+                                        <a
+                                            href={lyricsUrl(t.name, t.artists)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={() => setOpen(false)}
+                                            aria-label={`${t.name} şarkısının sözlerini Google'da ara`}
+                                            className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-[#8C70FF]/15 px-2.5 text-xs font-bold text-[#AA96FF] transition hover:bg-[#8C70FF]/25"
+                                        >
                                             <Music2 size={12} />
                                             Sözler
-                                        </span>
-                                    </a>
-                                </li>
-                            ))}
+                                        </a>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
 

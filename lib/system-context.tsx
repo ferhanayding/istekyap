@@ -16,6 +16,7 @@ type Raw = {
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     played: string[];
+    playlistVisible?: boolean;
 };
 
 export type System = {
@@ -25,12 +26,14 @@ export type System = {
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     played: Set<string>;
+    playlistVisible: boolean;
 };
 
 const POLL_MS = 10_000;
 
 const EMPTY: System = {
     loaded: false,
+    playlistVisible: true,
     requestsOpen: false,
     votingOpen: false,
     nowPlaying: null,
@@ -77,6 +80,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
             raw
                 ? {
                     loaded: true,
+                    playlistVisible: raw.playlistVisible !== false,
                     requestsOpen: raw.requestsOpen,
                     votingOpen: raw.votingOpen,
                     nowPlaying: raw.nowPlaying,

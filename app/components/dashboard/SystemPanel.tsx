@@ -86,6 +86,15 @@ export default function SystemPanel({
                 disabled={busy}
                 onChange={(value) => run({ action: "set", key: "voting_open", value })}
             />
+            <Toggle
+                label="Playlist (repertuar)"
+                desc="Kapalıyken sitede sadece istek ekranı görünür, playlist tamamen gizlenir."
+                on={state.playlistVisible}
+                disabled={busy}
+                onChange={(value) =>
+                    run({ action: "set", key: "playlist_visible", value })
+                }
+            />
 
             <div className="rounded-2xl border border-white/[0.04] bg-[#19162D] p-4">
                 <p className="text-[15px] font-bold text-[#F5F2FF]">Şu an çalan</p>
@@ -113,7 +122,8 @@ export default function SystemPanel({
                     </p>
                 )}
                 <p className="mt-3 text-xs text-[#817A98]">
-                    Bu gece çalınan: {state.played.length} şarkı
+                    Bu gece çalınan: {state.played.length} şarkı · Çalıyor işareti 5 dakika
+                    sonra kendiliğinden kapanır.
                 </p>
             </div>
 

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Bell } from "lucide-react";
 import { useRequestFeed, type RequestItem } from "@/lib/use-request-feed";
+import { useSystem } from "@/lib/system-context";
 import BottomNav, { type Tab } from "./BottomNav";
 import RequestsPanel from "./RequestsPanel";
 import { useToast } from "./Toast";
@@ -17,11 +18,15 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
     const [tab, setTab] = useState<Tab>("playlist");
     const [unread, setUnread] = useState(0);
     const toast = useToast();
-    const tabRef = useRef(tab);
+
+    // Playlist kapalıysa sadece istek listesi var
+    const showPlaylist = useSystem().playlistVisible;
+    const activeTab: Tab = showPlaylist ? tab : "requests";
+    const tabRef = useRef(activeTab);
 
     useEffect(() => {
-        tabRef.current = tab;
-    }, [tab]);
+        tabRef.current = activeTab;
+    }, [activeTab]);
 
     const openRequests = useCallback(() => {
         setTab("requests");
@@ -57,22 +62,26 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
     return (
         <>
             {/* İkisi de açık kalır, böylece playlist aramanı kaybetmezsin ve liste güncellenmeye devam eder */}
+            {showPlaylist && (
+                <div
+                    className={
+                        activeTab === "playlist" ? "flex min-h-0 flex-1 flex-col" : "hidden"
+                    }
+                >
+                    {playlist}
+                </div>
+            )}
             <div
                 className={
-                    tab === "playlist" ? "flex min-h-0 flex-1 flex-col" : "hidden"
-                }
-            >
-                {playlist}
-            </div>
-            <div
-                className={
-                    tab === "requests" ? "flex min-h-0 flex-1 flex-col" : "hidden"
+                    activeTab === "requests" ? "flex min-h-0 flex-1 flex-col" : "hidden"
                 }
             >
                 <RequestsPanel feed={feed} />
             </div>
 
-            <BottomNav tab={tab} unread={unread} onTab={openTab} />
+            {showPlaylist && (
+                <BottomNav tab={activeTab} unread={unread} onTab={openTab} />
+            )}
         </>
     );
 }

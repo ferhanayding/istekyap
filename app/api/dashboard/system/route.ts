@@ -23,6 +23,7 @@ async function setNowPlaying(id: string | null, title: string | null) {
         .update({
             now_playing: id,
             now_playing_title: title,
+            now_playing_since: id ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
         })
         .eq("id", 1);
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
             case "set": {
                 const { key, value } = body;
                 if (
-                    (key !== "requests_open" && key !== "voting_open") ||
+                    !["requests_open", "voting_open", "playlist_visible"].includes(key) ||
                     typeof value !== "boolean"
                 ) {
                     return NextResponse.json({ error: "Geçersiz ayar." }, { status: 400 });

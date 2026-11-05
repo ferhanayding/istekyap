@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Check,
@@ -194,11 +195,17 @@ function DashboardInner() {
 
     // Çal: öncekini otomatik durdurur, çalan istekse listesi yenilenir
     async function play(id: string, title: string) {
-        if (await system.act({ action: "play", id, title })) void load();
+        if (await system.act({ action: "play", id, title })) {
+            toast.success(`Çalıyor: ${title}`);
+            void load();
+        }
     }
 
     async function stop() {
-        if (await system.act({ action: "stop" })) void load();
+        if (await system.act({ action: "stop" })) {
+            toast.info("Durduruldu.");
+            void load();
+        }
     }
 
     async function changeStatus(id: string, status: Status) {
@@ -212,7 +219,7 @@ function DashboardInner() {
                 body: JSON.stringify({ status }),
             });
             if (res.status === 401) {
-                window.location.assign("/login");
+                router.replace("/login");
                 return;
             }
             if (!res.ok) {
@@ -309,8 +316,12 @@ function DashboardInner() {
             </header>
 
             {/* Şarkı sözü araması: her sekmede sabit */}
-            <LyricsBar />
-
+            <LyricsBar
+                nowPlaying={nowPlaying}
+                busy={system.busy}
+                onPlay={play}
+                onStop={stop}
+            />
             {/* Ana sekmeler */}
             <div
                 className="mb-3 grid shrink-0 grid-cols-3 rounded-2xl bg-white/[0.04] p-1"

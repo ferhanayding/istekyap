@@ -66,6 +66,12 @@ export async function POST(req: NextRequest) {
             );
         }
         const state = await getAppState();
+        if (!state.playlistVisible) {
+            return NextResponse.json(
+                { error: "Playlist şu an kapalı." },
+                { status: 403 }
+            );
+        }
         if (!state.votingOpen) {
             return NextResponse.json(
                 { error: "Oylama şu an kapalı." },
