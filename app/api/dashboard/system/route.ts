@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { clearAppStateCache, getAppState } from "@/lib/app-state";
 import { clearLikeCountsCache } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-
+import { getTrackById } from "@/lib/search";
+import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -17,19 +18,61 @@ async function finishRequest(spotifyId: string) {
     if (error) throw error;
 }
 
-async function setNowPlaying(id: string | null, title: string | null) {
+async function setNowPlaying(
+    id: string | null,
+    title: string | null,
+    cover: string | null = null
+) {
     const { error } = await supabaseAdmin
         .from("app_state")
         .update({
             now_playing: id,
             now_playing_title: title,
+            now_playing_cover: cover,
             now_playing_since: id ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
         })
         .eq("id", 1);
     if (error) throw error;
 }
+// Playlistte olmayan şarkı istek listesine de girer, böylece oylanabilir
+async function ensureRequest(id: string) {
+    const [index, track] = await Promise.all([
+        getPlaylistIndex().catch(() => null),
+        getTrackById(id).catch(() => null),
+    ]);
+    if (!track) return;
+    if (index && isInPlaylist(index, track)) return;
 
+    const { data: row, error } = await supabaseAdmin
+        .from("requests")
+        .select("id, status")
+        .eq("spotify_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (error) throw error;
+
+    if (row) {
+        if (row.status !== "approved") {
+            const { error: e } = await supabaseAdmin
+                .from("requests")
+                .update({ status: "approved" })
+                .eq("id", row.id);
+            if (e && e.code !== "23505") throw e;
+        }
+        return;
+    }
+
+    const { error: e } = await supabaseAdmin.from("requests").insert({
+        spotify_id: track.id,
+        name: track.name,
+        artists: track.artists,
+        cover: track.cover,
+        status: "approved",
+    });
+    if (e && e.code !== "23505") throw e;
+}
 export async function GET() {
     if (!(await requireUser())) {
         return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
@@ -81,6 +124,7 @@ export async function POST(req: NextRequest) {
                 if (current.nowPlaying && current.nowPlaying !== id) {
                     await finishRequest(current.nowPlaying);
                 }
+                await ensureRequest(id).catch((e) => console.error(e));
 
                 const { error } = await supabaseAdmin
                     .from("played_songs")
@@ -90,7 +134,12 @@ export async function POST(req: NextRequest) {
                     );
                 if (error) throw error;
 
-                await setNowPlaying(id, title);
+                const track = await getTrackById(id).catch(() => null);
+                await setNowPlaying(
+                    id,
+                    track ? `${track.name} · ${track.artists}` : title,
+                    track?.cover ?? null
+                );
                 break;
             }
 

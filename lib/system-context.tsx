@@ -17,9 +17,11 @@ type Raw = {
     nowPlayingTitle: string | null;
     played: string[];
     playlistVisible?: boolean;
+    nowPlayingCover?: string | null;
 };
 
 export type System = {
+    nowPlayingCover: string | null;
     loaded: boolean;
     requestsOpen: boolean;
     votingOpen: boolean;
@@ -29,7 +31,7 @@ export type System = {
     playlistVisible: boolean;
 };
 
-const POLL_MS = 10_000;
+const POLL_MS = 5_000;
 
 const EMPTY: System = {
     loaded: false,
@@ -39,6 +41,7 @@ const EMPTY: System = {
     nowPlaying: null,
     nowPlayingTitle: null,
     played: new Set(),
+    nowPlayingCover: null,
 };
 
 const SystemContext = createContext<System>(EMPTY);
@@ -85,6 +88,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
                     votingOpen: raw.votingOpen,
                     nowPlaying: raw.nowPlaying,
                     nowPlayingTitle: raw.nowPlayingTitle ?? null,
+                    nowPlayingCover: raw.nowPlayingCover ?? null,
                     played: new Set(raw.played ?? []),
                 }
                 : EMPTY,

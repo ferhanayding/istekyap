@@ -107,7 +107,7 @@ export async function GET() {
     // Vercel 10 sn boyunca herkese aynı cevabı verir, veritabanı yorulmaz
     return NextResponse.json(sorted, {
         headers: {
-            "Cache-Control": "public, s-maxage=10, stale-while-revalidate=10",
+            "Cache-Control": "public, s-maxage=5",
         },
     });
 }

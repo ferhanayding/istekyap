@@ -28,7 +28,21 @@ import SystemPanel from "./SystemPanel";
 
 type Status = "pending" | "approved" | "played" | "rejected";
 type Main = "requests" | "playlist" | "system";
+type Tab = Status | "all";
 
+const STATUS_ORDER: Record<Status, number> = {
+    pending: 0,
+    approved: 1,
+    played: 2,
+    rejected: 3,
+};
+
+const STATUS_BADGE: Record<Status, { text: string; className: string }> = {
+    pending: { text: "Bekliyor", className: "bg-white/[0.07] text-[#A99EC9]" },
+    approved: { text: "Onaylı", className: "bg-[#37D9BD]/15 text-[#37D9BD]" },
+    played: { text: "Çalındı", className: "bg-[#9B80FF]/15 text-[#B9A6FF]" },
+    rejected: { text: "Reddedildi", className: "bg-[#FF729B]/15 text-[#FF729B]" },
+};
 type RequestRow = {
     id: string;
     spotify_id: string;
@@ -39,9 +53,9 @@ type RequestRow = {
     created_at: string;
 };
 
-const POLL_MS = 20_000;
-
-const TABS: { key: Status; label: string }[] = [
+const POLL_MS = 10_000;
+const TABS: { key: Tab; label: string }[] = [
+    { key: "all", label: "Hepsi" },
     { key: "pending", label: "Bekleyen" },
     { key: "approved", label: "Onaylı" },
     { key: "played", label: "Çalındı" },
@@ -54,7 +68,8 @@ const MAIN_TABS: { key: Main; label: string }[] = [
     { key: "system", label: "Sistem" },
 ];
 
-const EMPTY: Record<Status, string> = {
+const EMPTY: Record<Tab, string> = {
+    all: "Henüz istek yok.",
     pending: "Bekleyen istek yok. Yeni istek gelince burada görünür.",
     approved: "Onaylanmış, çalınmayı bekleyen istek yok.",
     played: "Henüz çalınan istek yok.",
@@ -81,7 +96,7 @@ const iconBtn =
 function DashboardInner() {
     const [items, setItems] = useState<RequestRow[] | null>(null);
     const [main, setMain] = useState<Main>("requests");
-    const [tab, setTab] = useState<Status>("pending");
+    const [tab, setTab] = useState<Tab>("all");
     const [error, setError] = useState<string | null>(null);
     const [busyId, setBusyId] = useState<string | null>(null);
     const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -267,8 +282,16 @@ function DashboardInner() {
         }
     }
 
-    const count = (s: Status) => items?.filter((r) => r.status === s).length ?? 0;
-    const visible = items?.filter((r) => r.status === tab) ?? [];
+    const count = (s: Tab) =>
+        s === "all"
+            ? (items?.length ?? 0)
+            : (items?.filter((r) => r.status === s).length ?? 0);
+    const visible =
+        tab === "all"
+            ? [...(items ?? [])].sort(
+                (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+            )
+            : (items?.filter((r) => r.status === tab) ?? []);
 
     return (
         <div className="mx-auto flex h-dvh max-w-2xl flex-col px-5 pt-8">
@@ -443,6 +466,13 @@ function DashboardInner() {
                                                         {r.artists}
                                                     </p>
                                                     {playing && <NowPlayingBadge className="mt-1" />}
+                                                    {tab === "all" && (
+                                                        <span
+                                                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_BADGE[r.status].className}`}
+                                                        >
+                                                            {STATUS_BADGE[r.status].text}
+                                                        </span>
+                                                    )}
                                                     <p className="mt-0.5 text-[11px] text-[#817A98]">
                                                         {isNew && (
                                                             <span className="mr-1.5 rounded-full bg-[#9B80FF] px-1.5 py-0.5 text-[10px] font-bold text-white">

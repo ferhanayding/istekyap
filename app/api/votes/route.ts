@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIp, rateLimit } from "@/lib/rate-limit";
 import { getOrCreateDeviceId, readDeviceId } from "@/lib/device";
+import { getAppState } from "@/lib/app-state";
 import { getPlaylistIndex } from "@/lib/playlist-index";
 import { clearLikeCountsCache, getLikeCounts } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getAppState } from "@/lib/app-state";
+
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 export async function GET() {
@@ -65,26 +66,15 @@ export async function POST(req: NextRequest) {
                 { status: 429 }
             );
         }
+
         const state = await getAppState();
-        if (!state.playlistVisible) {
-            return NextResponse.json(
-                { error: "Playlist şu an kapalı." },
-                { status: 403 }
-            );
-        }
         if (!state.votingOpen) {
             return NextResponse.json(
                 { error: "Oylama şu an kapalı." },
                 { status: 403 }
             );
         }
-        if (!state.played.includes(id)) {
-            return NextResponse.json(
-                { error: "Bu şarkı henüz çalınmadı. Çalınca oy verebilirsin." },
-                { status: 403 }
-            );
-        }
-        // Sadece playlistteki şarkılara oy verilebilir
+
         const index = await getPlaylistIndex().catch(() => null);
         if (!index) {
             return NextResponse.json(
@@ -92,10 +82,33 @@ export async function POST(req: NextRequest) {
                 { status: 503 }
             );
         }
-        if (!index.ids.has(id)) {
+
+        // Oy verilebilen şarkı: playlistte olan ya da istek listesinde onaylı/çalınmış olan
+        let played: boolean;
+        if (index.ids.has(id)) {
+            played = state.played.includes(id);
+        } else {
+            const { data: row, error } = await supabaseAdmin
+                .from("requests")
+                .select("status")
+                .eq("spotify_id", id)
+                .in("status", ["approved", "played"])
+                .limit(1)
+                .maybeSingle();
+            if (error) throw error;
+            if (!row) {
+                return NextResponse.json(
+                    { error: "Bu şarkıya oy verilemez." },
+                    { status: 404 }
+                );
+            }
+            played = row.status === "played" || state.played.includes(id);
+        }
+
+        if (!played) {
             return NextResponse.json(
-                { error: "Bu şarkı playlistte değil." },
-                { status: 404 }
+                { error: "Bu şarkı henüz çalınmadı. Çalınca oy verebilirsin." },
+                { status: 403 }
             );
         }
 

@@ -1,12 +1,13 @@
 "use client";
-import { useSystem } from "@/lib/system-context";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
-import { useVotes } from "@/lib/use-votes";
+import { useSystem } from "@/lib/system-context";
+import { useSharedVotes } from "@/lib/votes-context";
+import { CLEAR_SEARCH_EVENT } from "@/lib/scroll";
 import TrackItem from "./TrackItem";
-import NowPlayingCard from "./NowPlayingCard";
-import { useToast } from "./Toast";
+
 // Küçük harfe çevir, Türkçe karakterleri ve aksanları sadeleştir
 const fold = (s: string) =>
     s
@@ -19,13 +20,16 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
     const [query, setQuery] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const { votes, vote, error: voteError } = useVotes();
-    const toast = useToast();
+    const { votes, vote } = useSharedVotes();
     const system = useSystem();
+
+    // Mini oynatıcıya basınca arama temizlensin ki çalan şarkı listede görünsün
     useEffect(() => {
-        if (voteError) toast.error(voteError);
-    }, [voteError, toast]);
-    // i: şarkının asıl sırası, renkler arama yapınca da aynı kalsın
+        const clear = () => setQuery("");
+        window.addEventListener(CLEAR_SEARCH_EVENT, clear);
+        return () => window.removeEventListener(CLEAR_SEARCH_EVENT, clear);
+    }, []);
+
     const indexed = useMemo(
         () =>
             tracks.map((t, i) => ({
@@ -43,47 +47,16 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
     }, [indexed, query]);
 
     const searching = query.trim() !== "";
-    const currentId = system.nowPlaying;
-    const current = currentId
-        ? tracks.find((t) => t.id === currentId)
-        : undefined;
 
-    // Çalan şarkıya yumuşakça kay. Aramayla gizlenmişse önce aramayı temizler
-    function jumpToCurrent() {
-        if (!current) return;
-        const scroll = () => {
-            const box = scrollRef.current;
-            const el = document.getElementById(`track-${current.id}`);
-            if (!box || !el) return;
-            const b = box.getBoundingClientRect();
-            const r = el.getBoundingClientRect();
-            const top =
-                box.scrollTop + (r.top - b.top) - (box.clientHeight - r.height) / 2;
-            box.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-        };
-        if (visible.some((x) => x.t.id === current.id)) {
-            scroll();
-        } else {
-            setQuery("");
-            setTimeout(scroll, 80);
-        }
-    }
     function clear() {
         setQuery("");
         inputRef.current?.focus();
     }
 
     return (
-        <>  {currentId && (
-            <NowPlayingCard
-                id={currentId}
-                name={current?.name ?? system.nowPlayingTitle ?? "Şarkı"}
-                artists={current?.artists}
-                onClick={current ? jumpToCurrent : undefined}
-            />
-        )}
-            <div className="mb-3 flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-white/[0.08] bg-[#1E1A3D] px-3 transition focus-within:border-[#9B80FF]/60">
-                <Search size={17} className="shrink-0 text-[#A99EC9]" />
+        <>
+            <div className="mb-1 flex h-10 shrink-0 items-center gap-2 rounded-lg bg-white/[0.09] px-3 transition focus-within:bg-white/[0.13]">
+                <Search size={17} className="shrink-0 text-[#B3B3B3]" />
                 <input
                     ref={inputRef}
                     value={query}
@@ -95,25 +68,25 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                         if (e.key === "Escape") setQuery("");
                         if (e.key === "Enter") e.currentTarget.blur(); // telefonda klavye kapansın
                     }}
-                    placeholder={`${tracks.length} şarkı içinde ara`}
+                    placeholder={`Playlistte ara · ${tracks.length} şarkı`}
                     aria-label="Playlistte şarkı ara"
                     enterKeyHint="search"
                     autoComplete="off"
                     maxLength={100}
-                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#7E769B]"
+                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#8F8AA8]"
                 />
                 {searching && (
                     <>
-                        <span className="shrink-0 text-xs font-bold text-[#817A98]">
+                        <span className="shrink-0 text-xs font-bold text-[#8F8AA8]">
                             {visible.length} / {tracks.length}
                         </span>
                         <button
                             type="button"
                             onClick={clear}
                             aria-label="Aramayı temizle"
-                            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-[#A99EC9] transition hover:bg-white/[0.12]"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10"
                         >
-                            <X size={14} />
+                            <X size={15} />
                         </button>
                     </>
                 )}
@@ -121,30 +94,15 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
 
             <div
                 ref={scrollRef}
-                className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                data-scroll-list
+                className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
             >
-                {voteError && (
-                    <p
-                        role="alert"
-                        className="mb-2 rounded-xl bg-[#FF729B]/10 px-3 py-2 text-xs text-[#FF729B]"
-                    >
-                        {voteError}
-                    </p>
-                )}
-                {system.loaded && (
-                    <p className="mb-2 rounded-xl bg-white/[0.04] px-3 py-2 text-xs text-[#A99EC9]">
-                        {system.votingOpen
-                            ? "Sadece çalınan şarkılara oy verilir."
-                            : "Oylama şu an kapalı."}
-                    </p>
-                )}
                 {visible.length > 0 ? (
-                    <div className="space-y-2">
+                    <div>
                         {visible.map(({ t, i }) => (
                             <TrackItem
                                 key={`${t.id}-${i}`}
                                 track={t}
-                                index={i}
                                 likes={votes[t.id]?.likes ?? 0}
                                 mine={votes[t.id]?.mine ?? 0}
                                 onVote={vote}
@@ -155,7 +113,7 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                         ))}
                     </div>
                 ) : (
-                    <p className="rounded-2xl bg-[#19162D] p-4 text-sm text-[#89839F]">
+                    <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
                         &quot;{query.trim()}&quot; playlistte yok. &quot;İstek Parça
                         Yap&quot; butonundan isteyebilirsin.
                     </p>

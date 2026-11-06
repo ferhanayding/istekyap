@@ -5,7 +5,7 @@ import AppTabs from "./components/AppTabs";
 import PlaylistSection from "./components/PlaylistSection";
 import { SystemProvider } from "@/lib/system-context";
 import { ToastProvider } from "./components/Toast";
-
+import { VotesProvider } from "@/lib/votes-context";
 const font = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
 });
@@ -17,14 +17,15 @@ export default function Home() {
     >
       <div className="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden bg-[#141124] sm:max-h-[860px] sm:rounded-[36px] sm:border sm:border-white/[0.08] sm:shadow-2xl">
         {/* Arka plan süsleri */}
-        <div className="pointer-events-none absolute -right-32 -top-32 size-80 rounded-full bg-[#805CFF]/10 blur-[100px]" />
-        <div className="pointer-events-none absolute -left-32 top-[500px] size-64 rounded-full bg-[#00D1B2]/[0.06] blur-[100px]" />
-
+        {/* Spotify tarzı üst renk geçişi */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#4A38B0]/55 via-[#2A1F66]/25 to-transparent" />
         <SystemProvider>
           <ToastProvider>
-            <Header />
-            <RequestButton />
-            <AppTabs playlist={<PlaylistSection />} />
+            <VotesProvider>
+              <Header />
+              <RequestButton />
+              <AppTabs playlist={<PlaylistSection />} />
+            </VotesProvider>
           </ToastProvider>
         </SystemProvider>
       </div>

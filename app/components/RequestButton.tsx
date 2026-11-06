@@ -1,11 +1,11 @@
 "use client";
-import { Lock } from "lucide-react";
-import { useSystem } from "@/lib/system-context";
+
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, Search, Sparkles, X } from "lucide-react";
+import { Check, ChevronRight, Lock, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
-import { REQUEST_SENT_EVENT } from "@/lib/use-request-feed";
+import { useSystem } from "@/lib/system-context";
 import { useToast } from "./Toast";
+
 type Result = Track & { inPlaylist?: boolean };
 
 const SEND_ERROR = "İstek gönderilemedi. Tekrar dokun.";
@@ -18,12 +18,15 @@ export default function RequestButton() {
     );
     const [failedQ, setFailedQ] = useState<string | null>(null);
     const [sendingId, setSendingId] = useState<string | null>(null);
-    const toast = useToast(); const [sent, setSent] = useState<Track | null>(null);
+    const [sent, setSent] = useState<Track | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const { loaded, requestsOpen } = useSystem();
+    const toast = useToast();
     const closed = loaded && !requestsOpen;
+
     const q = query.trim();
-    const active = open && !sent && q.length >= 2;
+    // Arama başarısız olunca kutu boş kalmasın, hata toast olarak gelir
+    const active = open && !sent && q.length >= 2 && failedQ !== q;
     const fresh = result?.q === q;
     const hasItems = !!result && result.items.length > 0;
 
@@ -80,7 +83,6 @@ export default function RequestButton() {
                 return;
             }
             setSent(t);
-            window.dispatchEvent(new Event(REQUEST_SENT_EVENT));
             setTimeout(() => setOpen(false), 2200);
         } catch {
             toast.error(SEND_ERROR);
@@ -91,16 +93,16 @@ export default function RequestButton() {
 
     return (
         <section className="relative z-20 shrink-0 px-5">
-            <div className="relative h-12">
+            <div className="relative h-11">
                 {/* Buton */}
                 <button
                     type="button"
                     onClick={openPanel}
                     inert={open}
                     disabled={!loaded || !requestsOpen}
-                    className={`absolute inset-0 flex w-full items-center justify-between rounded-2xl px-4 text-sm font-extrabold transition duration-300 ease-out motion-reduce:transition-none ${closed
-                        ? "cursor-not-allowed bg-white/[0.05] text-[#8D84AB]"
-                        : "bg-gradient-to-r from-[#7555E9] to-[#5A3FC0] shadow-[0_10px_30px_-14px_#795BFF] disabled:opacity-70"
+                    className={`absolute inset-0 flex w-full items-center justify-between rounded-full px-5 text-sm font-extrabold transition duration-300 ease-out motion-reduce:transition-none ${closed
+                        ? "cursor-not-allowed bg-white/[0.07] text-[#9A94B0]"
+                        : "bg-[#1ED760] text-black shadow-[0_8px_24px_-12px_#1ED760] disabled:opacity-70"
                         } ${open ? "scale-95 opacity-0" : "opacity-100 enabled:active:scale-[0.98]"
                         }`}
                 >
@@ -108,17 +110,17 @@ export default function RequestButton() {
                         {closed ? (
                             <Lock size={17} />
                         ) : (
-                            <Sparkles size={17} className="text-[#E5D9FF]" />
+                            <Sparkles size={17} className="text-black" />
                         )}
                         {closed ? "İstekler şu an kapalı" : "İstek Parça Yap"}
                     </span>
-                    {!closed && <ChevronRight size={18} className="text-white/70" />}
+                    {!closed && <ChevronRight size={18} className="text-black/60" />}
                 </button>
 
                 {/* Arama kutusu */}
                 <div
                     inert={!open}
-                    className={`absolute inset-0 flex items-center gap-2 rounded-2xl border border-[#9B80FF]/40 bg-[#1E1A3D] px-3 shadow-[0_10px_30px_-14px_#795BFF] transition duration-300 ease-out motion-reduce:transition-none ${open ? "scale-x-100 opacity-100" : "scale-x-90 opacity-0"
+                    className={`absolute inset-0 flex items-center gap-2 rounded-full border border-[#1ED760]/60 bg-[#1F1B33] px-4 transition duration-300 ease-out motion-reduce:transition-none ${open ? "scale-x-100 opacity-100" : "scale-x-90 opacity-0"
                         }`}
                 >
                     {sent ? (
@@ -154,8 +156,8 @@ export default function RequestButton() {
                 </div>
 
                 {/* Öneriler */}
-                {active && failedQ !== q && (
-                    <div className="absolute inset-x-0 top-14 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
+                {active && (
+                    <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
                         {hasItems && (
                             <ul className={fresh ? "" : "opacity-60"}>
                                 {result.items.map((t) => (
@@ -208,15 +210,9 @@ export default function RequestButton() {
                                 Sonuç yok. Şarkı adını farklı yazmayı dene.
                             </p>
                         )}
-                        {!hasItems && !fresh && failedQ !== q && (
+                        {!hasItems && !fresh && (
                             <p className="p-3 text-sm text-[#89839F]">Aranıyor…</p>
                         )}
-                        {failedQ === q && (
-                            <p className="p-3 text-sm text-[#FF729B]">
-                                Arama yapılamadı. Biraz sonra tekrar dene.
-                            </p>
-                        )}
-
                     </div>
                 )}
             </div>

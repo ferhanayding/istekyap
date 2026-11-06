@@ -1,18 +1,15 @@
 "use client";
 
-import { Music2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Mic } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import type { MyVote } from "@/lib/use-votes";
 import { addedInfo } from "@/lib/added";
 import { lyricsUrl } from "@/lib/lyrics";
-import NowPlayingBadge from "./NowPlayingBadge";
-import { useToast } from "./Toast";
-
-const COLORS = ["#9B87FF", "#37D9BD", "#FF729B", "#FFBD59"];
+import EqBars from "./EqBars";
+import VoteButtons from "./VoteButtons";
 
 export default function TrackItem({
     track: t,
-    index,
     likes,
     mine,
     onVote,
@@ -21,7 +18,6 @@ export default function TrackItem({
     playing,
 }: {
     track: Track;
-    index: number;
     likes: number;
     mine: MyVote;
     onVote: (id: string, value: 1 | -1) => void;
@@ -29,120 +25,69 @@ export default function TrackItem({
     votingOpen: boolean;
     playing: boolean;
 }) {
-    const color = COLORS[index % COLORS.length];
     const added = addedInfo(t.addedAt);
-    const toast = useToast();
-
-    // Oy sadece oylama açıkken ve şarkı çalındıysa verilebilir. Sayı her zaman görünür
-    const canVote = played && votingOpen;
-
-    function press(value: 1 | -1) {
-        if (!votingOpen) return toast.error("Oylama şu an kapalı.");
-        if (!played) {
-            return toast.error("Bu şarkı henüz çalınmadı. Çalınca oy verebilirsin.");
-        }
-        onVote(t.id, value);
-    }
 
     return (
-        <div
-            id={`track-${t.id}`}
-            className={`flex items-center gap-3 rounded-2xl border p-2.5 transition-colors ${playing
-                ? "border-[#37D9BD]/50 bg-gradient-to-r from-[#17342F] to-[#19162D] shadow-[0_0_24px_-8px_#37D9BD]"
-                : "border-white/[0.04] bg-[#19162D] hover:bg-[#211D3A]"
-                }`}
-        >
-            <div className="relative shrink-0">
-                {t.cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={t.cover}
-                        alt={`${t.album} kapağı`}
-                        width={52}
-                        height={52}
-                        className="size-[52px] rounded-xl object-cover"
-                    />
-                ) : (
-                    <div
-                        className="flex size-[52px] items-center justify-center rounded-xl"
-                        style={{ backgroundColor: color }}
-                    >
-                        <Music2 size={22} />
-                    </div>
-                )}
-                <span
-                    className="absolute -bottom-1 -right-1 size-3 rounded-full border-2 border-[#19162D]"
-                    style={{ backgroundColor: playing ? "#37D9BD" : color }}
+        <div id={`track-${t.id}`} className="flex items-center gap-3 py-2">
+            {t.cover ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={t.cover}
+                    alt={`${t.album} kapağı`}
+                    width={56}
+                    height={56}
+                    className="size-14 shrink-0 rounded-[4px] object-cover"
                 />
-            </div>
+            ) : (
+                <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
+            )}
 
             <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-bold text-[#F5F2FF]">{t.name}</p>
-                <p className="mt-0.5 truncate text-xs text-[#89839F]">{t.artists}</p>
-                {playing ? (
-                    <NowPlayingBadge className="mt-1" />
-                ) : (
+                <p
+                    className={`truncate text-base ${playing ? "font-bold text-[#1ED760]" : "font-medium text-white"
+                        }`}
+                >
+                    {t.name}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-[#B3B3B3]">
+                    {playing && <EqBars className="shrink-0" />}
+                    {!playing && added?.isNew && (
+                        <span className="shrink-0 rounded bg-[#1ED760] px-1.5 text-[10px] font-extrabold uppercase text-black">
+                            Yeni
+                        </span>
+                    )}
+                    <span className="truncate">{t.artists}</span>
+                </p>
+                {added && (
                     <p
-                        className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-[#625D78]"
+                        className="truncate text-[11px] text-[#7C7794]"
                         suppressHydrationWarning
                     >
-                        {added?.isNew && (
-                            <span className="shrink-0 rounded-full bg-[#37D9BD]/20 px-1.5 py-px font-bold text-[#37D9BD]">
-                                Yeni
-                            </span>
-                        )}
-                        <span className="truncate">
-                            {added ? `${added.label} · ${t.album}` : t.album}
-                        </span>
+                        {added.label}
                     </p>
                 )}
             </div>
 
-            <div className="flex w-[92px] shrink-0 flex-col gap-1.5">
-                <div className="flex gap-1.5">
-                    <button
-                        type="button"
-                        onClick={() => press(1)}
-                        aria-disabled={!canVote}
-                        aria-pressed={mine === 1}
-                        aria-label={`${t.name} şarkısını beğen`}
-                        className={`flex h-7 flex-1 items-center justify-center gap-1 rounded-full text-xs font-bold transition ${canVote ? "active:scale-95" : "opacity-80"
-                            } ${mine === 1
-                                ? "bg-[#37D9BD]/20 text-[#37D9BD]"
-                                : `bg-white/[0.05] text-[#AAA2C6] ${canVote ? "hover:bg-white/10" : ""}`
-                            }`}
-                    >
-                        <ThumbsUp size={13} fill={mine === 1 ? "currentColor" : "none"} />
-                        {likes}
-                    </button>
+            <VoteButtons
+                id={t.id}
+                name={t.name}
+                likes={likes}
+                mine={mine}
+                played={played}
+                votingOpen={votingOpen}
+                onVote={onVote}
+            />
 
-                    <button
-                        type="button"
-                        onClick={() => press(-1)}
-                        aria-disabled={!canVote}
-                        aria-pressed={mine === -1}
-                        aria-label={`${t.name} şarkısını beğenme`}
-                        className={`flex h-7 w-8 items-center justify-center rounded-full transition ${canVote ? "active:scale-95" : "opacity-60"
-                            } ${mine === -1
-                                ? "bg-[#FF729B]/20 text-[#FF729B]"
-                                : `bg-white/[0.05] text-[#AAA2C6] ${canVote ? "hover:bg-white/10" : ""}`
-                            }`}
-                    >
-                        <ThumbsDown size={13} fill={mine === -1 ? "currentColor" : "none"} />
-                    </button>
-                </div>
-
-                <a
-                    href={lyricsUrl(t.name, t.artists)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${t.name} şarkısının sözlerini Google'da ara`}
-                    className="flex h-7 items-center justify-center gap-1.5 rounded-full bg-[#8C70FF]/15 text-xs font-bold text-[#AA96FF] transition hover:bg-[#8C70FF]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
-                >
-                    <Music2 size={13} />
-                    Sözler
-                </a>
-            </div>
+            <a
+                href={lyricsUrl(t.name, t.artists)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Sözler"
+                aria-label={`${t.name} şarkısının sözlerini Google'da ara`}
+                className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
+            >
+                <Mic size={17} />
+            </a>
         </div>
     );
 }

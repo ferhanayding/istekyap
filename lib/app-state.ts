@@ -10,10 +10,11 @@ export type AppState = {
     playlistVisible: boolean;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
+    nowPlayingCover: string | null;
     played: string[];
 };
 
-// 3 saniye bellekte durur, her istekte veritabanına gidilmez
+// 2 saniye bellekte durur, her istekte veritabanına gidilmez
 let cache: { state: AppState; expires: number } | null = null;
 
 // Süresi dolan şarkıyı kapat. Çalan bir istekse "Çalındı"ya düşer
@@ -30,6 +31,7 @@ async function expireNowPlaying(id: string) {
         .update({
             now_playing: null,
             now_playing_title: null,
+            now_playing_cover: null,
             now_playing_since: null,
             updated_at: new Date().toISOString(),
         })
@@ -47,7 +49,7 @@ export async function getAppState(
         supabaseAdmin
             .from("app_state")
             .select(
-                "requests_open, voting_open, playlist_visible, now_playing, now_playing_title, now_playing_since"
+                "requests_open, voting_open, playlist_visible, now_playing, now_playing_title, now_playing_cover, now_playing_since"
             )
             .eq("id", 1)
             .maybeSingle(),
@@ -58,6 +60,7 @@ export async function getAppState(
 
     let nowPlaying: string | null = s.data?.now_playing ?? null;
     let nowPlayingTitle: string | null = s.data?.now_playing_title ?? null;
+    let nowPlayingCover: string | null = s.data?.now_playing_cover ?? null;
     const since = s.data?.now_playing_since
         ? new Date(s.data.now_playing_since).getTime()
         : null;
@@ -66,6 +69,7 @@ export async function getAppState(
         await expireNowPlaying(nowPlaying);
         nowPlaying = null;
         nowPlayingTitle = null;
+        nowPlayingCover = null;
     }
 
     // Satır yoksa istek ve oylama kapalı, playlist açık sayılır
@@ -75,9 +79,10 @@ export async function getAppState(
         playlistVisible: s.data ? s.data.playlist_visible !== false : true,
         nowPlaying,
         nowPlayingTitle,
+        nowPlayingCover,
         played: (p.data ?? []).map((r) => String(r.spotify_id)),
     };
-    cache = { state, expires: Date.now() + 3_000 };
+    cache = { state, expires: Date.now() + 2_000 };
     return state;
 }
 

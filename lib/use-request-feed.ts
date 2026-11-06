@@ -15,8 +15,7 @@ export type RequestItem = {
 };
 
 export const REQUEST_SENT_EVENT = "istek:gonderildi";
-export const POLL_MS = 20_000;
-
+export const POLL_MS = 10_000;
 export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
     const [items, setItems] = useState<RequestItem[] | null>(null);
     const [failed, setFailed] = useState(false);

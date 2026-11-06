@@ -5,22 +5,58 @@ import {
     useEffect,
     useRef,
     useState,
+    useSyncExternalStore,
     type ReactNode,
 } from "react";
 import { Bell } from "lucide-react";
 import { useRequestFeed, type RequestItem } from "@/lib/use-request-feed";
 import { useSystem } from "@/lib/system-context";
+import { CLEAR_SEARCH_EVENT, scrollToTrack } from "@/lib/scroll";
 import BottomNav, { type Tab } from "./BottomNav";
+import MiniPlayer from "./MiniPlayer";
 import RequestsPanel from "./RequestsPanel";
 import { useToast } from "./Toast";
 
+// Yenileyince kaldığın sekmede kal
+const TAB_KEY = "istekyap:tab";
+const TAB_EVENT = "istekyap:tab-degisti";
+let memoryTab: Tab = "playlist";
+
+function readTab(): Tab {
+    try {
+        const v = sessionStorage.getItem(TAB_KEY);
+        if (v === "requests" || v === "playlist") return v;
+    } catch {
+        // Tarayıcı depolamayı engelliyorsa bellekteki değeri kullan
+    }
+    return memoryTab;
+}
+
+function writeTab(t: Tab) {
+    memoryTab = t;
+    try {
+        sessionStorage.setItem(TAB_KEY, t);
+    } catch {
+        // Sessiz geç
+    }
+    window.dispatchEvent(new Event(TAB_EVENT));
+}
+
+function subscribeTab(cb: () => void) {
+    window.addEventListener(TAB_EVENT, cb);
+    return () => window.removeEventListener(TAB_EVENT, cb);
+}
+
+const serverTab = (): Tab => "playlist";
+
 export default function AppTabs({ playlist }: { playlist: ReactNode }) {
-    const [tab, setTab] = useState<Tab>("playlist");
+    const tab = useSyncExternalStore(subscribeTab, readTab, serverTab);
     const [unread, setUnread] = useState(0);
     const toast = useToast();
+    const system = useSystem();
 
     // Playlist kapalıysa sadece istek listesi var
-    const showPlaylist = useSystem().playlistVisible;
+    const showPlaylist = system.playlistVisible;
     const activeTab: Tab = showPlaylist ? tab : "requests";
     const tabRef = useRef(activeTab);
 
@@ -29,7 +65,7 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
     }, [activeTab]);
 
     const openRequests = useCallback(() => {
-        setTab("requests");
+        writeTab("requests");
         setUnread(0);
     }, []);
 
@@ -55,8 +91,18 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
     const feed = useRequestFeed(handleNew);
 
     function openTab(t: Tab) {
-        setTab(t);
+        writeTab(t);
         if (t === "requests") setUnread(0);
+    }
+
+    // Mini oynatıcıya basınca çalan şarkının olduğu listeye geç ve ona kay
+    function jumpToNowPlaying() {
+        const id = system.nowPlaying;
+        if (!id) return;
+        const inRequests = feed.items?.some((r) => r.spotify_id === id) ?? false;
+        openTab(showPlaylist && !inRequests ? "playlist" : "requests");
+        window.dispatchEvent(new Event(CLEAR_SEARCH_EVENT));
+        setTimeout(() => scrollToTrack(id), 150);
     }
 
     return (
@@ -78,6 +124,15 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
             >
                 <RequestsPanel feed={feed} />
             </div>
+
+            {system.nowPlaying && (
+                <MiniPlayer
+                    key={system.nowPlaying}
+                    title={system.nowPlayingTitle}
+                    cover={system.nowPlayingCover}
+                    onClick={jumpToNowPlaying}
+                />
+            )}
 
             {showPlaylist && (
                 <BottomNav tab={activeTab} unread={unread} onTab={openTab} />

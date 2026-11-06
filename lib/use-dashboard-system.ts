@@ -24,8 +24,7 @@ export type SystemAction =
     | { action: "reset_requests" };
 
 
-const POLL_MS = 20_000;
-
+const POLL_MS = 10_000;
 export function useDashboardSystem() {
     const [state, setState] = useState<SystemState | null>(null);
     const [busy, setBusy] = useState(false);
