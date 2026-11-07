@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
+import CommentButton from "./CommentButton";
 
 export default function Header() {
     return (
@@ -14,13 +15,16 @@ export default function Header() {
                     </span>
                 </div>
 
-                <Link
-                    href="/dashboard"
-                    aria-label="Dashboard girişi"
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[#CFC4FF] transition hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF] active:scale-95"
-                >
-                    <LayoutDashboard size={17} />
-                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                    <CommentButton />
+                    <Link
+                        href="/dashboard"
+                        aria-label="Dashboard girişi"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[#CFC4FF] transition hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF] active:scale-95"
+                    >
+                        <LayoutDashboard size={17} />
+                    </Link>
+                </div>
             </div>
 
             <p className="mt-1 text-[11px] leading-snug text-white/55">
