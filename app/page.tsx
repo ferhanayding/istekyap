@@ -6,6 +6,7 @@ import PlaylistSection from "./components/PlaylistSection";
 import { SystemProvider } from "@/lib/system-context";
 import { ToastProvider } from "./components/Toast";
 import { VotesProvider } from "@/lib/votes-context";
+import { LyricsProvider } from "./components/LyricsSheet";
 const font = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
 });
@@ -22,9 +23,11 @@ export default function Home() {
         <SystemProvider>
           <ToastProvider>
             <VotesProvider>
-              <Header />
-              <RequestButton />
-              <AppTabs playlist={<PlaylistSection />} />
+              <LyricsProvider>
+                <Header />
+                <RequestButton />
+                <AppTabs playlist={<PlaylistSection />} />
+              </LyricsProvider>
             </VotesProvider>
           </ToastProvider>
         </SystemProvider>

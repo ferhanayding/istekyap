@@ -1,5 +1,7 @@
+"use client";
+
 import { Mic, Music2 } from "lucide-react";
-import { lyricsUrl } from "@/lib/lyrics";
+import { useLyrics } from "./LyricsSheet";
 import EqBars from "./EqBars";
 
 export default function MiniPlayer({
@@ -11,6 +13,7 @@ export default function MiniPlayer({
     cover: string | null;
     onClick: () => void;
 }) {
+    const openLyrics = useLyrics();
     // Başlık "Şarkı · Sanatçı" biçiminde gelir
     const cut = title ? title.lastIndexOf(" · ") : -1;
     const name = title ? (cut > 0 ? title.slice(0, cut) : title) : "Şarkı";
@@ -51,16 +54,15 @@ export default function MiniPlayer({
                     </span>
                 </button>
 
-                <a
-                    href={lyricsUrl(name, artists)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${name} şarkısının sözlerini Google'da ara`}
+                <button
+                    type="button"
+                    onClick={() => openLyrics({ name, artists })}
+                    aria-label={`${name} şarkısının sözlerini aç`}
                     className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-bold text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
                     <Mic size={14} />
                     Sözler
-                </a>
+                </button>
             </div>
         </div>
     );

@@ -5,7 +5,7 @@ import { Mic } from "lucide-react";
 import { type RequestFeed, type RequestStatus } from "@/lib/use-request-feed";
 import { useSystem } from "@/lib/system-context";
 import { useSharedVotes } from "@/lib/votes-context";
-import { lyricsUrl } from "@/lib/lyrics";
+import { useLyrics } from "./LyricsSheet";
 import EqBars from "./EqBars";
 import LoadingTracks from "./LoadingTracks";
 import { useToast } from "./Toast";
@@ -39,6 +39,7 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
     const system = useSystem();
     const { votes, vote } = useSharedVotes();
     const toast = useToast();
+    const openLyrics = useLyrics();
     const pendingCount = items?.filter((r) => r.status === "pending").length;
 
     useEffect(() => {
@@ -146,16 +147,15 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                                         />
                                     )}
 
-                                    <a
-                                        href={lyricsUrl(r.name, r.artists)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <button
+                                        type="button"
+                                        onClick={() => openLyrics({ name: r.name, artists: r.artists })}
                                         title="Sözler"
-                                        aria-label={`${r.name} şarkısının sözlerini Google'da ara`}
+                                        aria-label={`${r.name} şarkısının sözlerini aç`}
                                         className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
                                     >
                                         <Mic size={17} />
-                                    </a>
+                                    </button>
                                 </li>
                             );
                         })}

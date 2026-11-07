@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "../Toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    ExternalLink,
+    Mic,
     Play,
     Square,
     ThumbsDown,
@@ -12,6 +12,7 @@ import {
 import LoadingTracks from "../LoadingTracks";
 import EqBars from "../EqBars";
 import { addedInfo } from "@/lib/added";
+import { useLyrics } from "../LyricsSheet";
 
 type Song = {
     id: string;
@@ -71,6 +72,7 @@ export default function SongStats({
     const [songs, setSongs] = useState<Song[] | null>(null);
     const [filter, setFilter] = useState<Filter>("all");
     const [sort, setSort] = useState<Sort>("playlist");
+    const openLyrics = useLyrics();
     const [error, setError] = useState<string | null>(null);
     const [now, setNow] = useState(0);
     const router = useRouter();
@@ -293,15 +295,15 @@ export default function SongStats({
                                             <Play size={16} fill="currentColor" />
                                         )}
                                     </button>
-                                    <a
-                                        href={s.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label="Spotify'da aç"
+                                    <button
+                                        type="button"
+                                        onClick={() => openLyrics({ name: s.name, artists: s.artists })}
+                                        aria-label={`${s.name} sözlerini aç`}
+                                        title="Sözler"
                                         className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white"
                                     >
-                                        <ExternalLink size={16} />
-                                    </a>
+                                        <Mic size={16} />
+                                    </button>
                                 </li>
                             );
                         })}

@@ -5,6 +5,7 @@ import { Mic, Play, Search, Square, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { lyricsUrl } from "@/lib/lyrics";
 import { useToast } from "../Toast";
+import { useLyrics } from "../LyricsSheet";
 
 type Result = Track & { inPlaylist?: boolean };
 
@@ -27,6 +28,7 @@ export default function LyricsBar({
     const [failedQ, setFailedQ] = useState<string | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
     const toast = useToast();
+    const openLyrics = useLyrics();
 
     const q = query.trim();
     const active = open && q.length >= 2 && failedQ !== q;
@@ -185,17 +187,18 @@ export default function LyricsBar({
                                             {playing ? "Durdur" : "Çal"}
                                         </button>
 
-                                        <a
-                                            href={lyricsUrl(t.name, t.artists)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={() => setOpen(false)}
-                                            aria-label={`${t.name} şarkısının sözlerini Google'da ara`}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setOpen(false);
+                                                openLyrics({ name: t.name, artists: t.artists });
+                                            }}
+                                            aria-label={`${t.name} sözlerini aç`}
                                             title="Sözler"
                                             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[#D0CAE8] transition hover:bg-white/[0.14]"
                                         >
                                             <Mic size={15} />
-                                        </a>
+                                        </button>
                                     </li>
                                 );
                             })}

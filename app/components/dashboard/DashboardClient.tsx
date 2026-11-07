@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Check,
     CheckCheck,
-    ExternalLink,
     ListMusic,
     LogOut,
     MessageSquareText,
@@ -23,13 +22,13 @@ import {
     X,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
-import { lyricsUrl } from "@/lib/lyrics";
 import { useDashboardSystem } from "@/lib/use-dashboard-system";
 import EqBars from "../EqBars";
 import { ToastProvider, useToast } from "../Toast";
 import LoadingTracks from "../LoadingTracks";
 import CommentsPanel from "./CommentsPanel";
 import LyricsBar from "./LyricsBar";
+import { LyricsProvider, useLyrics } from "../LyricsSheet";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
 
@@ -119,6 +118,7 @@ function DashPlayer({
     const cut = title ? title.lastIndexOf(" · ") : -1;
     const name = title ? (cut > 0 ? title.slice(0, cut) : title) : "Şarkı";
     const artists = title && cut > 0 ? title.slice(cut + 3) : "";
+    const openLyrics = useLyrics();
 
     return (
         <div className="relative mx-2 mb-1.5 shrink-0 rounded-lg bg-gradient-to-r from-[#3A2B8F] to-[#2A2060] shadow-[0_-10px_30px_-12px_#000]">
@@ -145,16 +145,15 @@ function DashPlayer({
                         {artists && <span className="truncate">· {artists}</span>}
                     </p>
                 </div>
-                <a
-                    href={lyricsUrl(name, artists)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${name} sözlerini Google'da ara`}
+                <button
+                    type="button"
+                    onClick={() => openLyrics({ name, artists })}
+                    aria-label={`${name} sözlerini aç`}
                     title="Sözler"
                     className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
                 >
                     <Mic size={15} />
-                </a>
+                </button>
                 <button
                     type="button"
                     disabled={busy}
@@ -171,6 +170,7 @@ function DashPlayer({
 }
 
 function DashboardInner() {
+    const openLyrics = useLyrics();
     const [items, setItems] = useState<RequestRow[] | null>(null);
     const [main, setMain] = useState<Main>("requests");
     const [tab, setTab] = useState<Tab>("all");
@@ -554,15 +554,17 @@ function DashboardInner() {
                                                         </div>
                                                     </div>
 
-                                                    <a
-                                                        href={`https://open.spotify.com/track/${r.spotify_id}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        aria-label="Spotify'da aç"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openLyrics({ name: r.name, artists: r.artists })
+                                                        }
+                                                        aria-label={`${r.name} sözlerini aç`}
+                                                        title="Sözler"
                                                         className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white"
                                                     >
-                                                        <ExternalLink size={16} />
-                                                    </a>
+                                                        <Mic size={16} />
+                                                    </button>
                                                 </div>
 
                                                 <div className="mt-3 flex gap-2">
@@ -723,7 +725,9 @@ function DashboardInner() {
 export default function DashboardClient() {
     return (
         <ToastProvider fixed>
-            <DashboardInner />
+            <LyricsProvider>
+                <DashboardInner />
+            </LyricsProvider>
         </ToastProvider>
     );
 }
