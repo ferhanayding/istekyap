@@ -19,7 +19,10 @@ function fold(s: string): string {
         .replace(/ı/g, "i");
 }
 
-const squish = (s: string) => s.replace(/[^a-z0-9]+/g, " ").trim();
+const squish = (s: string) =>
+    s
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
 
 // Başlığın parantez içi ve " - " sonrası kısmı (Live, Remix, Remastered...)
 function extras(name: string): string {
@@ -43,7 +46,9 @@ export function isAltVersion(c: Candidate): boolean {
 
 export function baseTitle(name: string): string {
     const cut = name.split(/\s[-–—]\s/)[0].replace(/[([][^)\]]*[)\]]/g, " ");
-    return squish(fold(cut).replace(/\b(feat|ft|featuring)\b.*$/, ""));
+    return squish(
+        fold(cut).replace(/\b(feat|ft|featuring)\b.*$/, "")
+    );
 }
 
 export function firstArtist(artists: string): string {
@@ -59,10 +64,10 @@ export type Marked<T> = T & { inPlaylist: boolean };
 
 export function cleanResults<T extends Candidate>(
     results: T[],
-    playlist: Candidate[]
+    playlist: T[]
 ): Marked<T>[] {
     const byId = new Map(playlist.map((p) => [p.id, p]));
-    const byKey = new Map<string, Candidate>();
+    const byKey = new Map<string, T>();
     for (const p of playlist) {
         const k = songKey(p);
         if (!byKey.has(k)) byKey.set(k, p);
@@ -77,20 +82,13 @@ export function cleanResults<T extends Candidate>(
         let item: Marked<T>;
         const own = byId.get(r.id);
         if (own) {
-            item = { ...r, inPlaylist: true };
+            item = { ...own, inPlaylist: true };
         } else {
             if (isAltVersion(r)) continue;
+            // Aynı şarkının başka kaydı (remaster, single...) bizim sürüme çevrilir
             const twin = byKey.get(songKey(r));
             item = twin
-                ? {
-                    ...r,
-                    id: twin.id,
-                    name: twin.name,
-                    artists: twin.artists,
-                    album: twin.album ?? r.album,
-                    cover: twin.cover ?? r.cover,
-                    inPlaylist: true,
-                }
+                ? { ...twin, inPlaylist: true }
                 : { ...r, inPlaylist: false };
         }
 

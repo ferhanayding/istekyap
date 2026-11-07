@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Music2, Play, Search, Square, X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Mic, Play, Search, Square, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { lyricsUrl } from "@/lib/lyrics";
 import { useToast } from "../Toast";
@@ -33,16 +33,17 @@ export default function LyricsBar({
     const fresh = result?.q === q;
     const hasItems = !!result && result.items.length > 0;
 
-    // Yazmayı bırakınca 300 ms sonra Spotify'da ara
+    // Yazmayı bırakınca 300 ms sonra Spotify'da ara (dashboard: her şey çıkar)
     useEffect(() => {
         if (q.length < 2) return;
 
         const ctrl = new AbortController();
         const timer = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
-                    signal: ctrl.signal,
-                });
+                const res = await fetch(
+                    `/api/search?scope=all&q=${encodeURIComponent(q)}`,
+                    { signal: ctrl.signal }
+                );
                 const data: unknown = await res.json();
                 if (!res.ok || !Array.isArray(data)) {
                     const msg = (data as { error?: string } | null)?.error;
@@ -75,19 +76,19 @@ export default function LyricsBar({
         return () => document.removeEventListener("pointerdown", onDown);
     }, [open]);
 
-    function submit(e: React.FormEvent) {
+    function submit(e: FormEvent) {
         e.preventDefault();
         if (!q) return;
         window.open(lyricsUrl(q), "_blank", "noopener,noreferrer");
     }
 
     return (
-        <div ref={rootRef} className="relative z-30 mb-3 shrink-0">
+        <div ref={rootRef} className="relative z-30 mb-2 shrink-0 px-5">
             <form
                 onSubmit={submit}
-                className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-[#1E1A3D] px-3 transition focus-within:border-[#9B80FF]/60"
+                className="flex h-11 items-center gap-2 rounded-full border border-[#1ED760]/60 bg-[#1F1B33] px-4 transition focus-within:border-[#1ED760]"
             >
-                <Search size={16} className="shrink-0 text-[#A99EC9]" />
+                <Search size={17} className="shrink-0 text-[#A99EC9]" />
                 <input
                     value={query}
                     onChange={(e) => {
@@ -111,15 +112,15 @@ export default function LyricsBar({
                             setOpen(false);
                         }}
                         aria-label="Temizle"
-                        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-[#A99EC9]"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#A99EC9] transition hover:bg-white/10"
                     >
-                        <X size={13} />
+                        <X size={15} />
                     </button>
                 )}
             </form>
 
             {active && (
-                <div className="absolute inset-x-0 top-12 max-h-80 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
+                <div className="absolute inset-x-5 top-12 max-h-80 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
                     {hasItems && (
                         <ul className={fresh ? "" : "opacity-60"}>
                             {result.items.map((t) => {
@@ -127,7 +128,7 @@ export default function LyricsBar({
                                 return (
                                     <li
                                         key={t.id}
-                                        className={`flex items-center gap-2 rounded-xl p-2 transition ${playing ? "bg-[#37D9BD]/10" : "hover:bg-white/[0.06]"
+                                        className={`flex items-center gap-2 rounded-xl p-2 transition ${playing ? "bg-[#1ED760]/10" : "hover:bg-white/[0.06]"
                                             }`}
                                     >
                                         {t.cover ? (
@@ -135,20 +136,28 @@ export default function LyricsBar({
                                             <img
                                                 src={t.cover}
                                                 alt=""
-                                                width={36}
-                                                height={36}
-                                                className="size-9 shrink-0 rounded-lg object-cover"
+                                                width={40}
+                                                height={40}
+                                                className="size-10 shrink-0 rounded-[4px] object-cover"
                                             />
                                         ) : (
-                                            <div className="size-9 shrink-0 rounded-lg bg-white/10" />
+                                            <div className="size-10 shrink-0 rounded-[4px] bg-white/10" />
                                         )}
 
                                         <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-sm font-bold">
+                                            <span
+                                                className={`block truncate text-sm font-bold ${playing ? "text-[#1ED760]" : ""
+                                                    }`}
+                                            >
                                                 {t.name}
                                             </span>
-                                            <span className="block truncate text-xs text-[#89839F]">
-                                                {t.artists}
+                                            <span className="flex items-center gap-1.5 truncate text-xs text-[#B3B3B3]">
+                                                {t.inPlaylist && (
+                                                    <span className="shrink-0 rounded bg-[#1ED760]/15 px-1.5 text-[10px] font-extrabold uppercase text-[#1ED760]">
+                                                        Listemizde
+                                                    </span>
+                                                )}
+                                                <span className="truncate">{t.artists}</span>
                                             </span>
                                         </span>
 
@@ -163,9 +172,9 @@ export default function LyricsBar({
                                             aria-label={
                                                 playing ? `${t.name} durdur` : `${t.name} çal`
                                             }
-                                            className={`flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-bold transition active:scale-95 disabled:opacity-50 ${playing
-                                                ? "bg-[#FF729B]/15 text-[#FF729B]"
-                                                : "bg-[#37D9BD]/15 text-[#37D9BD]"
+                                            className={`flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-extrabold transition active:scale-95 disabled:opacity-50 ${playing
+                                                ? "bg-[#FF729B]/20 text-[#FF8FB0]"
+                                                : "bg-[#1ED760] text-black"
                                                 }`}
                                         >
                                             {playing ? (
@@ -182,10 +191,10 @@ export default function LyricsBar({
                                             rel="noopener noreferrer"
                                             onClick={() => setOpen(false)}
                                             aria-label={`${t.name} şarkısının sözlerini Google'da ara`}
-                                            className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-[#8C70FF]/15 px-2.5 text-xs font-bold text-[#AA96FF] transition hover:bg-[#8C70FF]/25"
+                                            title="Sözler"
+                                            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[#D0CAE8] transition hover:bg-white/[0.14]"
                                         >
-                                            <Music2 size={12} />
-                                            Sözler
+                                            <Mic size={15} />
                                         </a>
                                     </li>
                                 );

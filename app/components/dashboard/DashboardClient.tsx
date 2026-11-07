@@ -7,9 +7,14 @@ import {
     Check,
     CheckCheck,
     ExternalLink,
+    ListMusic,
     LogOut,
+    MessageSquareText,
+    Mic,
+    Music2,
     Play,
     RefreshCw,
+    SlidersHorizontal,
     Square,
     Trash2,
     Undo2,
@@ -18,16 +23,18 @@ import {
     X,
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
+import { lyricsUrl } from "@/lib/lyrics";
 import { useDashboardSystem } from "@/lib/use-dashboard-system";
-import NowPlayingBadge from "../NowPlayingBadge";
+import EqBars from "../EqBars";
 import { ToastProvider, useToast } from "../Toast";
 import LoadingTracks from "../LoadingTracks";
+import CommentsPanel from "./CommentsPanel";
 import LyricsBar from "./LyricsBar";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
 
 type Status = "pending" | "approved" | "played" | "rejected";
-type Main = "requests" | "playlist" | "system";
+type Main = "requests" | "playlist" | "comments" | "system";
 type Tab = Status | "all";
 
 const STATUS_ORDER: Record<Status, number> = {
@@ -38,11 +45,12 @@ const STATUS_ORDER: Record<Status, number> = {
 };
 
 const STATUS_BADGE: Record<Status, { text: string; className: string }> = {
-    pending: { text: "Bekliyor", className: "bg-white/[0.07] text-[#A99EC9]" },
-    approved: { text: "Onaylı", className: "bg-[#37D9BD]/15 text-[#37D9BD]" },
-    played: { text: "Çalındı", className: "bg-[#9B80FF]/15 text-[#B9A6FF]" },
-    rejected: { text: "Reddedildi", className: "bg-[#FF729B]/15 text-[#FF729B]" },
+    pending: { text: "Bekliyor", className: "bg-white/[0.09] text-[#B3B3B3]" },
+    approved: { text: "Onaylı", className: "bg-[#1ED760]/15 text-[#1ED760]" },
+    played: { text: "Çalındı", className: "bg-[#9B80FF]/20 text-[#C3B3FF]" },
+    rejected: { text: "Reddedildi", className: "bg-[#FF729B]/15 text-[#FF8FB0]" },
 };
+
 type RequestRow = {
     id: string;
     spotify_id: string;
@@ -62,10 +70,11 @@ const TABS: { key: Tab; label: string }[] = [
     { key: "rejected", label: "Reddedilen" },
 ];
 
-const MAIN_TABS: { key: Main; label: string }[] = [
-    { key: "requests", label: "İstekler" },
-    { key: "playlist", label: "Playlist" },
-    { key: "system", label: "Sistem" },
+const MAIN_TABS: { key: Main; label: string; Icon: typeof ListMusic }[] = [
+    { key: "requests", label: "İstekler", Icon: ListMusic },
+    { key: "playlist", label: "Playlist", Icon: Music2 },
+    { key: "comments", label: "Yorumlar", Icon: MessageSquareText },
+    { key: "system", label: "Sistem", Icon: SlidersHorizontal },
 ];
 
 const EMPTY: Record<Tab, string> = {
@@ -89,9 +98,77 @@ function ago(iso: string, now: number): string {
 }
 
 const btn =
-    "flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold transition active:scale-95 disabled:opacity-50";
+    "flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-extrabold transition active:scale-95 disabled:opacity-50";
 const iconBtn =
-    "flex size-10 shrink-0 items-center justify-center rounded-xl transition active:scale-95 disabled:opacity-50";
+    "flex size-9 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-50";
+const headBtn =
+    "flex size-9 items-center justify-center rounded-full bg-white/[0.08] text-[#CFC4FF] transition hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]";
+
+// Çalan şarkı: listenin altında sabit, Durdur butonuyla
+function DashPlayer({
+    title,
+    cover,
+    busy,
+    onStop,
+}: {
+    title: string | null;
+    cover: string | null;
+    busy: boolean;
+    onStop: () => void;
+}) {
+    const cut = title ? title.lastIndexOf(" · ") : -1;
+    const name = title ? (cut > 0 ? title.slice(0, cut) : title) : "Şarkı";
+    const artists = title && cut > 0 ? title.slice(cut + 3) : "";
+
+    return (
+        <div className="relative mx-2 mb-1.5 shrink-0 rounded-lg bg-gradient-to-r from-[#3A2B8F] to-[#2A2060] shadow-[0_-10px_30px_-12px_#000]">
+            <div className="flex items-center gap-3 p-2">
+                {cover ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={cover}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="size-10 shrink-0 rounded-[4px] object-cover"
+                    />
+                ) : (
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-[4px] bg-white/10">
+                        <Music2 size={18} />
+                    </div>
+                )}
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-white">{name}</p>
+                    <p className="flex items-center gap-1.5 truncate text-xs text-white/65">
+                        <EqBars className="shrink-0" />
+                        <span className="shrink-0 font-bold text-[#1ED760]">Çalıyor</span>
+                        {artists && <span className="truncate">· {artists}</span>}
+                    </p>
+                </div>
+                <a
+                    href={lyricsUrl(name, artists)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${name} sözlerini Google'da ara`}
+                    title="Sözler"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+                >
+                    <Mic size={15} />
+                </a>
+                <button
+                    type="button"
+                    disabled={busy}
+                    onClick={onStop}
+                    aria-label="Durdur"
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-extrabold text-black transition active:scale-95 disabled:opacity-50"
+                >
+                    <Square size={12} fill="currentColor" />
+                    Durdur
+                </button>
+            </div>
+        </div>
+    );
+}
 
 function DashboardInner() {
     const [items, setItems] = useState<RequestRow[] | null>(null);
@@ -117,7 +194,6 @@ function DashboardInner() {
     const known = useRef<Set<string> | null>(null);
     const audio = useRef<AudioContext | null>(null);
     const soundOn = useRef(false);
-    const listRef = useRef<HTMLDivElement>(null);
 
     const beep = useCallback(() => {
         const ctx = audio.current;
@@ -293,304 +369,353 @@ function DashboardInner() {
             )
             : (items?.filter((r) => r.status === tab) ?? []);
 
+    // Çalan şarkının kapağı: sistemden, yoksa istek listesinden
+    const playingCover =
+        system.state?.nowPlayingCover ??
+        items?.find((r) => r.spotify_id === nowPlaying)?.cover ??
+        null;
+
     return (
-        <div className="mx-auto flex h-dvh max-w-2xl flex-col px-5 pt-8">
-            <header className="mb-4 flex shrink-0 items-start justify-between gap-3">
-                <div>
-                    <h1 className="text-[32px] font-extrabold leading-none tracking-[-1.5px]">
-                        Dashboard
-                    </h1>
-                    <p className="mt-2 text-sm text-[#928BA8]">
-                        {items ? `${count("pending")} bekleyen istek` : "…"} ·{" "}
-                        {POLL_MS / 1000} saniyede bir güncellenir
-                    </p>
+        <div className="relative mx-auto flex h-dvh max-w-2xl flex-col overflow-hidden">
+            {/* Spotify tarzı üst renk geçişi */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#4A38B0]/55 via-[#2A1F66]/25 to-transparent" />
+
+            <header className="relative shrink-0 px-5 pb-2 pt-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-baseline gap-2">
+                        <h1 className="text-[26px] font-extrabold leading-none tracking-[-1.2px]">
+                            Dash<span className="text-[#B9A6FF]">board</span>
+                        </h1>
+                        <span className="truncate text-[10px] font-bold uppercase tracking-[2.5px] text-white/45">
+                            LƏYSAN
+                        </span>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={toggleSound}
+                            aria-label={sound ? "Bildirim sesini kapat" : "Bildirim sesini aç"}
+                            aria-pressed={sound}
+                            className={`flex size-9 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF] ${sound
+                                ? "bg-[#1ED760]/20 text-[#1ED760]"
+                                : "bg-white/[0.08] text-[#CFC4FF] hover:bg-white/[0.14]"
+                                }`}
+                        >
+                            {sound ? <Volume2 size={17} /> : <VolumeX size={17} />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={refresh}
+                            aria-label="Yenile"
+                            className={headBtn}
+                        >
+                            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+                        </button>
+                        <form action={logout}>
+                            <button aria-label="Çıkış yap" className={headBtn}>
+                                <LogOut size={16} />
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={toggleSound}
-                        aria-label={sound ? "Bildirim sesini kapat" : "Bildirim sesini aç"}
-                        aria-pressed={sound}
-                        className={`flex size-11 items-center justify-center rounded-2xl border transition ${sound
-                            ? "border-[#9B80FF]/40 bg-[#8C70FF]/20 text-[#B9A6FF]"
-                            : "border-white/[0.06] bg-white/[0.04] text-[#A99EC9]"
-                            }`}
-                    >
-                        {sound ? <Volume2 size={19} /> : <VolumeX size={19} />}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={refresh}
-                        aria-label="Yenile"
-                        className="flex size-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04] text-[#A99EC9] transition hover:bg-white/[0.08]"
-                    >
-                        <RefreshCw size={19} className={refreshing ? "animate-spin" : ""} />
-                    </button>
-                    <form action={logout}>
-                        <button
-                            aria-label="Çıkış yap"
-                            className="flex size-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04] text-[#A99EC9] transition hover:bg-white/[0.08]"
-                        >
-                            <LogOut size={19} />
-                        </button>
-                    </form>
-                </div>
+                <p className="mt-1 text-[11px] leading-snug text-white/55">
+                    {items ? `${count("pending")} bekleyen istek` : "…"} ·{" "}
+                    {POLL_MS / 1000} saniyede bir güncellenir
+                </p>
             </header>
 
-            {/* Şarkı sözü araması: her sekmede sabit */}
+            {/* Şarkı araması: her sekmede sabit */}
             <LyricsBar
                 nowPlaying={nowPlaying}
                 busy={system.busy}
                 onPlay={play}
                 onStop={stop}
             />
-            {/* Ana sekmeler */}
-            <div
-                className="mb-3 grid shrink-0 grid-cols-3 rounded-2xl bg-white/[0.04] p-1"
-                role="tablist"
-            >
-                {MAIN_TABS.map((m) => (
-                    <button
-                        key={m.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={main === m.key}
-                        onClick={() => setMain(m.key)}
-                        className={`rounded-xl py-2.5 text-sm font-bold transition ${main === m.key
-                            ? "bg-[#7555E9] text-white"
-                            : "text-[#A99EC9] hover:text-white"
-                            }`}
-                    >
-                        {m.label}
-                        {m.key === "requests" && newIds.size > 0 && (
-                            <span className="ml-1.5 rounded-full bg-[#FF729B] px-1.5 py-0.5 text-[10px] text-white">
-                                {newIds.size}
-                            </span>
+
+            <div className="relative flex min-h-0 flex-1 flex-col px-5">
+                {main === "system" ? (
+                    <SystemPanel system={system} onChanged={() => void load()} />
+                ) : main === "comments" ? (
+                    <CommentsPanel />
+                ) : main === "playlist" ? (
+                    <SongStats
+                        nowPlaying={nowPlaying}
+                        played={system.state?.played ?? []}
+                        busy={system.busy}
+                        onPlay={play}
+                        onStop={stop}
+                    />
+                ) : (
+                    <>
+                        {newIds.size > 0 && (
+                            <div className="mb-2 flex shrink-0 items-center justify-between gap-3 rounded-lg bg-[#7555E9]/25 px-4 py-2.5 text-sm font-bold">
+                                <span>{newIds.size} yeni istek geldi</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewIds(new Set())}
+                                    className="text-xs font-bold text-[#C3B3FF] hover:text-white"
+                                >
+                                    Hepsini gördüm
+                                </button>
+                            </div>
                         )}
-                    </button>
-                ))}
-            </div>
 
-            {main === "system" ? (
-                <SystemPanel system={system} onChanged={() => void load()} />
-            ) : main === "playlist" ? (
-                <SongStats
-                    nowPlaying={nowPlaying}
-                    played={system.state?.played ?? []}
-                    busy={system.busy}
-                    onPlay={play}
-                    onStop={stop}
-                />
-            ) : (
-                <>
-                    {newIds.size > 0 && (
-                        <div className="mb-4 flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-[#9B80FF]/40 bg-[#2A2255]/80 px-4 py-3 text-sm font-bold">
-                            <span>{newIds.size} yeni istek geldi</span>
-                            <button
-                                type="button"
-                                onClick={() => setNewIds(new Set())}
-                                className="text-xs font-bold text-[#B9A6FF] hover:text-white"
-                            >
-                                Hepsini gördüm
-                            </button>
+                        <div
+                            className="mb-1 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                            role="tablist"
+                        >
+                            {TABS.map((t) => (
+                                <button
+                                    key={t.key}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={tab === t.key}
+                                    onClick={() => setTab(t.key)}
+                                    className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-bold transition ${tab === t.key
+                                        ? "bg-[#1ED760] text-black"
+                                        : "bg-white/[0.09] text-white hover:bg-white/[0.14]"
+                                        }`}
+                                >
+                                    {t.label} <span className="opacity-70">{count(t.key)}</span>
+                                </button>
+                            ))}
                         </div>
-                    )}
 
-                    <div
-                        className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
-                        role="tablist"
-                    >
-                        {TABS.map((t) => (
-                            <button
-                                key={t.key}
-                                type="button"
-                                role="tab"
-                                aria-selected={tab === t.key}
-                                onClick={() => setTab(t.key)}
-                                className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-bold transition ${tab === t.key
-                                    ? "bg-[#7555E9] text-white"
-                                    : "bg-white/[0.05] text-[#A99EC9] hover:bg-white/[0.08]"
-                                    }`}
-                            >
-                                {t.label} <span className="opacity-70">{count(t.key)}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div
-                        ref={listRef}
-                        className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-10 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
-                    >
-                        {items === null ? (
-                            <LoadingTracks />
-                        ) : visible.length === 0 ? (
-                            <p className="rounded-2xl bg-[#19162D] p-4 text-sm text-[#89839F]">
-                                {EMPTY[tab]}
-                            </p>
-                        ) : (
-                            <ul className="space-y-2">
-                                {visible.map((r) => {
-                                    const isNew = newIds.has(r.id);
-                                    const busy = busyId === r.id;
-                                    const playing = nowPlaying === r.spotify_id;
-                                    return (
-                                        <li
-                                            key={r.id}
-                                            className={`rounded-2xl border p-3 ${playing
-                                                ? "border-[#37D9BD]/50 bg-gradient-to-r from-[#17342F] to-[#19162D] shadow-[0_0_24px_-8px_#37D9BD]"
-                                                : isNew
-                                                    ? "border-[#9B80FF]/60 bg-[#19162D]"
-                                                    : "border-white/[0.04] bg-[#19162D]"
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {r.cover ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img
-                                                        src={r.cover}
-                                                        alt=""
-                                                        width={52}
-                                                        height={52}
-                                                        className="size-[52px] shrink-0 rounded-xl object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="size-[52px] shrink-0 rounded-xl bg-white/10" />
-                                                )}
-
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-[15px] font-bold text-[#F5F2FF]">
-                                                        {r.name}
-                                                    </p>
-                                                    <p className="mt-0.5 truncate text-xs text-[#89839F]">
-                                                        {r.artists}
-                                                    </p>
-                                                    {playing && <NowPlayingBadge className="mt-1" />}
-                                                    {tab === "all" && (
-                                                        <span
-                                                            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_BADGE[r.status].className}`}
-                                                        >
-                                                            {STATUS_BADGE[r.status].text}
-                                                        </span>
+                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+                            {items === null ? (
+                                <LoadingTracks />
+                            ) : visible.length === 0 ? (
+                                <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                                    {EMPTY[tab]}
+                                </p>
+                            ) : (
+                                <ul>
+                                    {visible.map((r) => {
+                                        const isNew = newIds.has(r.id);
+                                        const busy = busyId === r.id;
+                                        const playing = nowPlaying === r.spotify_id;
+                                        return (
+                                            <li
+                                                key={r.id}
+                                                className={`border-b border-white/[0.05] py-3 ${isNew ? "-mx-5 bg-[#9B80FF]/[0.08] px-5" : ""
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {r.cover ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={r.cover}
+                                                            alt=""
+                                                            width={56}
+                                                            height={56}
+                                                            className="size-14 shrink-0 rounded-[4px] object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
                                                     )}
-                                                    <p className="mt-0.5 text-[11px] text-[#817A98]">
-                                                        {isNew && (
-                                                            <span className="mr-1.5 rounded-full bg-[#9B80FF] px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                                                Yeni
-                                                            </span>
-                                                        )}
-                                                        {ago(r.created_at, now)}
-                                                    </p>
-                                                </div>
 
-                                                <a
-                                                    href={`https://open.spotify.com/track/${r.spotify_id}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    aria-label="Spotify'da aç"
-                                                    className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-[#AAA2C6] transition hover:bg-white/10"
-                                                >
-                                                    <ExternalLink size={16} />
-                                                </a>
-                                            </div>
-
-                                            <div className="mt-3 flex gap-2">
-                                                {r.status === "pending" ? (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy}
-                                                            onClick={() => changeStatus(r.id, "approved")}
-                                                            className={`${btn} flex-1 bg-[#37D9BD]/15 text-[#37D9BD]`}
-                                                        >
-                                                            <Check size={16} />
-                                                            Onayla
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy}
-                                                            onClick={() => changeStatus(r.id, "rejected")}
-                                                            className={`${btn} flex-1 bg-[#FF729B]/15 text-[#FF729B]`}
-                                                        >
-                                                            <X size={16} />
-                                                            Reddet
-                                                        </button>
-                                                    </>
-                                                ) : r.status === "approved" ? (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy || system.busy}
-                                                            onClick={() =>
-                                                                playing
-                                                                    ? stop()
-                                                                    : play(
-                                                                        r.spotify_id,
-                                                                        `${r.name} · ${r.artists}`
-                                                                    )
-                                                            }
-                                                            className={`${btn} flex-1 ${playing
-                                                                ? "bg-[#FF729B]/15 text-[#FF729B]"
-                                                                : "bg-[#37D9BD]/15 text-[#37D9BD]"
+                                                    <div className="min-w-0 flex-1">
+                                                        <p
+                                                            className={`truncate text-base ${playing
+                                                                ? "font-bold text-[#1ED760]"
+                                                                : "font-medium text-white"
                                                                 }`}
                                                         >
+                                                            {r.name}
+                                                        </p>
+                                                        <p className="mt-0.5 truncate text-sm text-[#B3B3B3]">
+                                                            {r.artists}
+                                                        </p>
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2">
                                                             {playing ? (
-                                                                <Square size={14} fill="currentColor" />
+                                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#1ED760]">
+                                                                    <EqBars />
+                                                                    Çalıyor
+                                                                </span>
                                                             ) : (
-                                                                <Play size={15} fill="currentColor" />
+                                                                (tab === "all" || isNew) && (
+                                                                    <span
+                                                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_BADGE[r.status].className}`}
+                                                                    >
+                                                                        {STATUS_BADGE[r.status].text}
+                                                                    </span>
+                                                                )
                                                             )}
-                                                            {playing ? "Durdur" : "Çal"}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy}
-                                                            onClick={() => changeStatus(r.id, "played")}
-                                                            className={`${btn} flex-1 bg-[#9B80FF]/20 text-[#B9A6FF]`}
-                                                        >
-                                                            <CheckCheck size={16} />
-                                                            Çalındı
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy}
-                                                            onClick={() => changeStatus(r.id, "pending")}
-                                                            aria-label="Bekleyene al"
-                                                            className={`${iconBtn} bg-white/[0.06] text-[#C9C2E4]`}
-                                                        >
-                                                            <Undo2 size={16} />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy}
-                                                            onClick={() => changeStatus(r.id, "pending")}
-                                                            className={`${btn} flex-1 bg-white/[0.06] text-[#C9C2E4]`}
-                                                        >
-                                                            <Undo2 size={16} />
-                                                            Bekleyene al
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={busy}
-                                                            onClick={() => remove(r.id)}
-                                                            className={`${btn} bg-[#FF729B]/15 text-[#FF729B]`}
-                                                        >
-                                                            <Trash2 size={16} />
-                                                            Sil
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        )}
-                    </div>
-                </>
+                                                            {isNew && (
+                                                                <span className="rounded bg-[#9B80FF] px-1.5 py-px text-[10px] font-extrabold uppercase text-white">
+                                                                    Yeni
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[11px] text-[#7C7794]">
+                                                                {ago(r.created_at, now)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <a
+                                                        href={`https://open.spotify.com/track/${r.spotify_id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        aria-label="Spotify'da aç"
+                                                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white"
+                                                    >
+                                                        <ExternalLink size={16} />
+                                                    </a>
+                                                </div>
+
+                                                <div className="mt-3 flex gap-2">
+                                                    {r.status === "pending" ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => changeStatus(r.id, "approved")}
+                                                                className={`${btn} flex-1 bg-[#1ED760] text-black`}
+                                                            >
+                                                                <Check size={15} />
+                                                                Onayla
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => changeStatus(r.id, "rejected")}
+                                                                className={`${btn} flex-1 bg-white/[0.09] text-[#FF8FB0]`}
+                                                            >
+                                                                <X size={15} />
+                                                                Reddet
+                                                            </button>
+                                                        </>
+                                                    ) : r.status === "approved" ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy || system.busy}
+                                                                onClick={() =>
+                                                                    playing
+                                                                        ? stop()
+                                                                        : play(
+                                                                            r.spotify_id,
+                                                                            `${r.name} · ${r.artists}`
+                                                                        )
+                                                                }
+                                                                className={`${btn} flex-1 ${playing
+                                                                    ? "bg-[#FF729B]/20 text-[#FF8FB0]"
+                                                                    : "bg-[#1ED760] text-black"
+                                                                    }`}
+                                                            >
+                                                                {playing ? (
+                                                                    <Square size={13} fill="currentColor" />
+                                                                ) : (
+                                                                    <Play size={14} fill="currentColor" />
+                                                                )}
+                                                                {playing ? "Durdur" : "Çal"}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => changeStatus(r.id, "played")}
+                                                                className={`${btn} flex-1 bg-[#7555E9]/35 text-white`}
+                                                            >
+                                                                <CheckCheck size={15} />
+                                                                Çalındı
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => changeStatus(r.id, "pending")}
+                                                                aria-label="Bekleyene al"
+                                                                className={`${iconBtn} bg-white/[0.09] text-[#D0CAE8]`}
+                                                            >
+                                                                <Undo2 size={15} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => changeStatus(r.id, "pending")}
+                                                                className={`${btn} flex-1 bg-white/[0.09] text-white`}
+                                                            >
+                                                                <Undo2 size={15} />
+                                                                Bekleyene al
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={busy}
+                                                                onClick={() => remove(r.id)}
+                                                                className={`${btn} bg-[#FF729B]/15 text-[#FF8FB0]`}
+                                                            >
+                                                                <Trash2 size={15} />
+                                                                Sil
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {nowPlaying && (
+                <DashPlayer
+                    title={system.state?.nowPlayingTitle ?? null}
+                    cover={playingCover}
+                    busy={system.busy}
+                    onStop={stop}
+                />
             )}
+
+            {/* Alt menü: sitedekiyle aynı tarz */}
+            <nav
+                aria-label="Dashboard menüsü"
+                className="relative z-30 shrink-0 border-t border-white/[0.06] bg-[#0E0C1A]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+            >
+                <ul className="grid grid-cols-4" role="tablist">
+                    {MAIN_TABS.map(({ key, label, Icon }) => {
+                        const active = main === key;
+                        return (
+                            <li key={key}>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    onClick={() => setMain(key)}
+                                    className="group flex w-full flex-col items-center gap-1 py-1 outline-none"
+                                >
+                                    <span
+                                        className={`relative flex h-8 w-14 items-center justify-center rounded-full transition ${active ? "bg-[#7555E9]" : "group-hover:bg-white/[0.06]"
+                                            }`}
+                                    >
+                                        <Icon
+                                            size={20}
+                                            className={active ? "text-white" : "text-[#9A94B0]"}
+                                        />
+                                        {key === "requests" && newIds.size > 0 && (
+                                            <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-[#FF729B] px-1 text-center text-[10px] font-bold leading-[18px] text-white">
+                                                {newIds.size > 9 ? "9+" : newIds.size}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span
+                                        className={`text-[11px] font-bold ${active ? "text-white" : "text-[#9A94B0]"
+                                            }`}
+                                    >
+                                        {label}
+                                    </span>
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </nav>
         </div>
     );
 }

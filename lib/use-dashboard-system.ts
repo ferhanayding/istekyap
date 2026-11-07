@@ -8,6 +8,7 @@ export type SystemState = {
     votingOpen: boolean;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
+    nowPlayingCover?: string | null;
     played: string[];
 };
 

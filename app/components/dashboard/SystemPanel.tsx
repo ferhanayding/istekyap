@@ -2,7 +2,7 @@
 
 import { RotateCcw, Square, Trash2 } from "lucide-react";
 import type { DashboardSystem } from "@/lib/use-dashboard-system";
-import NowPlayingBadge from "../NowPlayingBadge";
+import EqBars from "../EqBars";
 
 function Toggle({
     label,
@@ -18,20 +18,20 @@ function Toggle({
     onChange: (next: boolean) => void;
 }) {
     return (
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.04] bg-[#19162D] p-4">
+        <div className="flex items-center justify-between gap-4 rounded-lg bg-white/[0.05] p-4">
             <div className="min-w-0">
-                <p className="text-[15px] font-bold text-[#F5F2FF]">
+                <p className="text-base font-bold text-white">
                     {label}{" "}
                     <span
                         className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${on
-                            ? "bg-[#37D9BD]/15 text-[#37D9BD]"
-                            : "bg-white/[0.07] text-[#A99EC9]"
+                            ? "bg-[#1ED760]/15 text-[#1ED760]"
+                            : "bg-white/[0.09] text-[#B3B3B3]"
                             }`}
                     >
                         {on ? "Açık" : "Kapalı"}
                     </span>
                 </p>
-                <p className="mt-1 text-xs text-[#89839F]">{desc}</p>
+                <p className="mt-1 text-xs text-[#B3B3B3]">{desc}</p>
             </div>
             <button
                 type="button"
@@ -40,7 +40,7 @@ function Toggle({
                 aria-label={label}
                 disabled={disabled}
                 onClick={() => onChange(!on)}
-                className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-50 ${on ? "bg-[#37D9BD]" : "bg-white/[0.12]"
+                className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-50 ${on ? "bg-[#1ED760]" : "bg-white/[0.18]"
                     }`}
             >
                 <span
@@ -51,6 +51,9 @@ function Toggle({
         </div>
     );
 }
+
+const resetBtn =
+    "flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-extrabold transition active:scale-95 disabled:opacity-50";
 
 export default function SystemPanel({
     system,
@@ -67,11 +70,11 @@ export default function SystemPanel({
     }
 
     if (!state) {
-        return <p className="text-sm text-[#89839F]">Yükleniyor…</p>;
+        return <p className="text-sm text-[#B3B3B3]">Yükleniyor…</p>;
     }
 
     return (
-        <div className="-mx-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-10 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+        <div className="-mx-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
             <Toggle
                 label="İstek alma"
                 desc="Açıkken ziyaretçiler şarkı isteyebilir. Kapalıyken buton pasif olur."
@@ -96,12 +99,15 @@ export default function SystemPanel({
                 }
             />
 
-            <div className="rounded-2xl border border-white/[0.04] bg-[#19162D] p-4">
-                <p className="text-[15px] font-bold text-[#F5F2FF]">Şu an çalan</p>
+            <div className="rounded-lg bg-white/[0.05] p-4">
+                <p className="text-base font-bold text-white">Şu an çalan</p>
                 {state.nowPlaying ? (
                     <div className="mt-2 flex items-center gap-3">
                         <div className="min-w-0 flex-1">
-                            <NowPlayingBadge />
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#1ED760]">
+                                <EqBars />
+                                Çalıyor
+                            </span>
                             <p className="mt-0.5 truncate text-sm font-bold">
                                 {state.nowPlayingTitle ?? "Şarkı"}
                             </p>
@@ -110,26 +116,26 @@ export default function SystemPanel({
                             type="button"
                             disabled={busy}
                             onClick={() => run({ action: "stop" })}
-                            className="flex h-10 items-center gap-1.5 rounded-xl bg-[#FF729B]/15 px-3 text-sm font-bold text-[#FF729B] transition active:scale-95 disabled:opacity-50"
+                            className="flex h-10 items-center gap-1.5 rounded-full bg-[#FF729B]/20 px-4 text-sm font-extrabold text-[#FF8FB0] transition active:scale-95 disabled:opacity-50"
                         >
                             <Square size={14} fill="currentColor" />
                             Durdur
                         </button>
                     </div>
                 ) : (
-                    <p className="mt-1 text-xs text-[#89839F]">
+                    <p className="mt-1 text-xs text-[#B3B3B3]">
                         Şu an çalan yok. Playlist ya da onaylı isteklerden Çal&apos;a bas.
                     </p>
                 )}
-                <p className="mt-3 text-xs text-[#817A98]">
+                <p className="mt-3 text-xs text-[#8F8AA8]">
                     Bu gece çalınan: {state.played.length} şarkı · Çalıyor işareti 5 dakika
                     sonra kendiliğinden kapanır.
                 </p>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.04] bg-[#19162D] p-4">
-                <p className="text-[15px] font-bold text-[#F5F2FF]">Yeni gece</p>
-                <p className="mt-1 text-xs text-[#89839F]">
+            <div className="rounded-lg bg-white/[0.05] p-4">
+                <p className="text-base font-bold text-white">Yeni gece</p>
+                <p className="mt-1 text-xs text-[#B3B3B3]">
                     Konser bitince ya da yeni bir gün başlamadan önce kullan.
                 </p>
                 <div className="mt-3 flex flex-col gap-2">
@@ -142,7 +148,7 @@ export default function SystemPanel({
                                 "Çalındı işaretleri silinsin mi? Tüm şarkılar tekrar \"çalınmadı\" olur."
                             )
                         }
-                        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-3 text-sm font-bold text-[#C9C2E4] transition active:scale-95 disabled:opacity-50"
+                        className={`${resetBtn} bg-white/[0.09] text-white`}
                     >
                         <RotateCcw size={16} />
                         Çalınanları sıfırla
@@ -156,7 +162,7 @@ export default function SystemPanel({
                                 "Tüm istekler (bekleyen, onaylı, çalınan, reddedilen) kalıcı olarak silinsin mi? Geri alınamaz."
                             )
                         }
-                        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#FF729B]/15 px-3 text-sm font-bold text-[#FF729B] transition active:scale-95 disabled:opacity-50"
+                        className={`${resetBtn} bg-[#FF729B]/15 text-[#FF8FB0]`}
                     >
                         <Trash2 size={16} />
                         İstekleri sıfırla
@@ -170,7 +176,7 @@ export default function SystemPanel({
                                 "Tüm beğeni ve beğenmeme oyları silinsin mi? Geri alınamaz."
                             )
                         }
-                        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#FF729B]/15 px-3 text-sm font-bold text-[#FF729B] transition active:scale-95 disabled:opacity-50"
+                        className={`${resetBtn} bg-[#FF729B]/15 text-[#FF8FB0]`}
                     >
                         <Trash2 size={16} />
                         Oyları sıfırla

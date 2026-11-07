@@ -3,12 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Lock, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
+import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useSystem } from "@/lib/system-context";
 import { useToast } from "./Toast";
 
-type Result = Track & { inPlaylist?: boolean };
+type Requested = "pending" | "approved" | "rejected" | null;
+type Result = Track & { inPlaylist?: boolean; requested?: Requested };
 
 const SEND_ERROR = "İstek gönderilemedi. Tekrar dokun.";
+
+// İstek listesinde zaten olan şarkının sağ tarafında görünen yazı
+const REQUESTED_LABEL: Record<Exclude<Requested, null>, string> = {
+    pending: "İstendi",
+    approved: "Onaylandı",
+    rejected: "Reddedildi",
+};
 
 export default function RequestButton() {
     const [open, setOpen] = useState(false);
@@ -25,8 +34,11 @@ export default function RequestButton() {
     const closed = loaded && !requestsOpen;
 
     const q = query.trim();
+    // Küfürlü/müstehcen kelimeler aranmaz, sunucuya da gitmez
+    const blocked = q.length >= 2 && isBlocked(q);
     // Arama başarısız olunca kutu boş kalmasın, hata toast olarak gelir
-    const active = open && !sent && q.length >= 2 && failedQ !== q;
+    const active =
+        open && !sent && q.length >= 2 && (blocked || failedQ !== q);
     const fresh = result?.q === q;
     const hasItems = !!result && result.items.length > 0;
 
@@ -44,7 +56,7 @@ export default function RequestButton() {
 
     // Yazmayı bırakınca 300 ms sonra ara
     useEffect(() => {
-        if (!open || sent || q.length < 2) return;
+        if (!open || sent || q.length < 2 || blocked) return;
 
         const ctrl = new AbortController();
         const timer = setTimeout(async () => {
@@ -53,12 +65,17 @@ export default function RequestButton() {
                     signal: ctrl.signal,
                 });
                 const data: unknown = await res.json();
-                if (!res.ok || !Array.isArray(data)) throw new Error();
+                if (!res.ok || !Array.isArray(data)) {
+                    throw new Error((data as { error?: string } | null)?.error);
+                }
                 setResult({ q, items: data as Result[] });
             } catch (e) {
                 if ((e as Error).name !== "AbortError") {
                     setFailedQ(q);
-                    toast.error("Arama yapılamadı. Biraz sonra tekrar dene.");
+                    toast.error(
+                        (e as Error).message ||
+                        "Arama yapılamadı. Biraz sonra tekrar dene."
+                    );
                 }
             }
         }, 300);
@@ -67,7 +84,7 @@ export default function RequestButton() {
             clearTimeout(timer);
             ctrl.abort();
         };
-    }, [q, open, sent, toast]);
+    }, [q, open, sent, blocked, toast]);
 
     async function pick(t: Track) {
         setSendingId(t.id);
@@ -125,7 +142,7 @@ export default function RequestButton() {
                 >
                     {sent ? (
                         <>
-                            <Check size={18} className="shrink-0 text-[#37D9BD]" />
+                            <Check size={18} className="shrink-0 text-[#1ED760]" />
                             <p className="min-w-0 flex-1 truncate text-sm font-semibold">
                                 İstek gönderildi: {sent.name}
                             </p>
@@ -158,60 +175,74 @@ export default function RequestButton() {
                 {/* Öneriler */}
                 {active && (
                     <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
-                        {hasItems && (
-                            <ul className={fresh ? "" : "opacity-60"}>
-                                {result.items.map((t) => (
-                                    <li key={t.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() => pick(t)}
-                                            disabled={t.inPlaylist || sendingId !== null}
-                                            className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            {t.cover ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={t.cover}
-                                                    alt=""
-                                                    width={40}
-                                                    height={40}
-                                                    className={`size-10 shrink-0 rounded-lg object-cover ${t.inPlaylist ? "grayscale" : ""
-                                                        }`}
-                                                />
-                                            ) : (
-                                                <div className="size-10 shrink-0 rounded-lg bg-white/10" />
-                                            )}
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-sm font-bold">
-                                                    {t.name}
-                                                </span>
-                                                <span className="block truncate text-xs text-[#89839F]">
-                                                    {t.artists}
-                                                </span>
-                                            </span>
-                                            <span
-                                                className={`shrink-0 text-xs font-bold ${t.inPlaylist ? "text-[#89839F]" : "text-[#B9A6FF]"
-                                                    }`}
-                                            >
-                                                {t.inPlaylist
-                                                    ? "Playlistte var"
-                                                    : sendingId === t.id
-                                                        ? "Gönderiliyor…"
-                                                        : "İste"}
-                                            </span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-
-                        {!hasItems && fresh && (
-                            <p className="p-3 text-sm text-[#89839F]">
-                                Sonuç yok. Şarkı adını farklı yazmayı dene.
+                        {blocked ? (
+                            <p role="alert" className="p-3 text-sm text-[#FF8FB0]">
+                                {BLOCKED_MESSAGE}
                             </p>
-                        )}
-                        {!hasItems && !fresh && (
-                            <p className="p-3 text-sm text-[#89839F]">Aranıyor…</p>
+                        ) : (
+                            <>
+                                {hasItems && (
+                                    <ul className={fresh ? "" : "opacity-60"}>
+                                        {result.items.map((t) => (
+                                            <li key={t.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => pick(t)}
+                                                    disabled={!!t.requested || sendingId !== null}
+                                                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    {t.cover ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={t.cover}
+                                                            alt=""
+                                                            width={40}
+                                                            height={40}
+                                                            className="size-10 shrink-0 rounded-lg object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="size-10 shrink-0 rounded-lg bg-white/10" />
+                                                    )}
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block truncate text-sm font-bold">
+                                                            {t.name}
+                                                        </span>
+                                                        <span className="block truncate text-xs text-[#89839F]">
+                                                            {t.artists}
+                                                        </span>
+                                                    </span>
+                                                    <span className="flex shrink-0 flex-col items-end gap-1">
+                                                        {t.inPlaylist && (
+                                                            <span className="rounded bg-[#1ED760]/15 px-1.5 py-px text-[10px] font-extrabold uppercase text-[#1ED760]">
+                                                                Listemizde
+                                                            </span>
+                                                        )}
+                                                        <span
+                                                            className={`text-xs font-bold ${t.requested ? "text-[#89839F]" : "text-[#B9A6FF]"
+                                                                }`}
+                                                        >
+                                                            {t.requested
+                                                                ? REQUESTED_LABEL[t.requested]
+                                                                : sendingId === t.id
+                                                                    ? "Gönderiliyor…"
+                                                                    : "İste"}
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
+                                {!hasItems && fresh && (
+                                    <p className="p-3 text-sm text-[#89839F]">
+                                        Sonuç yok. Şarkı adını farklı yazmayı dene.
+                                    </p>
+                                )}
+                                {!hasItems && !fresh && (
+                                    <p className="p-3 text-sm text-[#89839F]">Aranıyor…</p>
+                                )}
+                            </>
                         )}
                     </div>
                 )}

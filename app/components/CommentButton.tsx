@@ -73,6 +73,8 @@ export default function CommentButton() {
         }
     }
 
+    const shown = rating;
+
     return (
         <>
             <button
@@ -169,9 +171,9 @@ export default function CommentButton() {
                                                     size={32}
                                                     strokeWidth={1.8}
                                                     className={
-                                                        n <= rating ? "text-[#FFBD59]" : "text-[#5F5875]"
+                                                        n <= shown ? "text-[#FFBD59]" : "text-[#5F5875]"
                                                     }
-                                                    fill={n <= rating ? "currentColor" : "none"}
+                                                    fill={n <= shown ? "currentColor" : "none"}
                                                 />
                                             </button>
                                         ))}

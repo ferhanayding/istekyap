@@ -22,9 +22,11 @@ export async function GET(req: NextRequest) {
             getPlaylistIndex().catch(() => null),
         ]);
 
-        const visible = index
-            ? items.filter((t) => !isInPlaylist(index, t))
-            : items;
+        // Playlistteki şarkılar da istenebilir: gizlenmez, "Listemizde" diye işaretlenir
+        const visible = items.map((t) => ({
+            ...t,
+            inPlaylist: index ? isInPlaylist(index, t) : false,
+        }));
 
         return NextResponse.json(visible.slice(0, 8));
     } catch (e) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIp, rateLimit } from "@/lib/rate-limit";
-import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { getTrackById } from "@/lib/search";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAppState } from "@/lib/app-state";
@@ -42,14 +41,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Şarkı bulunamadı." }, { status: 404 });
         }
 
-        const index = await getPlaylistIndex().catch(() => null);
-        if (index && isInPlaylist(index, track)) {
-            return NextResponse.json(
-                { error: "Bu şarkı zaten playlistte." },
-                { status: 409 }
-            );
-        }
-
+        // Playlistteki şarkılar da istenebilir: kontrol kalktı
         const { error } = await supabaseAdmin.from("requests").insert({
             spotify_id: track.id,
             name: track.name,
@@ -104,7 +96,7 @@ export async function GET() {
         (a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9)
     );
 
-    // Vercel 10 sn boyunca herkese aynı cevabı verir, veritabanı yorulmaz
+    // Vercel birkaç saniye herkese aynı cevabı verir, veritabanı yorulmaz
     return NextResponse.json(sorted, {
         headers: {
             "Cache-Control": "public, s-maxage=5",

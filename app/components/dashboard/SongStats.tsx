@@ -10,7 +10,7 @@ import {
     ThumbsUp,
 } from "lucide-react";
 import LoadingTracks from "../LoadingTracks";
-import NowPlayingBadge from "../NowPlayingBadge";
+import EqBars from "../EqBars";
 import { addedInfo } from "@/lib/added";
 
 type Song = {
@@ -140,179 +140,168 @@ export default function SongStats({
 
     return (
         <>
-            {songs && (
-                <div className="mb-3 flex shrink-0 items-center gap-2 text-xs font-bold text-[#928BA8]">
-                    <span>{songs.length} şarkı</span>
-                    <span className="flex items-center gap-1 rounded-full bg-[#37D9BD]/15 px-2 py-0.5 text-[#37D9BD]">
-                        <ThumbsUp size={12} />
-                        {totalLikes}
-                    </span>
-                    <span className="flex items-center gap-1 rounded-full bg-[#FF729B]/15 px-2 py-0.5 text-[#FF729B]">
-                        <ThumbsDown size={12} />
-                        {totalDislikes}
-                    </span>
-                </div>
-            )}
-
-
-
             <div
-                className="mb-1 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-1 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
                 role="tablist"
-            >                {FILTERS.map((f) => (
-                <button
-                    key={f.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={filter === f.key}
-                    onClick={() => setFilter(f.key)}
-                    className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-bold transition ${filter === f.key
-                        ? "bg-[#7555E9] text-white"
-                        : "bg-white/[0.05] text-[#A99EC9] hover:bg-white/[0.08]"
-                        }`}
-                >
-                    {f.label} <span className="opacity-70">{count(f.key)}</span>
-                </button>
-            ))}
+            >
+                {FILTERS.map((f) => (
+                    <button
+                        key={f.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={filter === f.key}
+                        onClick={() => setFilter(f.key)}
+                        className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-bold transition ${filter === f.key
+                            ? "bg-[#1ED760] text-black"
+                            : "bg-white/[0.09] text-white hover:bg-white/[0.14]"
+                            }`}
+                    >
+                        {f.label} <span className="opacity-70">{count(f.key)}</span>
+                    </button>
+                ))}
             </div>
 
-            <div className="mb-3 flex shrink-0 items-center gap-2">
-                <label htmlFor="song-sort" className="text-xs text-[#817A98]">
+            <div className="mb-1 flex shrink-0 items-center gap-2 text-xs font-bold text-[#B3B3B3]">
+                {songs && (
+                    <>
+                        <span>{songs.length} şarkı</span>
+                        <span className="flex items-center gap-1 rounded-full bg-[#1ED760]/15 px-2 py-0.5 text-[#1ED760]">
+                            <ThumbsUp size={12} />
+                            {totalLikes}
+                        </span>
+                        <span className="flex items-center gap-1 rounded-full bg-[#FF729B]/15 px-2 py-0.5 text-[#FF8FB0]">
+                            <ThumbsDown size={12} />
+                            {totalDislikes}
+                        </span>
+                    </>
+                )}
+                <label htmlFor="song-sort" className="sr-only">
                     Sırala
                 </label>
                 <select
                     id="song-sort"
                     value={sort}
                     onChange={(e) => setSort(e.target.value as Sort)}
-                    className="rounded-xl border border-white/[0.06] bg-[#19162D] px-3 py-2 text-xs font-bold text-[#C9C2E4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
+                    className="ml-auto h-8 rounded-full bg-white/[0.09] px-3 text-xs font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
                 >
                     {SORTS.map((s) => (
-                        <option key={s.key} value={s.key}>
+                        <option key={s.key} value={s.key} className="bg-[#1B1733]">
                             {s.label}
                         </option>
                     ))}
                 </select>
             </div>
 
-            <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-10 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+            <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
                 {songs === null ? (
                     <LoadingTracks />
                 ) : visible.length === 0 ? (
-                    <p className="rounded-2xl bg-[#19162D] p-4 text-sm text-[#89839F]">
+                    <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
                         {EMPTY[filter]}
                     </p>
                 ) : (
-                    <ul className="space-y-2">
+                    <ul>
                         {visible.map((s) => {
                             const added = addedInfo(s.addedAt, now || undefined);
                             const net = s.likes - s.dislikes;
                             const playing = nowPlaying === s.id;
                             const wasPlayed = playedSet.has(s.id);
                             return (
-                                <li
-                                    key={s.id}
-                                    className={`flex items-center gap-3 rounded-2xl border p-2.5 ${playing
-                                        ? "border-[#37D9BD]/50 bg-gradient-to-r from-[#17342F] to-[#19162D] shadow-[0_0_24px_-8px_#37D9BD]"
-                                        : "border-white/[0.04] bg-[#19162D]"
-                                        }`}
-                                >
+                                <li key={s.id} className="flex items-center gap-3 py-2">
                                     {s.cover ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
                                             src={s.cover}
                                             alt=""
-                                            width={52}
-                                            height={52}
-                                            className="size-[52px] shrink-0 rounded-xl object-cover"
+                                            width={56}
+                                            height={56}
+                                            className="size-14 shrink-0 rounded-[4px] object-cover"
                                         />
                                     ) : (
-                                        <div className="size-[52px] shrink-0 rounded-xl bg-white/10" />
+                                        <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
                                     )}
 
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-[15px] font-bold text-[#F5F2FF]">
+                                        <p
+                                            className={`truncate text-base ${playing
+                                                ? "font-bold text-[#1ED760]"
+                                                : "font-medium text-white"
+                                                }`}
+                                        >
                                             {s.name}
                                         </p>
-                                        <p className="mt-0.5 truncate text-xs text-[#89839F]">
-                                            {s.artists}
-                                        </p>
-                                        {playing ? (
-                                            <NowPlayingBadge className="mt-1" />
-                                        ) : (
-                                            <p
-                                                className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-[#625D78]"
-                                                suppressHydrationWarning
-                                            >
-                                                {wasPlayed && (
-                                                    <span className="shrink-0 rounded-full bg-[#9B80FF]/15 px-1.5 py-px font-bold text-[#B9A6FF]">
-                                                        Çalındı
-                                                    </span>
-                                                )}
-                                                {added?.isNew && (
-                                                    <span className="shrink-0 rounded-full bg-[#37D9BD]/20 px-1.5 py-px font-bold text-[#37D9BD]">
-                                                        Yeni
-                                                    </span>
-                                                )}
-                                                <span className="truncate">
-                                                    {added ? `${added.label} · ${s.album}` : s.album}
+                                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-[#B3B3B3]">
+                                            {playing && <EqBars className="shrink-0" />}
+                                            {!playing && wasPlayed && (
+                                                <span className="shrink-0 rounded bg-[#9B80FF]/20 px-1.5 text-[10px] font-extrabold uppercase text-[#C3B3FF]">
+                                                    Çalındı
                                                 </span>
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex shrink-0 flex-col items-end gap-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="flex items-center gap-1 rounded-full bg-[#37D9BD]/15 px-2 py-0.5 text-xs font-bold text-[#37D9BD]">
+                                            )}
+                                            {!playing && added?.isNew && (
+                                                <span className="shrink-0 rounded bg-[#1ED760] px-1.5 text-[10px] font-extrabold uppercase text-black">
+                                                    Yeni
+                                                </span>
+                                            )}
+                                            <span className="truncate">{s.artists}</span>
+                                        </p>
+                                        <div className="mt-1 flex items-center gap-2 text-xs font-bold">
+                                            <span className="flex items-center gap-1 text-[#1ED760]">
                                                 <ThumbsUp size={12} />
                                                 {s.likes}
                                             </span>
-                                            <span className="flex items-center gap-1 rounded-full bg-[#FF729B]/15 px-2 py-0.5 text-xs font-bold text-[#FF729B]">
+                                            <span className="flex items-center gap-1 text-[#FF8FB0]">
                                                 <ThumbsDown size={12} />
                                                 {s.dislikes}
                                             </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
                                             <span
-                                                className={`mr-1 text-[11px] font-bold ${net > 0
-                                                    ? "text-[#37D9BD]"
-                                                    : net < 0
-                                                        ? "text-[#FF729B]"
-                                                        : "text-[#817A98]"
-                                                    }`}
+                                                className={
+                                                    net > 0
+                                                        ? "text-[#1ED760]"
+                                                        : net < 0
+                                                            ? "text-[#FF8FB0]"
+                                                            : "text-[#8F8AA8]"
+                                                }
                                             >
                                                 Net {net > 0 ? `+${net}` : net}
                                             </span>
-                                            <button
-                                                type="button"
-                                                disabled={busy}
-                                                onClick={() =>
-                                                    playing
-                                                        ? onStop()
-                                                        : onPlay(s.id, `${s.name} · ${s.artists}`)
-                                                }
-                                                aria-label={playing ? "Durdur" : "Çal"}
-                                                className={`flex size-8 items-center justify-center rounded-lg transition active:scale-95 disabled:opacity-50 ${playing
-                                                    ? "bg-[#FF729B]/20 text-[#FF729B]"
-                                                    : "bg-[#37D9BD]/15 text-[#37D9BD]"
-                                                    }`}
-                                            >
-                                                {playing ? (
-                                                    <Square size={13} fill="currentColor" />
-                                                ) : (
-                                                    <Play size={14} fill="currentColor" />
-                                                )}
-                                            </button>
-                                            <a
-                                                href={s.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                aria-label="Spotify'da aç"
-                                                className="flex size-8 items-center justify-center rounded-lg bg-white/[0.05] text-[#AAA2C6] transition hover:bg-white/10"
-                                            >
-                                                <ExternalLink size={14} />
-                                            </a>
+                                            {added && (
+                                                <span
+                                                    className="truncate font-normal text-[#7C7794]"
+                                                    suppressHydrationWarning
+                                                >
+                                                    {added.label}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
+
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={() =>
+                                            playing ? onStop() : onPlay(s.id, `${s.name} · ${s.artists}`)
+                                        }
+                                        aria-label={playing ? `${s.name} durdur` : `${s.name} çal`}
+                                        className={`flex size-10 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-50 ${playing
+                                            ? "bg-[#FF729B]/20 text-[#FF8FB0]"
+                                            : "bg-[#1ED760] text-black"
+                                            }`}
+                                    >
+                                        {playing ? (
+                                            <Square size={14} fill="currentColor" />
+                                        ) : (
+                                            <Play size={16} fill="currentColor" />
+                                        )}
+                                    </button>
+                                    <a
+                                        href={s.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label="Spotify'da aç"
+                                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white"
+                                    >
+                                        <ExternalLink size={16} />
+                                    </a>
                                 </li>
                             );
                         })}
