@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getIp, rateLimit } from "@/lib/rate-limit";
+import { getIp, limitDeviceAndIp } from "@/lib/rate-limit";
+import { getOrCreateDeviceId } from "@/lib/device";
 import { getTrackById } from "@/lib/search";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAppState } from "@/lib/app-state";
@@ -21,7 +22,14 @@ export async function POST(req: NextRequest) {
             { status: 403 }
         );
     }
-    const limit = rateLimit(`request:${getIp(req)}`, 5, 10 * 60_000);
+    // Cihaz başına 10 dakikada 5 istek, aynı IP'den (ortak Wi-Fi) 10 dakikada 100
+    const limit = limitDeviceAndIp(
+        "request",
+        await getOrCreateDeviceId(),
+        getIp(req),
+        { limit: 5, windowMs: 10 * 60_000 },
+        { limit: 100, windowMs: 10 * 60_000 }
+    );
     if (!limit.ok) {
         return NextResponse.json(
             { error: "Çok fazla istek gönderdin, biraz bekle." },

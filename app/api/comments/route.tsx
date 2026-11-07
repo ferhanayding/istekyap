@@ -1,40 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getIp, limitDeviceAndIp } from "@/lib/rate-limit";
+import { getOrCreateDeviceId } from "@/lib/device";
 
 const WINDOW_MS = 10 * 60_000; // 10 dakikada
-const MAX_PER_WINDOW = 3; // en fazla 3 yorum
+const MAX_PER_WINDOW = 3; // cihaz başına en fazla 3 yorum
+const MAX_PER_IP = 60; // aynı IP (ortak Wi-Fi) için toplam
 const MAX_MESSAGE = 500;
 const MAX_NAME = 30;
-
-// IP başına son yorum zamanları (sunucu belleğinde)
-const hits = new Map<string, number[]>();
-
-function ipOf(req: Request): string {
-    return (
-        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        req.headers.get("x-real-ip") ||
-        "unknown"
-    );
-}
-
-function tooMany(ip: string): boolean {
-    const now = Date.now();
-    const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-    if (recent.length >= MAX_PER_WINDOW) {
-        hits.set(ip, recent);
-        return true;
-    }
-    recent.push(now);
-    hits.set(ip, recent);
-
-    // Bellek şişmesin
-    if (hits.size > 2000) {
-        for (const [k, v] of hits) {
-            if (v.every((t) => now - t >= WINDOW_MS)) hits.delete(k);
-        }
-    }
-    return false;
-}
 
 const fail = (error: string, status: number) =>
     NextResponse.json({ error }, { status });
@@ -68,7 +41,14 @@ export async function POST(req: Request) {
         return fail(`İsim en fazla ${MAX_NAME} karakter olabilir.`, 400);
     }
 
-    if (tooMany(ipOf(req))) {
+    const limit = limitDeviceAndIp(
+        "comment",
+        await getOrCreateDeviceId(),
+        getIp(req),
+        { limit: MAX_PER_WINDOW, windowMs: WINDOW_MS },
+        { limit: MAX_PER_IP, windowMs: WINDOW_MS }
+    );
+    if (!limit.ok) {
         return fail("Çok sık yorum yapıyorsun, biraz sonra tekrar dene.", 429);
     }
 

@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTracks } from "@/lib/search";
-import { getIp, rateLimit } from "@/lib/rate-limit";
+import { getIp, limitDeviceAndIp } from "@/lib/rate-limit";
+import { getOrCreateDeviceId } from "@/lib/device";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 
 export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
     if (q.length < 2 || q.length > 100) return NextResponse.json([]);
 
-    const limit = rateLimit(`search:${getIp(req)}`, 30, 60_000);
+    // Cihaz başına dakikada 30 arama, aynı IP'den (ortak Wi-Fi) dakikada 300
+    const limit = limitDeviceAndIp(
+        "search",
+        await getOrCreateDeviceId(),
+        getIp(req),
+        { limit: 30, windowMs: 60_000 },
+        { limit: 300, windowMs: 60_000 }
+    );
     if (!limit.ok) {
         return NextResponse.json(
             { error: "Çok fazla arama yaptın, biraz bekle." },

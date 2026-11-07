@@ -25,3 +25,18 @@ export function rateLimit(key: string, limit: number, windowMs: number) {
 export function getIp(req: Request): string {
     return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
 }
+type Rule = { limit: number; windowMs: number };
+
+// Ortak Wi-Fi'de herkes aynı IP'den gelir. Asıl sınır cihaz başına,
+// IP sınırı ise sadece çerezi silip duran botlara karşı geniş bir emniyet.
+export function limitDeviceAndIp(
+    name: string,
+    deviceId: string,
+    ip: string,
+    device: Rule,
+    ipRule: Rule
+) {
+    const byIp = rateLimit(`${name}-ip:${ip}`, ipRule.limit, ipRule.windowMs);
+    if (!byIp.ok) return byIp;
+    return rateLimit(`${name}-dev:${deviceId}`, device.limit, device.windowMs);
+}
