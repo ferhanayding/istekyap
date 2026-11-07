@@ -138,9 +138,30 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
                     )}
 
                     {state.status === "ok" && (
-                        <p className="whitespace-pre-wrap text-lg leading-relaxed text-[#EDEAF7]">
-                            {state.lyrics}
-                        </p>
+                        <>
+                            <p className="mb-5 flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-xl bg-white/[0.05] px-3 py-2 text-xs text-[#9D97B8]">
+                                Bu sözler
+                                <a
+                                    href="https://lrclib.net"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-bold text-[#CFC4FF] hover:underline"
+                                >
+                                    lrclib.net
+                                </a>
+                                adresinden alınmıştır.
+                                <span aria-hidden>·</span>
+                                <a
+                                    href={lyricsUrl(song.name, song.artists)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-bold text-[#B9A6FF] hover:underline"
+                                >
+                                    Yanlışsa Google&apos;da ara
+                                </a>
+                            </p>
+                            <LyricsText text={state.lyrics} />
+                        </>
                     )}
 
                     {state.status === "missing" && (
@@ -164,20 +185,32 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
                     )}
                 </div>
 
-                {state.status === "ok" && (
-                    <p className="shrink-0 border-t border-white/[0.06] px-6 py-2.5 text-[11px] text-[#7C7794]">
-                        Sözler: LRCLIB · yanlışsa{" "}
-                        <a
-                            href={lyricsUrl(song.name, song.artists)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-bold text-[#B9A6FF] hover:underline"
-                        >
-                            Google&apos;da ara
-                        </a>
-                    </p>
-                )}
             </div>
+        </div>
+    );
+}
+
+// Boş satırlar kıta arası boşluk olur; tamamı parantez içindeki satırlar
+// (arka vokal, örn. "(Hey, hey, hey)") soluk ve italik görünür
+function LyricsText({ text }: { text: string }) {
+    const stanzas = text.split(/\n\s*\n/);
+    return (
+        <div className="space-y-6 text-lg leading-relaxed text-[#EDEAF7]">
+            {stanzas.map((stanza, i) => (
+                <p key={i}>
+                    {stanza.split("\n").map((line, j) => {
+                        const backing = /^\s*\(.*\)\s*$/.test(line);
+                        return (
+                            <span
+                                key={j}
+                                className={`block ${backing ? "italic text-[#9D97B8]" : ""}`}
+                            >
+                                {line}
+                            </span>
+                        );
+                    })}
+                </p>
+            ))}
         </div>
     );
 }
