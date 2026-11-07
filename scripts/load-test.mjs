@@ -1,8 +1,9 @@
 // Aynı anda N kişinin siteyi açık tuttuğunu taklit eden yük testi.
 // Tarayıcının yaptığı gibi her "kullanıcı" şunları yapar:
-//   /api/state    5 sn'de bir   (lib/system-context.tsx)
-//   /api/requests 10 sn'de bir  (lib/use-request-feed.ts)
-//   /api/votes    20 sn'de bir  (lib/use-votes.ts)
+//   /api/state    60 sn'de bir (canlı bağlantı varken yedek; lib/system-context.tsx)
+//   /api/requests 60 sn'de bir (canlı bağlantı varken yedek; lib/use-request-feed.ts)
+//   /api/votes    60 sn'de bir (lib/use-votes.ts)
+//   --no-live verilirse Realtime koptuğundaki gibi state 5 sn, requests 10 sn
 //   ara sıra /api/search ile şarkı arar
 //   --write verilirse ara sıra /api/requests'e POST ile istek atar (GERÇEK veritabanına yazar!)
 //
@@ -24,6 +25,7 @@ const USERS = Number(opt("users", 30));
 const SECONDS = Number(opt("seconds", 60));
 const WRITE = flag("write");
 const SPREAD_IP = flag("spread-ip");
+const LIVE = !flag("no-live");
 
 const SEARCHES = [
     "tarkan", "sezen aksu", "duman", "manga", "mor ve ötesi", "teoman",
@@ -103,9 +105,9 @@ async function runUser(i, until) {
     };
 
     const jobs = [
-        every(5_000, () => hit(user, "GET /api/state", "/api/state"), until),
-        every(10_000, () => hit(user, "GET /api/requests", "/api/requests"), until),
-        every(20_000, () => hit(user, "GET /api/votes", "/api/votes"), until),
+        every(LIVE ? 60_000 : 5_000, () => hit(user, "GET /api/state", "/api/state"), until),
+        every(LIVE ? 60_000 : 10_000, () => hit(user, "GET /api/requests", "/api/requests"), until),
+        every(60_000, () => hit(user, "GET /api/votes", "/api/votes"), until),
         // Herkes ortalama 30 sn'de bir şarkı arar
         every(30_000, async () => {
             const q = SEARCHES[Math.floor(Math.random() * SEARCHES.length)];

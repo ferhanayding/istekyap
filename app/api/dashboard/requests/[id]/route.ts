@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notifyLive } from "@/lib/live-server";
 
 const UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,6 +41,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         return NextResponse.json({ error: "İşlem yapılamadı." }, { status: 500 });
     }
 
+    notifyLive("requests");
     return NextResponse.json({ ok: true });
 }
 
@@ -59,5 +61,6 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
         return NextResponse.json({ error: "İşlem yapılamadı." }, { status: 500 });
     }
 
+    notifyLive("requests");
     return NextResponse.json({ ok: true });
 }

@@ -4,6 +4,7 @@ import { getOrCreateDeviceId } from "@/lib/device";
 import { getTrackById } from "@/lib/search";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAppState } from "@/lib/app-state";
+import { notifyLive } from "@/lib/live-server";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 // Listede önce onaylılar, sonra bekleyenler, sonra çalınanlar, en altta reddedilenler
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
         }
         if (error) throw error;
 
+        notifyLive("requests");
         return NextResponse.json({ ok: true }, { status: 201 });
     } catch (e) {
         console.error(e);

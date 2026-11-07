@@ -9,6 +9,7 @@ import {
     useState,
     type ReactNode,
 } from "react";
+import { useLive } from "@/lib/live-client";
 
 type Raw = {
     requestsOpen: boolean;
@@ -31,7 +32,9 @@ export type System = {
     playlistVisible: boolean;
 };
 
-const POLL_MS = 5_000;
+// Canlı bağlantı varken sadece yedek olarak, yoksa eskisi gibi sık bakar
+const POLL_MS = 60_000;
+const FALLBACK_POLL_MS = 5_000;
 
 const EMPTY: System = {
     loaded: false,
@@ -49,9 +52,11 @@ const SystemContext = createContext<System>(EMPTY);
 export function SystemProvider({ children }: { children: ReactNode }) {
     const [raw, setRaw] = useState<Raw | null>(null);
 
-    const load = useCallback(async () => {
+    const load = useCallback(async (fresh = false) => {
         try {
-            const res = await fetch("/api/state", { cache: "no-store" });
+            // fresh: sinyal gelince ortak (CDN) önbelleği atla
+            const url = fresh ? `/api/state?t=${Date.now()}` : "/api/state";
+            const res = await fetch(url, { cache: "no-store" });
             const data: unknown = await res.json();
             if (!res.ok || typeof data !== "object" || data === null) {
                 throw new Error();
@@ -62,11 +67,13 @@ export function SystemProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const live = useLive("state", () => load(true));
+
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
         const timer = setInterval(() => {
             if (!document.hidden) load();
-        }, POLL_MS);
+        }, live ? POLL_MS : FALLBACK_POLL_MS);
         const onVisible = () => {
             if (!document.hidden) load();
         };
@@ -76,7 +83,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
             clearInterval(timer);
             document.removeEventListener("visibilitychange", onVisible);
         };
-    }, [load]);
+    }, [load, live]);
 
     const value = useMemo<System>(
         () =>

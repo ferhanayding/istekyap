@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notifyLive } from "@/lib/live-server";
 
 // "Çalıyor" işareti bu süre sonra kendiliğinden kapanır
 export const NOW_PLAYING_MS = 5 * 60_000;
@@ -38,6 +39,7 @@ async function expireNowPlaying(id: string) {
         .eq("id", 1)
         .eq("now_playing", id);
     if (b.error) console.error(b.error);
+    notifyLive("state", "requests");
 }
 
 export async function getAppState(

@@ -2,11 +2,7 @@
 
 import { useEffect } from "react";
 import { Mic } from "lucide-react";
-import {
-    POLL_MS,
-    type RequestFeed,
-    type RequestStatus,
-} from "@/lib/use-request-feed";
+import { type RequestFeed, type RequestStatus } from "@/lib/use-request-feed";
 import { useSystem } from "@/lib/system-context";
 import { useSharedVotes } from "@/lib/votes-context";
 import { lyricsUrl } from "@/lib/lyrics";
@@ -39,7 +35,7 @@ function ago(iso: string, now: number): string {
 }
 
 export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
-    const { items, failed, now } = feed;
+    const { items, failed, now, live } = feed;
     const system = useSystem();
     const { votes, vote } = useSharedVotes();
     const toast = useToast();
@@ -54,7 +50,13 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
             <div className="mb-1 flex shrink-0 items-baseline justify-between">
                 <h2 className="text-lg font-extrabold tracking-tight">İstek Listesi</h2>
                 <span className="text-xs text-[#8F8AA8]">
-                    {items ? `${pendingCount} bekleyen` : "…"} · {POLL_MS / 1000} sn
+                    {items ? `${pendingCount} bekleyen` : "…"}
+                    {live && (
+                        <span className="ml-1.5 inline-flex items-center gap-1 text-[#1ED760]">
+                            · <span className="h-1.5 w-1.5 rounded-full bg-[#1ED760]" aria-hidden />
+                            canlı
+                        </span>
+                    )}
                 </span>
             </div>
 

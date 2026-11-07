@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { clearAppStateCache, getAppState } from "@/lib/app-state";
 import { clearLikeCountsCache } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notifyLive } from "@/lib/live-server";
 import { getTrackById } from "@/lib/search";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
@@ -194,6 +195,7 @@ export async function POST(req: NextRequest) {
         }
 
         clearAppStateCache();
+        notifyLive("state", "requests");
         return NextResponse.json(await getAppState({ fresh: true }), {
             headers: NO_STORE,
         });

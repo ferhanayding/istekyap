@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLive } from "@/lib/live-client";
 
 export type RequestStatus = "pending" | "approved" | "played" | "rejected";
 
@@ -15,7 +16,9 @@ export type RequestItem = {
 };
 
 export const REQUEST_SENT_EVENT = "istek:gonderildi";
-export const POLL_MS = 10_000;
+// Canlı bağlantı varken sadece yedek olarak, yoksa eskisi gibi sık bakar
+export const POLL_MS = 60_000;
+const FALLBACK_POLL_MS = 10_000;
 export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
     const [items, setItems] = useState<RequestItem[] | null>(null);
     const [failed, setFailed] = useState(false);
@@ -57,13 +60,16 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
         []
     );
 
+    // Biri istek atınca ya da dashboard'dan değişiklik olunca hemen tazele
+    const live = useLive("requests", () => load({ fresh: true }));
+
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
 
         // Sekme arka plandayken yenileme, geri dönünce hemen yenile
         const timer = setInterval(() => {
             if (!document.hidden) load();
-        }, POLL_MS);
+        }, live ? POLL_MS : FALLBACK_POLL_MS);
         const onVisible = () => {
             if (!document.hidden) load();
         };
@@ -77,9 +83,9 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
             document.removeEventListener("visibilitychange", onVisible);
             window.removeEventListener(REQUEST_SENT_EVENT, onSent);
         };
-    }, [load]);
+    }, [load, live]);
 
-    return { items, failed, now };
+    return { items, failed, now, live };
 }
 
 export type RequestFeed = ReturnType<typeof useRequestFeed>;

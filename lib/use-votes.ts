@@ -6,7 +6,8 @@ export type MyVote = -1 | 0 | 1;
 export type VoteState = { likes: number; mine: MyVote };
 export type VoteMap = Record<string, VoteState>;
 
-const POLL_MS = 20_000;
+// Beğeniler acil değil, dakikada bir bakması yeter
+const POLL_MS = 60_000;
 
 export function useVotes() {
     const [votes, setVotes] = useState<VoteMap>({});
