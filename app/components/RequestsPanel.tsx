@@ -138,7 +138,7 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                                                 </span>
                                             )}
                                             <span className="text-[11px] text-[#7C7794]">
-                                                {ago(r.created_at, now)}
+                                                {ago(r.last_requested_at ?? r.created_at, now)}
                                             </span>
                                         </div>
                                     </div>

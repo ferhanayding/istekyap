@@ -4,6 +4,8 @@
 -- 1) Kaç kişi istedi + arşive alındı mı
 alter table public.requests add column if not exists request_count int not null default 1;
 alter table public.requests add column if not exists archived_at timestamptz;
+-- Son kişinin istediği an (listede "x dakika önce" bunu gösterir)
+alter table public.requests add column if not exists last_requested_at timestamptz not null default now();
 
 -- 2) Hangi cihaz hangi isteği yaptı (aynı cihaz sayacı iki kere artıramaz)
 create table if not exists public.request_devices (
@@ -13,6 +15,7 @@ create table if not exists public.request_devices (
     primary key (request_id, device_id)
 );
 alter table public.request_devices enable row level security;
+grant select, insert, delete on public.request_devices to service_role;
 
 -- 3) "Aynı şarkı aynı anda bir kere listede" kuralı artık sadece arşivlenmemişler için
 do $$
@@ -79,7 +82,8 @@ begin
         return json_build_object('result', 'already', 'status', r.status, 'count', r.request_count);
     end if;
 
-    update public.requests set request_count = request_count + 1
+    update public.requests
+    set request_count = request_count + 1, last_requested_at = now()
     where id = r.id returning * into r;
     return json_build_object('result', 'joined', 'status', r.status, 'count', r.request_count);
 end $$;

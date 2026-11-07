@@ -14,6 +14,7 @@ export type RequestItem = {
     status: RequestStatus;
     request_count?: number;
     created_at: string;
+    last_requested_at?: string;
 };
 
 export const REQUEST_SENT_EVENT = "istek:gonderildi";

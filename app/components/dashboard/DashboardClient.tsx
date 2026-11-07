@@ -63,6 +63,7 @@ type RequestRow = {
     status: Status;
     request_count?: number;
     created_at: string;
+    last_requested_at?: string;
 };
 
 const POLL_MS = 10_000;
@@ -563,7 +564,7 @@ function DashboardInner() {
                                                                 </span>
                                                             )}
                                                             <span className="text-[11px] text-[#7C7794]">
-                                                                {ago(r.created_at, now)}
+                                                                {ago(r.last_requested_at ?? r.created_at, now)}
                                                             </span>
                                                         </div>
                                                     </div>
