@@ -50,6 +50,10 @@ const STATUS_BADGE: Record<Status, { text: string; className: string }> = {
     rejected: { text: "Reddedildi", className: "bg-[#FF729B]/15 text-[#FF8FB0]" },
 };
 
+// Çok istenen üstte; sort kararlı, eşitler yeniden eskiye kalır
+const byCount = (a: RequestRow, b: RequestRow) =>
+    (b.request_count ?? 1) - (a.request_count ?? 1);
+
 type RequestRow = {
     id: string;
     spotify_id: string;
@@ -57,6 +61,7 @@ type RequestRow = {
     artists: string;
     cover: string | null;
     status: Status;
+    request_count?: number;
     created_at: string;
 };
 
@@ -365,9 +370,10 @@ function DashboardInner() {
     const visible =
         tab === "all"
             ? [...(items ?? [])].sort(
-                (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+                (a, b) =>
+                    STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || byCount(a, b)
             )
-            : (items?.filter((r) => r.status === tab) ?? []);
+            : (items?.filter((r) => r.status === tab) ?? []).sort(byCount);
 
     // Çalan şarkının kapağı: sistemden, yoksa istek listesinden
     const playingCover =
@@ -542,6 +548,14 @@ function DashboardInner() {
                                                                         {STATUS_BADGE[r.status].text}
                                                                     </span>
                                                                 )
+                                                            )}
+                                                            {(r.request_count ?? 1) > 1 && (
+                                                                <span
+                                                                    title={`${r.request_count} kişi istedi`}
+                                                                    className="rounded-full bg-[#9B80FF]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#CFC4FF]"
+                                                                >
+                                                                    ×{r.request_count} istek
+                                                                </span>
                                                             )}
                                                             {isNew && (
                                                                 <span className="rounded bg-[#9B80FF] px-1.5 py-px text-[10px] font-extrabold uppercase text-white">

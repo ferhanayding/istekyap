@@ -129,6 +129,14 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                                                     {badge.text}
                                                 </span>
                                             )}
+                                            {(r.request_count ?? 1) > 1 && (
+                                                <span
+                                                    title={`${r.request_count} kişi istedi`}
+                                                    className="rounded-full bg-[#9B80FF]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#CFC4FF]"
+                                                >
+                                                    ×{r.request_count}
+                                                </span>
+                                            )}
                                             <span className="text-[11px] text-[#7C7794]">
                                                 {ago(r.created_at, now)}
                                             </span>

@@ -49,6 +49,7 @@ async function ensureRequest(id: string) {
         .from("requests")
         .select("id, status")
         .eq("spotify_id", id)
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -170,6 +171,17 @@ export async function POST(req: NextRequest) {
                     .neq("spotify_id", "");
                 if (error) throw error;
                 clearLikeCountsCache();
+                break;
+            }
+            case "archive_requests": {
+                // Yeni gece: bekleyen, çalınan ve reddedilenler arşive gider (silinmez),
+                // onaylı ama henüz çalınmamışlar listede kalır. Sayaçlar sıfırdan başlar.
+                const { error } = await supabaseAdmin
+                    .from("requests")
+                    .update({ archived_at: new Date().toISOString() })
+                    .is("archived_at", null)
+                    .in("status", ["pending", "played", "rejected"]);
+                if (error) throw error;
                 break;
             }
             case "reset_requests": {

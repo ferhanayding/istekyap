@@ -22,7 +22,8 @@ export type SystemAction =
     | { action: "stop" }
     | { action: "reset_played" }
     | { action: "reset_votes" }
-    | { action: "reset_requests" };
+    | { action: "reset_requests" }
+    | { action: "archive_requests" };
 
 
 const POLL_MS = 10_000;

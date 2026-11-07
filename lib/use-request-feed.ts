@@ -12,6 +12,7 @@ export type RequestItem = {
     artists: string;
     cover: string | null;
     status: RequestStatus;
+    request_count?: number;
     created_at: string;
 };
 

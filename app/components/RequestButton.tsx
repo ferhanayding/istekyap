@@ -28,6 +28,7 @@ export default function RequestButton() {
     const [failedQ, setFailedQ] = useState<string | null>(null);
     const [sendingId, setSendingId] = useState<string | null>(null);
     const [sent, setSent] = useState<Track | null>(null);
+    const [sentCount, setSentCount] = useState<number | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const { loaded, requestsOpen } = useSystem();
     const toast = useToast();
@@ -99,6 +100,8 @@ export default function RequestButton() {
                 toast.error(data?.error ?? SEND_ERROR);
                 return;
             }
+            const data = await res.json().catch(() => null);
+            setSentCount(data?.joined ? Number(data.count) || null : null);
             setSent(t);
             setTimeout(() => setOpen(false), 2200);
         } catch {
@@ -144,7 +147,9 @@ export default function RequestButton() {
                         <>
                             <Check size={18} className="shrink-0 text-[#1ED760]" />
                             <p className="min-w-0 flex-1 truncate text-sm font-semibold">
-                                İstek gönderildi: {sent.name}
+                                {sentCount
+                                    ? `İsteğe katıldın · ${sentCount} kişi istedi: ${sent.name}`
+                                    : `İstek gönderildi: ${sent.name}`}
                             </p>
                         </>
                     ) : (

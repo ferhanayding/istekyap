@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, Square, Trash2 } from "lucide-react";
+import { Archive, RotateCcw, Square, Trash2 } from "lucide-react";
 import type { DashboardSystem } from "@/lib/use-dashboard-system";
 import EqBars from "../EqBars";
 
@@ -144,6 +144,20 @@ export default function SystemPanel({
                         disabled={busy}
                         onClick={() =>
                             run(
+                                { action: "archive_requests" },
+                                "İstek listesi temizlensin mi? Bekleyen, çalınan ve reddedilen istekler arşive gider, onaylılar kalır. İstek sayaçları sıfırdan başlar, reddedilenler tekrar istenebilir."
+                            )
+                        }
+                        className={`${resetBtn} bg-[#1ED760]/15 text-[#1ED760]`}
+                    >
+                        <Archive size={16} />
+                        İstek listesini temizle
+                    </button>
+                    <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                            run(
                                 { action: "reset_played" },
                                 "Çalındı işaretleri silinsin mi? Tüm şarkılar tekrar \"çalınmadı\" olur."
                             )
@@ -165,7 +179,7 @@ export default function SystemPanel({
                         className={`${resetBtn} bg-[#FF729B]/15 text-[#FF8FB0]`}
                     >
                         <Trash2 size={16} />
-                        İstekleri sıfırla
+                        İstekleri kalıcı sil
                     </button>
                     <button
                         type="button"

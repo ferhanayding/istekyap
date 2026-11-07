@@ -7,6 +7,12 @@ import { getAppState } from "@/lib/app-state";
 import { notifyLive } from "@/lib/live-server";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
+type MakeResult = {
+    result: "created" | "joined" | "already";
+    status: string;
+    count: number;
+};
+
 // Listede önce onaylılar, sonra bekleyenler, sonra çalınanlar, en altta reddedilenler
 const RANK: Record<string, number> = {
     approved: 0,
@@ -24,9 +30,11 @@ export async function POST(req: NextRequest) {
         );
     }
     // Cihaz başına 10 dakikada 5 istek, aynı IP'den (ortak Wi-Fi) 10 dakikada 100
+    const deviceId = await getOrCreateDeviceId();
+    // Cihaz başına 10 dakikada 5 istek, aynı IP'den (ortak Wi-Fi) 10 dakikada 100
     const limit = limitDeviceAndIp(
         "request",
-        await getOrCreateDeviceId(),
+        deviceId,
         getIp(req),
         { limit: 5, windowMs: 10 * 60_000 },
         { limit: 100, windowMs: 10 * 60_000 }
@@ -50,36 +58,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Şarkı bulunamadı." }, { status: 404 });
         }
 
-        // Playlistteki şarkılar da istenebilir: kontrol kalktı
-        const { error } = await supabaseAdmin.from("requests").insert({
-            spotify_id: track.id,
-            name: track.name,
-            artists: track.artists,
-            cover: track.cover,
+        // Yeni istek ya da aynı şarkıyı isteyenlere katılma (sayaç cihaz başına bir artar)
+        const { data, error } = await supabaseAdmin.rpc("make_request", {
+            p_spotify_id: track.id,
+            p_name: track.name,
+            p_artists: track.artists,
+            p_cover: track.cover,
+            p_device: deviceId,
         });
-
-        // 23505: bu şarkı zaten bekliyor, onaylı ya da reddedilmiş
-        if (error?.code === "23505") {
-            const { data: existing } = await supabaseAdmin
-                .from("requests")
-                .select("status")
-                .eq("spotify_id", track.id)
-                .in("status", ["pending", "approved", "rejected"])
-                .limit(1)
-                .maybeSingle();
-
-            const message =
-                existing?.status === "approved"
-                    ? "Bu istek zaten yapıldı ve onaylandı, çalınacak."
-                    : existing?.status === "rejected"
-                        ? "Bu istek zaten yapıldı ama reddedildi."
-                        : "Bu istek zaten yapıldı.";
-            return NextResponse.json({ error: message }, { status: 409 });
-        }
         if (error) throw error;
+        const r = data as MakeResult;
 
-        notifyLive("requests");
-        return NextResponse.json({ ok: true }, { status: 201 });
+        if (r.result !== "already") notifyLive("requests");
+
+        if (r.status === "rejected") {
+            return NextResponse.json(
+                { error: "Bu şarkı istendi ama reddedildi.", count: r.count },
+                { status: 409 }
+            );
+        }
+        if (r.result === "already") {
+            return NextResponse.json(
+                { error: "Bu şarkıyı zaten istedin.", count: r.count },
+                { status: 409 }
+            );
+        }
+        return NextResponse.json(
+            { ok: true, joined: r.result === "joined", status: r.status, count: r.count },
+            { status: r.result === "created" ? 201 : 200 }
+        );
     } catch (e) {
         console.error(e);
         return NextResponse.json(
@@ -92,7 +99,8 @@ export async function POST(req: NextRequest) {
 export async function GET() {
     const { data, error } = await supabaseAdmin
         .from("requests")
-        .select("id, spotify_id, name, artists, cover, status, created_at")
+        .select("id, spotify_id, name, artists, cover, status, request_count, created_at")
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -101,9 +109,11 @@ export async function GET() {
         return NextResponse.json({ error: "Liste alınamadı." }, { status: 500 });
     }
 
-    // sort kararlıdır: aynı durumdakiler yeniden eskiye sıralı kalır
+    // Aynı durumdakilerde çok istenen üstte; sort kararlı, eşitler yeniden eskiye kalır
     const sorted = [...(data ?? [])].sort(
-        (a, b) => (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9)
+        (a, b) =>
+            (RANK[a.status] ?? 9) - (RANK[b.status] ?? 9) ||
+            (b.request_count ?? 1) - (a.request_count ?? 1)
     );
 
     // Vercel birkaç saniye herkese aynı cevabı verir, veritabanı yorulmaz

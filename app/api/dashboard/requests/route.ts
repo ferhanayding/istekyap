@@ -9,7 +9,8 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
         .from("requests")
-        .select("id, spotify_id, name, artists, cover, status, created_at")
+        .select("id, spotify_id, name, artists, cover, status, request_count, created_at")
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
 
