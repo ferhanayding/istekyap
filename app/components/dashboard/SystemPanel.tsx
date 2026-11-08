@@ -1,6 +1,7 @@
 "use client";
 
-import { Archive, RotateCcw, Square, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Archive, RotateCcw, Square, Trash2, Undo2 } from "lucide-react";
 import type { DashboardSystem } from "@/lib/use-dashboard-system";
 import EqBars from "../EqBars";
 
@@ -63,10 +64,20 @@ export default function SystemPanel({
     onChanged: () => void;
 }) {
     const { state, busy, act } = system;
+    // Arşivledikten sonra 10 dakika "Geri al" görünür (yanlışlıkla basılırsa)
+    const [undoUntil, setUndoUntil] = useState(0);
+    useEffect(() => {
+        if (!undoUntil) return;
+        const t = setTimeout(() => setUndoUntil(0), undoUntil - Date.now());
+        return () => clearTimeout(t);
+    }, [undoUntil]);
 
     async function run(body: Parameters<typeof act>[0], confirmText?: string) {
         if (confirmText && !window.confirm(confirmText)) return;
-        if (await act(body)) onChanged();
+        if (!(await act(body))) return;
+        if (body.action === "archive_requests") setUndoUntil(Date.now() + 10 * 60_000);
+        if (body.action === "unarchive_last") setUndoUntil(0);
+        onChanged();
     }
 
     if (!state) {
@@ -145,14 +156,28 @@ export default function SystemPanel({
                         onClick={() =>
                             run(
                                 { action: "archive_requests" },
-                                "İstek listesi temizlensin mi? Bekleyen, çalınan ve reddedilen istekler arşive gider, onaylılar kalır. İstek sayaçları sıfırdan başlar, reddedilenler tekrar istenebilir."
+                                "İstek listesi arşivlensin mi? Bekleyen, çalınan ve reddedilen istekler arşive gider, onaylılar kalır. İstek sayaçları sıfırdan başlar, reddedilenler tekrar istenebilir."
                             )
                         }
                         className={`${resetBtn} bg-[#1ED760]/15 text-[#1ED760]`}
                     >
                         <Archive size={16} />
-                        İstek listesini temizle
+                        İstek listesini arşivle
                     </button>
+                    {undoUntil > 0 && (
+                        <div className="flex items-center justify-between gap-3 rounded-full bg-white/[0.06] py-1.5 pl-4 pr-1.5">
+                            <span className="text-xs text-[#B3B3B3]">Liste arşivlendi.</span>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => run({ action: "unarchive_last" })}
+                                className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.12] px-3 text-xs font-extrabold text-white transition active:scale-95 disabled:opacity-50"
+                            >
+                                <Undo2 size={14} />
+                                Geri al
+                            </button>
+                        </div>
+                    )}
                     <button
                         type="button"
                         disabled={busy}
@@ -173,7 +198,7 @@ export default function SystemPanel({
                         onClick={() =>
                             run(
                                 { action: "reset_requests" },
-                                "Tüm istekler (bekleyen, onaylı, çalınan, reddedilen) kalıcı olarak silinsin mi? Geri alınamaz."
+                                "Tüm istekler (arşivdekiler dahil) kalıcı olarak silinsin mi? İstatistiklerden de çıkar, geri alınamaz."
                             )
                         }
                         className={`${resetBtn} bg-[#FF729B]/15 text-[#FF8FB0]`}
@@ -187,7 +212,7 @@ export default function SystemPanel({
                         onClick={() =>
                             run(
                                 { action: "reset_votes" },
-                                "Tüm beğeni ve beğenmeme oyları silinsin mi? Geri alınamaz."
+                                "Beğeni ve beğenmeme oyları sıfırlansın mı? Şarkılar yeniden oylanabilir. Toplamlar İstatistik sekmesinde kalır."
                             )
                         }
                         className={`${resetBtn} bg-[#FF729B]/15 text-[#FF8FB0]`}

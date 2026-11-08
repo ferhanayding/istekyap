@@ -75,6 +75,94 @@ async function ensureRequest(id: string) {
     });
     if (e && e.code !== "23505") throw e;
 }
+// İstatistik için her çalma kaydedilir. Yanlışlıkla iki kere basılırsa
+// (aynı şarkı 3 dakika içinde) ikinci sayılmaz.
+async function logPlay(
+    id: string,
+    track: { name: string; artists: string; cover: string | null } | null
+) {
+    const { data: last } = await supabaseAdmin
+        .from("play_history")
+        .select("played_at")
+        .eq("spotify_id", id)
+        .order("played_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (last && Date.now() - new Date(last.played_at).getTime() < 3 * 60_000) return;
+
+    const { error } = await supabaseAdmin.from("play_history").insert({
+        spotify_id: id,
+        name: track?.name ?? null,
+        artists: track?.artists ?? null,
+        cover: track?.cover ?? null,
+    });
+    if (error) throw error;
+}
+
+// Son "İstek listesini arşivle"yi geri alır. Bir seferde arşivlenenlerin hepsi aynı
+// archived_at'i taşır. Arşivden sonra aynı şarkı yeniden istendiyse ikisi birleşir.
+async function unarchiveLast(): Promise<boolean> {
+    const { data: last, error } = await supabaseAdmin
+        .from("requests")
+        .select("archived_at")
+        .not("archived_at", "is", null)
+        .order("archived_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    if (error) throw error;
+    if (!last) return false;
+
+    const { data: rows, error: e1 } = await supabaseAdmin
+        .from("requests")
+        .select("id, spotify_id, status, request_count, last_requested_at")
+        .eq("archived_at", last.archived_at);
+    if (e1) throw e1;
+    if (!rows?.length) return false;
+
+    const { data: active, error: e2 } = await supabaseAdmin
+        .from("requests")
+        .select("id, spotify_id, request_count, last_requested_at")
+        .is("archived_at", null)
+        .in("status", ["pending", "approved", "rejected"])
+        .in("spotify_id", rows.map((r) => r.spotify_id));
+    if (e2) throw e2;
+    const bySong = new Map((active ?? []).map((a) => [a.spotify_id, a]));
+
+    const restore: string[] = [];
+    for (const r of rows) {
+        const twin = r.status === "played" ? undefined : bySong.get(r.spotify_id);
+        if (!twin) {
+            restore.push(r.id);
+            continue;
+        }
+        // Yeni listedeki aynı şarkıya sayacını ekle, eski satırı kaldır
+        const latest =
+            r.last_requested_at > twin.last_requested_at
+                ? r.last_requested_at
+                : twin.last_requested_at;
+        const { error: e3 } = await supabaseAdmin
+            .from("requests")
+            .update({
+                request_count: twin.request_count + r.request_count,
+                last_requested_at: latest,
+            })
+            .eq("id", twin.id);
+        if (e3) throw e3;
+        twin.request_count += r.request_count;
+        const { error: e4 } = await supabaseAdmin.from("requests").delete().eq("id", r.id);
+        if (e4) throw e4;
+    }
+
+    if (restore.length) {
+        const { error: e5 } = await supabaseAdmin
+            .from("requests")
+            .update({ archived_at: null })
+            .in("id", restore);
+        if (e5) throw e5;
+    }
+    return true;
+}
+
 export async function GET() {
     if (!(await requireUser())) {
         return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
@@ -137,6 +225,7 @@ export async function POST(req: NextRequest) {
                 if (error) throw error;
 
                 const track = await getTrackById(id).catch(() => null);
+                await logPlay(id, track).catch((e) => console.error(e));
                 await setNowPlaying(
                     id,
                     track ? `${track.name} · ${track.artists}` : title,
@@ -165,10 +254,8 @@ export async function POST(req: NextRequest) {
             }
 
             case "reset_votes": {
-                const { error } = await supabaseAdmin
-                    .from("song_votes")
-                    .delete()
-                    .neq("spotify_id", "");
+                // Oylar listeden kalkar ama toplamları istatistik için vote_history'de kalır
+                const { error } = await supabaseAdmin.rpc("archive_votes");
                 if (error) throw error;
                 clearLikeCountsCache();
                 break;
@@ -182,6 +269,16 @@ export async function POST(req: NextRequest) {
                     .is("archived_at", null)
                     .in("status", ["pending", "played", "rejected"]);
                 if (error) throw error;
+                break;
+            }
+            case "unarchive_last": {
+                const result = await unarchiveLast();
+                if (!result) {
+                    return NextResponse.json(
+                        { error: "Geri alınacak arşiv yok." },
+                        { status: 404 }
+                    );
+                }
                 break;
             }
             case "reset_requests": {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+    BarChart3,
     Check,
     CheckCheck,
     ListMusic,
@@ -31,9 +32,10 @@ import LyricsBar from "./LyricsBar";
 import { LyricsProvider, useLyrics } from "../LyricsSheet";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
+import StatsPanel from "./StatsPanel";
 
 type Status = "pending" | "approved" | "played" | "rejected";
-type Main = "requests" | "playlist" | "comments" | "system";
+type Main = "requests" | "playlist" | "stats" | "comments" | "system";
 type Tab = Status | "all";
 
 const STATUS_ORDER: Record<Status, number> = {
@@ -78,6 +80,7 @@ const TABS: { key: Tab; label: string }[] = [
 const MAIN_TABS: { key: Main; label: string; Icon: typeof ListMusic }[] = [
     { key: "requests", label: "İstekler", Icon: ListMusic },
     { key: "playlist", label: "Playlist", Icon: Music2 },
+    { key: "stats", label: "İstatistik", Icon: BarChart3 },
     { key: "comments", label: "Yorumlar", Icon: MessageSquareText },
     { key: "system", label: "Sistem", Icon: SlidersHorizontal },
 ];
@@ -175,11 +178,44 @@ function DashPlayer({
     );
 }
 
+// Seçili sekme bu tarayıcıda hatırlanır: sayfa yenilenince aynı sekmede açılır
+function useStoredTab<T extends string>(
+    key: string,
+    fallback: T,
+    allowed: readonly { key: T }[]
+) {
+    const [value, setValue] = useState<T>(fallback);
+    useEffect(() => {
+        const t = setTimeout(() => {
+            try {
+                const saved = localStorage.getItem(key);
+                if (saved && allowed.some((a) => a.key === saved)) setValue(saved as T);
+            } catch {
+                // Gizli sekme vb.: varsayılanda kal
+            }
+        }, 0);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key]);
+    const set = useCallback(
+        (next: T) => {
+            setValue(next);
+            try {
+                localStorage.setItem(key, next);
+            } catch {
+                // yazılamazsa sadece hatırlanmaz
+            }
+        },
+        [key]
+    );
+    return [value, set] as const;
+}
+
 function DashboardInner() {
     const openLyrics = useLyrics();
     const [items, setItems] = useState<RequestRow[] | null>(null);
-    const [main, setMain] = useState<Main>("requests");
-    const [tab, setTab] = useState<Tab>("all");
+    const [main, setMain] = useStoredTab<Main>("dash-main", "requests", MAIN_TABS);
+    const [tab, setTab] = useStoredTab<Tab>("dash-tab", "all", TABS);
     const [error, setError] = useState<string | null>(null);
     const [busyId, setBusyId] = useState<string | null>(null);
     const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -446,6 +482,8 @@ function DashboardInner() {
                     <SystemPanel system={system} onChanged={() => void load()} />
                 ) : main === "comments" ? (
                     <CommentsPanel />
+                ) : main === "stats" ? (
+                    <StatsPanel />
                 ) : main === "playlist" ? (
                     <SongStats
                         nowPlaying={nowPlaying}
@@ -695,7 +733,7 @@ function DashboardInner() {
                 aria-label="Dashboard menüsü"
                 className="relative z-30 shrink-0 border-t border-white/[0.06] bg-[#0E0C1A]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
             >
-                <ul className="grid grid-cols-4" role="tablist">
+                <ul className="grid grid-cols-5" role="tablist">
                     {MAIN_TABS.map(({ key, label, Icon }) => {
                         const active = main === key;
                         return (
