@@ -10,7 +10,6 @@ import {
     ListMusic,
     LogOut,
     MessageSquareText,
-    Mic,
     Music2,
     Play,
     RefreshCw,
@@ -29,7 +28,7 @@ import { ToastProvider, useToast } from "../Toast";
 import LoadingTracks from "../LoadingTracks";
 import CommentsPanel from "./CommentsPanel";
 import LyricsBar from "./LyricsBar";
-import { LyricsProvider, useLyrics } from "../LyricsSheet";
+import { LyricsProvider, LyricsButton } from "../LyricsSheet";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
 import StatsPanel from "./StatsPanel";
@@ -127,7 +126,6 @@ function DashPlayer({
     const cut = title ? title.lastIndexOf(" · ") : -1;
     const name = title ? (cut > 0 ? title.slice(0, cut) : title) : "Şarkı";
     const artists = title && cut > 0 ? title.slice(cut + 3) : "";
-    const openLyrics = useLyrics();
 
     return (
         <div className="relative mx-2 mb-1.5 shrink-0 rounded-lg bg-gradient-to-r from-[#3A2B8F] to-[#2A2060] shadow-[0_-10px_30px_-12px_#000]">
@@ -154,15 +152,7 @@ function DashPlayer({
                         {artists && <span className="truncate">· {artists}</span>}
                     </p>
                 </div>
-                <button
-                    type="button"
-                    onClick={() => openLyrics({ name, artists })}
-                    aria-label={`${name} sözlerini aç`}
-                    title="Sözler"
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
-                >
-                    <Mic size={15} />
-                </button>
+                <LyricsButton name={name} artists={artists} />
                 <button
                     type="button"
                     disabled={busy}
@@ -212,7 +202,6 @@ function useStoredTab<T extends string>(
 }
 
 function DashboardInner() {
-    const openLyrics = useLyrics();
     const [items, setItems] = useState<RequestRow[] | null>(null);
     const [main, setMain] = useStoredTab<Main>("dash-main", "requests", MAIN_TABS);
     const [tab, setTab] = useStoredTab<Tab>("dash-tab", "all", TABS);
@@ -607,17 +596,7 @@ function DashboardInner() {
                                                         </div>
                                                     </div>
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            openLyrics({ name: r.name, artists: r.artists })
-                                                        }
-                                                        aria-label={`${r.name} sözlerini aç`}
-                                                        title="Sözler"
-                                                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white"
-                                                    >
-                                                        <Mic size={16} />
-                                                    </button>
+                                                    <LyricsButton name={r.name} artists={r.artists} />
                                                 </div>
 
                                                 <div className="mt-3 flex gap-2">

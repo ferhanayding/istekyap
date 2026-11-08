@@ -20,8 +20,31 @@ type State =
 
 const LyricsContext = createContext<(song: Song) => void>(() => {});
 
-// Dashboard'un herhangi bir yerinden sözleri açar
+// Sayfanın herhangi bir yerinden sözleri açar
 export const useLyrics = () => useContext(LyricsContext);
+
+// Her yerde aynı: ince, küçük, yeşil "Sözler" butonu
+export function LyricsButton({
+    name,
+    artists,
+    onOpen,
+    className = "",
+}: Song & { onOpen?: () => void; className?: string }) {
+    const open = useLyrics();
+    return (
+        <button
+            type="button"
+            onClick={() => {
+                onOpen?.();
+                open({ name, artists });
+            }}
+            aria-label={`${name} şarkısının sözlerini aç`}
+            className={`relative h-6 shrink-0 rounded-full bg-[#1ED760]/15 px-2.5 text-[11px] font-bold leading-none text-[#1ED760] transition after:absolute after:-inset-2 after:content-[''] hover:bg-[#1ED760]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1ED760]/60 ${className}`}
+        >
+            Sözler
+        </button>
+    );
+}
 
 export function LyricsProvider({ children }: { children: ReactNode }) {
     const [song, setSong] = useState<Song | null>(null);

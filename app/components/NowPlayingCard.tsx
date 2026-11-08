@@ -1,8 +1,8 @@
 "use client";
 
-import { ChevronDown, Music2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import NowPlayingBadge from "./NowPlayingBadge";
-import { useLyrics } from "./LyricsSheet";
+import { LyricsButton } from "./LyricsSheet";
 export default function NowPlayingCard({
     id,
     name,
@@ -14,7 +14,6 @@ export default function NowPlayingCard({
     artists?: string;
     onClick?: () => void;
 }) {
-    const openLyrics = useLyrics();
     const content = (
         <>
             <NowPlayingBadge className="shrink-0" />
@@ -47,15 +46,7 @@ export default function NowPlayingCard({
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">{content}</div>
             )}
 
-            <button
-                type="button"
-                onClick={() => openLyrics({ name, artists: artists ?? "" })}
-                aria-label={`${name} şarkısının sözlerini aç`}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#8C70FF]/15 px-3 text-xs font-bold text-[#AA96FF] transition hover:bg-[#8C70FF]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
-            >
-                <Music2 size={14} />
-                Sözler
-            </button>
+            <LyricsButton name={name} artists={artists ?? ""} />
         </div>
     );
 }

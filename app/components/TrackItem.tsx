@@ -1,10 +1,9 @@
 "use client";
 
-import { Mic } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import type { MyVote } from "@/lib/use-votes";
 import { addedInfo } from "@/lib/added";
-import { useLyrics } from "./LyricsSheet";
+import { LyricsButton } from "./LyricsSheet";
 import EqBars from "./EqBars";
 import VoteButtons from "./VoteButtons";
 
@@ -25,7 +24,6 @@ export default function TrackItem({
     votingOpen: boolean;
     playing: boolean;
 }) {
-    const openLyrics = useLyrics();
     const added = addedInfo(t.addedAt);
 
     return (
@@ -79,15 +77,7 @@ export default function TrackItem({
                 onVote={onVote}
             />
 
-            <button
-                type="button"
-                onClick={() => openLyrics({ name: t.name, artists: t.artists })}
-                title="Sözler"
-                aria-label={`${t.name} şarkısının sözlerini aç`}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
-            >
-                <Mic size={17} />
-            </button>
+            <LyricsButton name={t.name} artists={t.artists} />
         </div>
     );
 }

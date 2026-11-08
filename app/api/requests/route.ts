@@ -5,7 +5,24 @@ import { getTrackById } from "@/lib/search";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAppState } from "@/lib/app-state";
 import { notifyLive } from "@/lib/live-server";
+import { isBlocked } from "@/lib/blocklist";
+import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
+
+const DEVICE_LIMIT = 5;
+const DEVICE_WINDOW_MS = 10 * 60_000;
+
+// Bu cihazın son 10 dakikada yaptığı istek ve katılmalar (request_devices'tan)
+async function recentRequestTimes(deviceId: string): Promise<number[]> {
+    const { data, error } = await supabaseAdmin
+        .from("request_devices")
+        .select("created_at")
+        .eq("device_id", deviceId)
+        .gte("created_at", new Date(Date.now() - DEVICE_WINDOW_MS).toISOString())
+        .limit(DEVICE_LIMIT);
+    if (error) throw error;
+    return (data ?? []).map((r) => new Date(r.created_at).getTime());
+}
 
 type MakeResult = {
     result: "created" | "joined" | "already";
@@ -36,13 +53,31 @@ export async function POST(req: NextRequest) {
         "request",
         deviceId,
         getIp(req),
-        { limit: 5, windowMs: 10 * 60_000 },
-        { limit: 100, windowMs: 10 * 60_000 }
+        { limit: DEVICE_LIMIT, windowMs: DEVICE_WINDOW_MS },
+        { limit: 100, windowMs: DEVICE_WINDOW_MS }
     );
     if (!limit.ok) {
         return NextResponse.json(
             { error: "Çok fazla istek gönderdin, biraz bekle." },
             { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+        );
+    }
+
+    // Bellekteki sayaç Vercel'de her sunucu örneğinde ayrı tutulur ve yeniden başlayınca
+    // sıfırlanır. Asıl sınır veritabanından: bu cihazın son 10 dakikadaki istekleri.
+    const recent = await recentRequestTimes(deviceId).catch((e) => {
+        console.error(e);
+        return [] as number[];
+    });
+    if (recent.length >= DEVICE_LIMIT) {
+        const retryAfter = Math.max(
+            1,
+            Math.ceil((Math.min(...recent) + DEVICE_WINDOW_MS - Date.now()) / 1000)
+        );
+        const minutes = Math.ceil(retryAfter / 60);
+        return NextResponse.json(
+            { error: `10 dakikada en fazla ${DEVICE_LIMIT} istek atabilirsin. ${minutes} dk sonra tekrar dene.` },
+            { status: 429, headers: { "Retry-After": String(retryAfter) } }
         );
     }
 
@@ -56,6 +91,15 @@ export async function POST(req: NextRequest) {
         const track = await getTrackById(id);
         if (!track) {
             return NextResponse.json({ error: "Şarkı bulunamadı." }, { status: 404 });
+        }
+        // Aramada gizlenen şarkı doğrudan ID ile de istenemesin
+        const index = track.explicit ? await getPlaylistIndex().catch(() => null) : null;
+        const explicitBlocked = track.explicit && !(index && isInPlaylist(index, track));
+        if (explicitBlocked || isBlocked(`${track.name} ${track.artists}`)) {
+            return NextResponse.json(
+                { error: "Bu şarkı istek listesine eklenemez." },
+                { status: 403 }
+            );
         }
 
         // Yeni istek ya da aynı şarkıyı isteyenlere katılma (sayaç cihaz başına bir artar)

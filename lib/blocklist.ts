@@ -83,6 +83,18 @@ const PREFIX = [
     "bitch",
     "xvideos",
     "xnxx",
+    "memeler",
+    "pipi",
+    "tasak",
+    "yarak",
+    "amini",
+    "amını",
+    "amcig",
+    "am",
+    "sikici",
+    "Orospunun",
+    "sikicisi"
+
 ];
 
 // Önek listesine takılan ama masum olan kelimeler
@@ -101,7 +113,16 @@ const DIACRITIC = new Set([
     "götüne",
     "götler",
     "götveren",
+    "götünden",
+    "taşak",
+    "taşşak",
 ]);
+
+// Aksanlı önekler: "götsün", "götüme", "çükümü"... ama "götür", "götürmek" masum
+const ACCENT_PREFIX = ["göt", "çük"];
+const ACCENT_ALLOW = ["götür"];
+const accentPrefix = (t: string) =>
+    ACCENT_PREFIX.some((p) => t.startsWith(p)) && !ACCENT_ALLOW.some((a) => t.startsWith(a));
 
 const PREFIX_FOLDED = PREFIX.map(fold);
 const PREFIX_COLLAPSED = PREFIX_FOLDED.map(collapse);
@@ -156,7 +177,7 @@ export function isBlocked(text: string): boolean {
         .toLocaleLowerCase("tr")
         .split(/[^\p{L}\p{N}]+/u)
         .filter(Boolean);
-    if (accent.some((t) => DIACRITIC.has(t))) return true;
+    if (accent.some((t) => DIACRITIC.has(t) || accentPrefix(t))) return true;
 
     return (
         tokensOf(text, false).some(matches) || tokensOf(text, true).some(matches)

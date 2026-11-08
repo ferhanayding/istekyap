@@ -6,6 +6,8 @@ export type Track = {
     cover: string | null;
     url: string;
     addedAt?: string | null | undefined;
+    /** Spotify'ın "müstehcen" etiketi (sadece arama / tek şarkı sorgusunda dolu) */
+    explicit?: boolean;
 
 };
 

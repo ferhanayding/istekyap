@@ -3,10 +3,15 @@ import { searchTracks } from "@/lib/search";
 import { getIp, limitDeviceAndIp } from "@/lib/rate-limit";
 import { getOrCreateDeviceId } from "@/lib/device";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
+import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 
 export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
     if (q.length < 2 || q.length > 100) return NextResponse.json([]);
+    // Tarayıcıdaki kontrol atlanırsa diye sunucuda da bakılır
+    if (isBlocked(q)) {
+        return NextResponse.json({ error: BLOCKED_MESSAGE }, { status: 400 });
+    }
 
     // Cihaz başına dakikada 30 arama, aynı IP'den (ortak Wi-Fi) dakikada 300
     const limit = limitDeviceAndIp(
@@ -31,10 +36,14 @@ export async function GET(req: NextRequest) {
         ]);
 
         // Playlistteki şarkılar da istenebilir: gizlenmez, "Listemizde" diye işaretlenir
-        const visible = items.map((t) => ({
-            ...t,
-            inPlaylist: index ? isInPlaylist(index, t) : false,
-        }));
+        // Spotify'ın "müstehcen" (explicit) etiketli şarkıları ve küfürlü adlar görünmez.
+        // Playlistimizdeki şarkılar etiketli olsa da kalır (repertuvar bizim seçimimiz).
+        const visible = items
+            .map((t) => ({
+                ...t,
+                inPlaylist: index ? isInPlaylist(index, t) : false,
+            }))
+            .filter((t) => (t.inPlaylist || !t.explicit) && !isBlocked(`${t.name} ${t.artists}`));
 
         return NextResponse.json(visible.slice(0, 8));
     } catch (e) {
