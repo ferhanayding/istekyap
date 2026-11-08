@@ -180,6 +180,17 @@ function compute(
     };
 }
 
+// gece-baslangici.sql çalıştırılmadıysa sütun yoktur: o zaman sadece arşive bakılır
+async function nightStartedAt(): Promise<string | null> {
+    const { data, error } = await supabaseAdmin
+        .from("app_state")
+        .select("night_started_at")
+        .eq("id", 1)
+        .maybeSingle();
+    if (error) return null;
+    return (data as { night_started_at: string | null } | null)?.night_started_at ?? null;
+}
+
 export async function getStats(): Promise<StatsResponse> {
     const [reqs, devices, plays, votes, voteHist, comments, playlist] = await Promise.all([
         all<ReqRow>(
@@ -204,12 +215,15 @@ export async function getStats(): Promise<StatsResponse> {
         }
     }
 
-    // Bu gece: son arşivlemeden sonrası
+    // Bu gece: son "yeni gece" butonundan (arşivle, sıfırla, kalıcı sil) sonrası
     const lastArchive = reqs.reduce<string | null>(
         (m, r) => (r.archived_at && (!m || r.archived_at > m) ? r.archived_at : m),
         null
     );
-    const since = lastArchive ? new Date(lastArchive).getTime() : 0;
+    const nightStart = await nightStartedAt();
+    const startIso =
+        nightStart && (!lastArchive || nightStart > lastArchive) ? nightStart : lastArchive;
+    const since = startIso ? new Date(startIso).getTime() : 0;
     const after = (iso: string) => new Date(iso).getTime() > since;
 
     const night = compute(
@@ -250,5 +264,5 @@ export async function getStats(): Promise<StatsResponse> {
         }))
         .sort((a, b) => (a.archivedAt < b.archivedAt ? 1 : -1));
 
-    return { since: lastArchive, night, total, nights };
+    return { since: startIso, night, total, nights };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Archive, RotateCcw, Square, Trash2, Undo2 } from "lucide-react";
+import { Archive, BarChart3, RotateCcw, Square, Trash2, Undo2 } from "lucide-react";
 import type { DashboardSystem } from "@/lib/use-dashboard-system";
 import EqBars from "../EqBars";
 
@@ -219,6 +219,20 @@ export default function SystemPanel({
                     >
                         <Trash2 size={16} />
                         Oyları sıfırla
+                    </button>
+                    <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                            run(
+                                { action: "reset_stats" },
+                                "Tüm istatistikler sıfırlansın mı? Çalma geçmişi, eski oy toplamları ve arşivdeki istekler kalıcı olarak silinir. Bu geceki liste, oylar ve yorumlar kalır. Geri alınamaz."
+                            )
+                        }
+                        className={`${resetBtn} bg-[#FF729B]/15 text-[#FF8FB0]`}
+                    >
+                        <BarChart3 size={16} />
+                        Tüm istatistikleri sıfırla
                     </button>
                 </div>
             </div>

@@ -19,6 +19,9 @@ const REQUESTED_LABEL: Record<Exclude<Requested, null>, string> = {
     rejected: "Reddedildi",
 };
 
+// Sunucudaki sınırla aynı (app/api/requests: cihaz başına 10 dakikada 5)
+const LIMIT_NOTE = "Her cihazdan 10 dakikada en fazla 5 istek atılabilir.";
+
 export default function RequestButton() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
@@ -177,6 +180,13 @@ export default function RequestButton() {
                     </button>
                 </div>
 
+                {/* Kutu açık ama henüz yazılmadı: kuralı göster */}
+                {open && !sent && !active && (
+                    <p className="absolute inset-x-0 top-12 rounded-2xl border border-white/[0.08] bg-[#1B1733] px-4 py-3 text-xs text-[#89839F] shadow-2xl">
+                        {LIMIT_NOTE}
+                    </p>
+                )}
+
                 {/* Öneriler */}
                 {active && (
                     <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
@@ -247,6 +257,9 @@ export default function RequestButton() {
                                 {!hasItems && !fresh && (
                                     <p className="p-3 text-sm text-[#89839F]">Aranıyor…</p>
                                 )}
+                                <p className="border-t border-white/[0.06] px-3 pb-1.5 pt-2.5 text-[11px] text-[#7C7794]">
+                                    {LIMIT_NOTE}
+                                </p>
                             </>
                         )}
                     </div>

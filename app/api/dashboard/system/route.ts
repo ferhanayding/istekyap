@@ -75,6 +75,23 @@ async function ensureRequest(id: string) {
     });
     if (e && e.code !== "23505") throw e;
 }
+const NEW_NIGHT = new Set([
+    "reset_played",
+    "reset_votes",
+    "archive_requests",
+    "reset_requests",
+    "reset_stats",
+]);
+
+// gece-baslangici.sql çalıştırılmadıysa sütun yoktur: buton yine çalışsın
+async function markNight(at: string | null) {
+    const { error } = await supabaseAdmin
+        .from("app_state")
+        .update({ night_started_at: at })
+        .eq("id", 1);
+    if (error) console.warn("night_started_at yazılamadı:", error.message);
+}
+
 // İstatistik için her çalma kaydedilir. Yanlışlıkla iki kere basılırsa
 // (aynı şarkı 3 dakika içinde) ikinci sayılmaz.
 async function logPlay(
@@ -281,6 +298,18 @@ export async function POST(req: NextRequest) {
                 }
                 break;
             }
+            case "reset_stats": {
+                // Ömür boyu istatistik sıfırdan: çalma ve oy geçmişi, arşivdeki istekler.
+                // Bu geceki liste, oylar ve yorumlar dokunulmadan kalır.
+                const steps = await Promise.all([
+                    supabaseAdmin.from("play_history").delete().not("id", "is", null),
+                    supabaseAdmin.from("vote_history").delete().not("id", "is", null),
+                    supabaseAdmin.from("requests").delete().not("archived_at", "is", null),
+                ]);
+                const failed = steps.find((r) => r.error);
+                if (failed?.error) throw failed.error;
+                break;
+            }
             case "reset_requests": {
                 // Çalan şarkı bir istekse çalma işareti de kalksın
                 const current = await getAppState({ fresh: true });
@@ -302,6 +331,10 @@ export async function POST(req: NextRequest) {
             default:
                 return NextResponse.json({ error: "Geçersiz işlem." }, { status: 400 });
         }
+
+        // "Yeni gece" butonları istatistikteki "Bu gece"yi şimdiden başlatır
+        if (NEW_NIGHT.has(body.action)) await markNight(new Date().toISOString());
+        if (body.action === "unarchive_last") await markNight(null);
 
         clearAppStateCache();
         notifyLive("state", "requests");

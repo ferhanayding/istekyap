@@ -114,8 +114,8 @@ export default function StatsPanel() {
             {data && range === "night" && (
                 <p className="text-xs text-[#8F8AA8]">
                     {data.since
-                        ? `Son arşivlemeden beri (${fmtDate(data.since)})`
-                        : "Henüz arşivleme yapılmadı, hepsi bu gece sayılıyor."}
+                        ? `Gece başlangıcı: ${fmtDate(data.since)} (son arşivleme ya da sıfırlama)`
+                        : "Henüz arşivleme ya da sıfırlama yapılmadı, hepsi bu gece sayılıyor."}
                 </p>
             )}
 
