@@ -12,6 +12,12 @@ const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const DEVICE_LIMIT = 5;
 const DEVICE_WINDOW_MS = 10 * 60_000;
 
+// Sınıra gelince toast'ta görünen mesaj
+function limitMessage(retryAfterSec: number): string {
+    const minutes = Math.max(1, Math.ceil(retryAfterSec / 60));
+    return `10 dakikada ${DEVICE_LIMIT} istek hakkın var, hepsini kullandın. ${minutes} dk sonra tekrar isteyebilirsin.`;
+}
+
 // Bu cihazın son 10 dakikada yaptığı istek ve katılmalar (request_devices'tan)
 async function recentRequestTimes(deviceId: string): Promise<number[]> {
     const { data, error } = await supabaseAdmin
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest) {
     );
     if (!limit.ok) {
         return NextResponse.json(
-            { error: "Çok fazla istek gönderdin, biraz bekle." },
+            { error: limitMessage(limit.retryAfter) },
             { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
         );
     }
@@ -74,9 +80,8 @@ export async function POST(req: NextRequest) {
             1,
             Math.ceil((Math.min(...recent) + DEVICE_WINDOW_MS - Date.now()) / 1000)
         );
-        const minutes = Math.ceil(retryAfter / 60);
         return NextResponse.json(
-            { error: `10 dakikada en fazla ${DEVICE_LIMIT} istek atabilirsin. ${minutes} dk sonra tekrar dene.` },
+            { error: limitMessage(retryAfter) },
             { status: 429, headers: { "Retry-After": String(retryAfter) } }
         );
     }
