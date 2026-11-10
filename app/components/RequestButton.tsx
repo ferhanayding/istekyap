@@ -106,14 +106,14 @@ export default function RequestButton() {
     if (!loaded) {
         return (
             <section className="relative z-20 shrink-0 px-5" aria-busy="true">
-                <div className="h-11 animate-pulse rounded-full bg-raised" />
+                <div className="h-10 animate-pulse rounded-full bg-raised" />
             </section>
         );
     }
 
     return (
         <section className="relative z-20 shrink-0 px-5">
-            <div className="relative h-11">
+            <div className="relative h-10">
                 {/* Buton */}
                 <button
                     type="button"
@@ -179,14 +179,14 @@ export default function RequestButton() {
 
                 {/* Kutu açık ama henüz yazılmadı: kuralı göster */}
                 {open && !sent && !active && (
-                    <p className="absolute inset-x-0 top-12 rounded-2xl border border-line bg-surface px-4 py-3 text-xs text-muted shadow-2xl">
+                    <p className="absolute inset-x-0 top-11 rounded-2xl border border-line bg-surface px-4 py-3 text-xs text-muted shadow-2xl">
                         {LIMIT_NOTE}
                     </p>
                 )}
 
                 {/* Öneriler */}
                 {active && (
-                    <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-2xl">
+                    <div className="absolute inset-x-0 top-11 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-2xl">
                         {blocked ? (
                             <p role="alert" className="p-3 text-sm text-danger">
                                 {BLOCKED_MESSAGE}

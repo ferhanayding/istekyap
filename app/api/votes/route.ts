@@ -91,26 +91,26 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Oy verilebilen şarkı: playlistte olan ya da istek listesinde onaylı/çalınmış olan
+        // Oy verilebilen şarkı: playlistte olan ya da bu gecenin istek listesinde
+        // onaylı/çalınmış olan (eski gecelerin arşivdeki istekleri sayılmaz)
         let played: boolean;
         if (index.ids.has(id)) {
             played = state.played.includes(id);
         } else {
-            const { data: row, error } = await supabaseAdmin
+            const { data: rows, error } = await supabaseAdmin
                 .from("requests")
                 .select("status")
                 .eq("spotify_id", id)
-                .in("status", ["approved", "played"])
-                .limit(1)
-                .maybeSingle();
+                .is("archived_at", null)
+                .in("status", ["approved", "played"]);
             if (error) throw error;
-            if (!row) {
+            if (!rows?.length) {
                 return NextResponse.json(
                     { error: "Bu şarkıya oy verilemez." },
                     { status: 404 }
                 );
             }
-            played = row.status === "played" || state.played.includes(id);
+            played = rows.some((r) => r.status === "played") || state.played.includes(id);
         }
 
         if (!played) {

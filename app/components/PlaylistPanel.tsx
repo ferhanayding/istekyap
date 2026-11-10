@@ -61,7 +61,7 @@ export default function PlaylistPanel({
 
     return (
         <>
-            <div className="mb-1 flex h-10 shrink-0 items-center gap-2 rounded-lg bg-raised px-3 transition focus-within:bg-line">
+            <div className="mb-1 flex h-9 shrink-0 items-center gap-2 rounded-lg bg-raised px-3 transition focus-within:bg-line">
                 <Search size={17} className="shrink-0 text-muted" />
                 <input
                     ref={inputRef}

@@ -10,6 +10,7 @@ import EqBars from "./EqBars";
 import LoadingTracks from "./LoadingTracks";
 import RequestHistory from "./RequestHistory";
 import { useToast } from "./Toast";
+import SongRow from "./SongRow";
 import VoteButtons from "./VoteButtons";
 
 type View = "night" | "history";
@@ -19,7 +20,7 @@ const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
 const BADGE: Record<RequestStatus, { text: string; className: string }> = {
     pending: { text: "Bekliyor", className: "bg-raised text-muted" },
     approved: {
-        text: "Onaylandı · Çalınacak",
+        text: "Çalınacak",
         className: "bg-accent/15 text-accent",
     },
     played: { text: "Çalındı", className: "bg-raised text-ink" },
@@ -67,26 +68,12 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
     }
 
     return (
-        <section className="relative mt-3 flex min-h-0 flex-1 flex-col px-5">
-            <div className="mb-2 flex shrink-0 items-baseline justify-between">
-                <h2 className="text-lg font-extrabold tracking-tight">İstek Listesi</h2>
-                {view === "night" && (
-                    <span className="text-xs text-faint">
-                        {items ? `${pendingCount} bekleyen` : "…"}
-                        {live && (
-                            <span className="ml-1.5 inline-flex items-center gap-1 text-accent">
-                                · <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-                                canlı
-                            </span>
-                        )}
-                    </span>
-                )}
-            </div>
-
+        <section className="relative mt-2 flex min-h-0 flex-1 flex-col px-5">
+            {/* Başlık yerine sekmeler: alan listeye kalsın */}
             <div
                 role="tablist"
                 aria-label="İstek listesi"
-                className="mb-2 flex shrink-0 rounded-full bg-raised p-1"
+                className="mb-1.5 flex shrink-0 rounded-full bg-raised p-1"
             >
                 {(
                     [
@@ -100,10 +87,16 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                         role="tab"
                         aria-selected={view === key}
                         onClick={() => show(key)}
-                        className={`h-8 flex-1 rounded-full text-xs font-extrabold transition ${view === key ? "bg-ink text-page" : "text-muted hover:text-ink"
+                        className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-extrabold transition ${view === key ? "bg-ink text-page" : "text-muted hover:text-ink"
                             }`}
                     >
+                        {key === "night" && live && (
+                            <span className="size-1.5 rounded-full bg-accent" aria-label="canlı" />
+                        )}
                         {label}
+                        {key === "night" && !!pendingCount && (
+                            <span className="opacity-70">· {pendingCount} bekleyen</span>
+                        )}
                     </button>
                 ))}
             </div>
@@ -156,7 +149,6 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                 <ul>
                     {items.map((r, idx) => {
                         const badge = BADGE[r.status] ?? BADGE.pending;
-                        const rejected = r.status === "rejected";
                         const playing = system.nowPlaying === r.spotify_id;
 
                         // Onaylı ve çalınmış istekler oylanabilir
@@ -165,49 +157,26 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                             r.status === "played" || system.played.has(r.spotify_id);
 
                         return (
-                            <li
+                            <SongRow
                                 key={r.id}
+                                as="li"
                                 id={`req-${r.spotify_id}`}
-                                className={`flex items-center gap-3 py-2 ${rejected ? "opacity-60" : ""
-                                    }`}
-                            >
-                                {r.cover ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        loading={idx < 8 ? "eager" : "lazy"}
-                                        decoding="async"
-                                        src={r.cover}
-                                        alt=""
-                                        width={56}
-                                        height={56}
-                                        className={`size-14 shrink-0 rounded-[4px] object-cover ${rejected ? "grayscale" : ""
-                                            }`}
-                                    />
-                                ) : (
-                                    <div className="size-14 shrink-0 rounded-[4px] bg-line" />
-                                )}
-
-                                <div className="min-w-0 flex-1">
-                                    <p
-                                        className={`truncate text-base ${playing
-                                            ? "font-bold text-accent"
-                                            : "font-medium text-ink"
-                                            }`}
-                                    >
-                                        {r.name}
-                                    </p>
-                                    <p className="mt-0.5 truncate text-sm text-muted">
-                                        {r.artists}
-                                    </p>
-                                    <div className="mt-1 flex items-center gap-2">
+                                cover={r.cover}
+                                name={r.name}
+                                artists={r.artists}
+                                playing={playing}
+                                dim={r.status === "rejected"}
+                                eager={idx < 8}
+                                meta={
+                                    <>
                                         {playing ? (
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-accent">
+                                            <span className="inline-flex items-center gap-1.5 font-bold text-accent">
                                                 <EqBars />
                                                 Çalıyor
                                             </span>
                                         ) : (
                                             <span
-                                                className={`rounded-full px-2 py-0.5 text-xs font-bold ${badge.className}`}
+                                                className={`rounded-full px-2 py-px font-bold ${badge.className}`}
                                             >
                                                 {badge.text}
                                             </span>
@@ -215,31 +184,33 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                         {(r.request_count ?? 1) > 1 && (
                                             <span
                                                 title={`${r.request_count} kişi istedi`}
-                                                className="rounded-full bg-raised px-2 py-0.5 text-xs font-extrabold text-ink"
+                                                className="rounded-full bg-raised px-2 py-px font-extrabold text-ink"
                                             >
                                                 ×{r.request_count}
                                             </span>
                                         )}
-                                        <span className="text-xs text-faint">
+                                        <span className="truncate">
                                             {ago(r.last_requested_at ?? r.created_at, now)}
                                         </span>
-                                    </div>
-                                </div>
-
-                                {voteable && (
-                                    <VoteButtons
-                                        id={r.spotify_id}
-                                        name={r.name}
-                                        likes={votes[r.spotify_id]?.likes ?? 0}
-                                        mine={votes[r.spotify_id]?.mine ?? 0}
-                                        played={wasPlayed}
-                                        votingOpen={system.votingOpen}
-                                        onVote={vote}
-                                    />
-                                )}
-
-                                <LyricsButton name={r.name} artists={r.artists} />
-                            </li>
+                                    </>
+                                }
+                                actions={
+                                    <>
+                                        {voteable && (
+                                            <VoteButtons
+                                                id={r.spotify_id}
+                                                name={r.name}
+                                                likes={votes[r.spotify_id]?.likes ?? 0}
+                                                mine={votes[r.spotify_id]?.mine ?? 0}
+                                                played={wasPlayed}
+                                                votingOpen={system.votingOpen}
+                                                onVote={vote}
+                                            />
+                                        )}
+                                        <LyricsButton name={r.name} artists={r.artists} />
+                                    </>
+                                }
+                            />
                         );
                     })}
                 </ul>

@@ -190,8 +190,7 @@ function useStoredTab<T extends string>(
             }
         }, 0);
         return () => clearTimeout(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [key]);
+    }, [key, allowed]);
     const set = useCallback(
         (next: T) => {
             setValue(next);
@@ -382,6 +381,10 @@ function DashboardInner() {
             const res = await fetch(`/api/dashboard/requests/${id}`, {
                 method: "DELETE",
             });
+            if (res.status === 401) {
+                router.replace("/login");
+                return;
+            }
             if (!res.ok) {
                 setError("Silinemedi.");
                 return;

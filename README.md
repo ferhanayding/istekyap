@@ -129,8 +129,16 @@ supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)
 | Arama | Cihaz başına dakikada 30 (aynı IP'ye 300) |
 | Yorum | Cihaz başına 10 dakikada 3 (aynı IP'ye 60) |
 | Aynı şarkı | Bir cihaz sayacı bir kez artırır |
+| Şarkı sözü | Cihaz başına dakikada 20 (aynı IP'ye 200; çerezi olmayan ziyaretçiye sadece IP sınırı) |
+| Oy | Cihaz başına dakikada 30; sadece bu gece çalınmış şarkılara |
+| Şarkı uzunluğu | 1–12 dakika arası istenebilir (playlistimizdeki şarkılar muaf) |
+| Müstehcen | Spotify'ın "explicit" etiketi ve küfür listesi (playlistimizdeki şarkılar muaf) |
 
-Hız sınırları sunucu belleğinde tutulur; Vercel'de her sunucu örneği kendi sayacını tutar.
+İstek sınırı veritabanından (`request_devices`) sayılır, Vercel'in birden çok sunucu örneğinde de doğru çalışır. Diğer hız sınırları sunucu belleğinde tutulur; her sunucu örneği kendi sayacını tutar.
+
+Dashboard'da elle "Çalındı" denen istek de "Çal" gibi çalma geçmişine yazılır ve o gece oylanabilir olur.
+
+Bütün sayfalara temel güvenlik başlıkları eklenir (`next.config.ts`): başka sitelere gömülemez, kamera/mikrofon/konum kapalı.
 
 Ücretsiz planlar: Supabase Realtime 200 eşzamanlı bağlantı, 500 MB veritabanı, 7 gün kullanılmazsa proje durur. Vercel Hobby ayda 1 milyon istek. 30 kişiyle yapılan yük testinde dakikada ~110 sunucu isteği ölçüldü.
 

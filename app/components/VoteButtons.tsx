@@ -40,13 +40,13 @@ export default function VoteButtons({
                 aria-disabled={!canVote}
                 aria-pressed={mine === 1}
                 aria-label={`${name} şarkısını beğen`}
-                className={`flex h-8 min-w-[46px] items-center justify-center gap-1 rounded-full px-2.5 text-xs font-bold transition ${canVote ? "active:scale-95" : "opacity-80"
+                className={`flex h-7 min-w-[40px] items-center justify-center gap-1 rounded-full px-2 text-xs font-bold transition ${canVote ? "active:scale-95" : "opacity-80"
                     } ${mine === 1
                         ? "bg-accent/20 text-accent"
                         : "bg-raised text-muted"
                     }`}
             >
-                <ThumbsUp size={14} fill={mine === 1 ? "currentColor" : "none"} />
+                <ThumbsUp size={13} fill={mine === 1 ? "currentColor" : "none"} />
                 {likes}
             </button>
 
@@ -56,13 +56,13 @@ export default function VoteButtons({
                 aria-disabled={!canVote}
                 aria-pressed={mine === -1}
                 aria-label={`${name} şarkısını beğenme`}
-                className={`flex size-8 items-center justify-center rounded-full transition ${canVote ? "active:scale-95" : "opacity-60"
+                className={`flex size-7 items-center justify-center rounded-full transition ${canVote ? "active:scale-95" : "opacity-60"
                     } ${mine === -1
                         ? "bg-danger/20 text-danger"
                         : "bg-raised text-muted"
                     }`}
             >
-                <ThumbsDown size={14} fill={mine === -1 ? "currentColor" : "none"} />
+                <ThumbsDown size={13} fill={mine === -1 ? "currentColor" : "none"} />
             </button>
         </div>
     );

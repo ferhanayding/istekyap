@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLyrics } from "@/lib/lrclib";
 import { readDeviceId } from "@/lib/device";
-import { getIp, limitDeviceAndIp } from "@/lib/rate-limit";
+import { getIp, limitDeviceAndIp, rateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
     const name = req.nextUrl.searchParams.get("name")?.trim() ?? "";
@@ -11,15 +11,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Cihaz başına dakikada 20, aynı IP'den (ortak Wi-Fi) dakikada 200.
-    // Çerez yazılmaz ki cevap CDN'de önbelleğe alınabilsin; çerezi olmayan IP ile sayılır.
+    // Çerez yazılmaz ki cevap CDN'de önbelleğe alınabilsin. Çerezi olmayan (henüz hiç
+    // istek atmamış) ziyaretçiye sadece IP sınırı uygulanır: barda herkes aynı IP'den
+    // geldiği için cihaz sınırını IP'ye bağlamak bütün barı dakikada 20 söze kısıtlardı.
     const ip = getIp(req);
-    const limit = limitDeviceAndIp(
-        "lyrics",
-        (await readDeviceId()) ?? `ip:${ip}`,
-        ip,
-        { limit: 20, windowMs: 60_000 },
-        { limit: 200, windowMs: 60_000 }
-    );
+    const deviceId = await readDeviceId();
+    const ipRule = { limit: 200, windowMs: 60_000 };
+    const limit = deviceId
+        ? limitDeviceAndIp("lyrics", deviceId, ip, { limit: 20, windowMs: 60_000 }, ipRule)
+        : rateLimit(`lyrics-ip:${ip}`, ipRule.limit, ipRule.windowMs);
     if (!limit.ok) {
         return NextResponse.json(
             { error: "Çok fazla istek, biraz bekle." },

@@ -16,10 +16,10 @@ export default function ClosedBanner() {
     return (
         <div
             role="status"
-            className="relative z-10 mx-4 mt-3 flex shrink-0 items-center gap-2.5 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3"
+            className="relative z-10 mx-4 mt-2 flex shrink-0 items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2"
         >
-            <Music2 size={18} className="shrink-0 text-accent" />
-            <p className="text-sm font-semibold leading-snug text-ink">{text}</p>
+            <Music2 size={15} className="shrink-0 text-accent" />
+            <p className="text-[13px] font-semibold leading-snug text-ink">{text}</p>
         </div>
     );
 }

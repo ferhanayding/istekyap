@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
+import { clearAppStateCache } from "@/lib/app-state";
+import { recordPlay } from "@/lib/plays";
 
 const UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,10 +26,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         return NextResponse.json({ error: "Geçersiz durum." }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin
+    const { data: row, error } = await supabaseAdmin
         .from("requests")
         .update({ status })
-        .eq("id", id);
+        .eq("id", id)
+        .select("spotify_id, name, artists, cover")
+        .maybeSingle();
 
     // 23505: aynı şarkı zaten bekleyen listede
     if (error?.code === "23505") {
@@ -40,8 +44,22 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         console.error(error);
         return NextResponse.json({ error: "İşlem yapılamadı." }, { status: 500 });
     }
+    if (!row) {
+        return NextResponse.json({ error: "İstek bulunamadı." }, { status: 404 });
+    }
 
-    notifyLive("requests");
+    // Elle "Çalındı" denince de "Çal"daki gibi: bu gece oylanabilir olur, istatistiğe yazılır
+    if (status === "played") {
+        try {
+            await recordPlay(row.spotify_id, row);
+        } catch (e) {
+            console.error(e);
+        }
+        clearAppStateCache();
+        notifyLive("requests", "state");
+    } else {
+        notifyLive("requests");
+    }
     return NextResponse.json({ ok: true });
 }
 

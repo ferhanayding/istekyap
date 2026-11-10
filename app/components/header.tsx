@@ -5,9 +5,9 @@ import { INSTAGRAM_HANDLE, INSTAGRAM_URL, InstagramIcon } from "./Instagram";
 
 export default function Header() {
     return (
-        <header className="relative shrink-0 px-5 pb-2 pt-4">
+        <header className="relative shrink-0 px-5 pb-2 pt-3">
             <div className="flex items-center justify-between gap-3">
-                <h1 className="text-[26px] font-extrabold leading-none tracking-[-1px]">
+                <h1 className="text-[23px] font-extrabold leading-none tracking-[-1px]">
                     İstekYap<span className="text-accent">.</span>
                 </h1>
 
@@ -16,9 +16,9 @@ export default function Header() {
                     <Link
                         href="/dashboard"
                         aria-label="Dashboard girişi"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent transition hover:bg-accent/25 active:scale-95"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent transition hover:bg-accent/25 active:scale-95"
                     >
-                        <LayoutDashboard size={17} />
+                        <LayoutDashboard size={16} />
                     </Link>
                 </div>
             </div>
@@ -29,7 +29,7 @@ export default function Header() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`LƏYSAN Instagram: ${INSTAGRAM_HANDLE}`}
-                className="group mt-2 inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(90deg,#833AB4,#C13584_70%,#D6306F)] py-1 pl-2 pr-3 text-white transition hover:brightness-110 active:scale-95"
+                className="group mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(90deg,#833AB4,#C13584_70%,#D6306F)] py-1 pl-2 pr-3 text-white transition hover:brightness-110 active:scale-95"
             >
                 <span>
                     <InstagramIcon size={14} />
@@ -41,10 +41,6 @@ export default function Header() {
                     {INSTAGRAM_HANDLE}
                 </span>
             </a>
-
-            <p className="mt-1.5 text-xs leading-snug text-muted">
-                Dilediğin şarkıyı iste · Sözleri dinle · Şarkıları değerlendir
-            </p>
         </header>
     );
 }

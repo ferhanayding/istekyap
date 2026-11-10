@@ -9,6 +9,7 @@ import { FLAGS_TAG } from "@/lib/app-flags";
 import { getTrackById } from "@/lib/search";
 import type { Track } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
+import { recordPlay } from "@/lib/plays";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -109,36 +110,12 @@ const NO_PLAYING = {
 };
 
 // gece-baslangici.sql çalıştırılmadıysa sütun yoktur: buton yine çalışsın
-async function markNight(at: string | null) {
+async function markNight(at: string) {
     const { error } = await supabaseAdmin
         .from("app_state")
         .update({ night_started_at: at })
         .eq("id", 1);
     if (error) console.warn("night_started_at yazılamadı:", error.message);
-}
-
-// İstatistik için her çalma kaydedilir. Yanlışlıkla iki kere basılırsa
-// (aynı şarkı 3 dakika içinde) ikinci sayılmaz.
-async function logPlay(
-    id: string,
-    track: { name: string; artists: string; cover: string | null } | null
-) {
-    const { data: last } = await supabaseAdmin
-        .from("play_history")
-        .select("played_at")
-        .eq("spotify_id", id)
-        .order("played_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-    if (last && Date.now() - new Date(last.played_at).getTime() < 3 * 60_000) return;
-
-    const { error } = await supabaseAdmin.from("play_history").insert({
-        spotify_id: id,
-        name: track?.name ?? null,
-        artists: track?.artists ?? null,
-        cover: track?.cover ?? null,
-    });
-    if (error) throw error;
 }
 
 // Son arşivlemeyi ("Geceyi bitir") geri alır. Bir seferde arşivlenenlerin hepsi aynı
@@ -341,22 +318,12 @@ export async function POST(req: NextRequest) {
                     getAppState({ fresh: true }),
                     getTrackById(id).catch(() => null),
                 ]);
-                const playedUpsert = async () => {
-                    const { error } = await supabaseAdmin
-                        .from("played_songs")
-                        .upsert(
-                            { spotify_id: id, played_at: new Date().toISOString() },
-                            { onConflict: "spotify_id" }
-                        );
-                    if (error) throw error;
-                };
                 await Promise.all([
                     current.nowPlaying && current.nowPlaying !== id
                         ? finishRequest(current.nowPlaying)
                         : null,
                     ensureRequest(id, track).catch((e) => console.error(e)),
-                    playedUpsert(),
-                    logPlay(id, track).catch((e) => console.error(e)),
+                    recordPlay(id, track),
                     setNowPlaying(
                         id,
                         track ? `${track.name} · ${track.artists}` : title,

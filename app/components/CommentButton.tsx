@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Check, MessageSquareText, Star, X } from "lucide-react";
 import { INSTAGRAM_URL, InstagramIcon } from "./Instagram";
@@ -29,11 +29,14 @@ export default function CommentButton() {
         setError(null);
     }
 
+    // Esc'de her zaman güncel close çalışsın (efekt sadece açılıp kapanınca yeniden kurulur)
+    const onEscape = useEffectEvent(() => close());
+
     // Esc ile kapat, arkadaki sayfa kaymasın
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") close();
+            if (e.key === "Escape") onEscape();
         };
         const prev = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -43,7 +46,6 @@ export default function CommentButton() {
             document.body.style.overflow = prev;
             window.removeEventListener("keydown", onKey);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     async function submit(e: FormEvent) {
@@ -82,7 +84,7 @@ export default function CommentButton() {
                 type="button"
                 onClick={() => setOpen(true)}
                 aria-haspopup="dialog"
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-extrabold text-on-accent transition hover:brightness-105 active:scale-95"
+                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-extrabold text-on-accent transition hover:brightness-105 active:scale-95"
             >
                 <MessageSquareText size={15} />
                 <span>

@@ -22,11 +22,11 @@ async function PlaylistData() {
 
 export default function PlaylistSection() {
     return (
-        <section className="relative mt-3 flex min-h-0 flex-1 flex-col px-5">
+        <section className="relative mt-2 flex min-h-0 flex-1 flex-col px-5">
             <Suspense
                 fallback={
                     <>
-                        <div className="mb-1 h-10 shrink-0 rounded-lg bg-raised" />
+                        <div className="mb-1 h-9 shrink-0 rounded-lg bg-raised" />
                         <div className="-mx-5 min-h-0 flex-1 overflow-hidden px-5">
                             <LoadingTracks />
                         </div>

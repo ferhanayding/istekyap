@@ -184,7 +184,7 @@ async function nightInfo(): Promise<NightRow | null> {
 const ms = (iso: string) => new Date(iso).getTime();
 
 export async function getStats(): Promise<StatsResponse> {
-    const [reqs, devices, plays, votes, voteHist, comments, playlist] = await Promise.all([
+    const [reqs, devices, plays, votes, voteHist, comments, playlist, info] = await Promise.all([
         all<ReqRow>(
             "requests",
             "spotify_id, name, artists, cover, status, request_count, created_at, last_requested_at, archived_at"
@@ -195,6 +195,7 @@ export async function getStats(): Promise<StatsResponse> {
         all<VoteHistRow>("vote_history", "spotify_id, likes, dislikes"),
         all<CommentRow>("comments", "rating, created_at"),
         getPlaylist().then((p) => p.tracks).catch(() => []),
+        nightInfo(),
     ]);
 
     // Şarkı adı/kapağı: playlist, sonra istekler, sonra çalma geçmişi
@@ -207,7 +208,6 @@ export async function getStats(): Promise<StatsResponse> {
         }
     }
 
-    const info = await nightInfo();
     const lastArchive = reqs.reduce<string | null>(
         (m, r) => (r.archived_at && (!m || ms(r.archived_at) > ms(m)) ? r.archived_at : m),
         null

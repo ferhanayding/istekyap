@@ -4,17 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, ThumbsUp, X } from "lucide-react";
 import type { HistorySong } from "@/lib/history-types";
 import type { RequestStatus } from "@/lib/use-request-feed";
-import { useSystem } from "@/lib/system-context";
 import { useLive } from "@/lib/live-client";
-import { sendRequest } from "@/lib/send-request";
 import { fold } from "@/lib/fold";
 import { LyricsButton } from "./LyricsSheet";
 import LoadingTracks from "./LoadingTracks";
-import { useToast } from "./Toast";
+import AskButton from "./AskButton";
+import SongRow from "./SongRow";
 
 type Sort = "most" | "recent";
 
-const CLOSED_TEXT = "İstekler şu an kapalı. Canlı müzik başlayınca açılacak.";
 
 // Bugüne kadar istenen bütün şarkılar: kaç kez istendi, çalındı, beğenildi.
 // Buradan da istek atılabilir.
@@ -31,10 +29,6 @@ export default function RequestHistory({
     const [failed, setFailed] = useState(false);
     const [query, setQuery] = useState("");
     const [sort, setSort] = useState<Sort>("most");
-    const [sendingId, setSendingId] = useState<string | null>(null);
-    const [sent, setSent] = useState<ReadonlySet<string>>(new Set());
-    const system = useSystem();
-    const toast = useToast();
 
     // v: canlı sinyalin sürümü (herkes aynı adresi ister, CDN tek cevap verir)
     const load = useCallback(async (v?: number) => {
@@ -81,26 +75,6 @@ export default function RequestHistory({
             ? [...found].sort((a, b) => (a.lastRequested < b.lastRequested ? 1 : -1))
             : found;
     }, [list, query, sort]);
-
-    async function ask(s: HistorySong) {
-        if (!system.requestsOpen) {
-            toast.error(CLOSED_TEXT);
-            return;
-        }
-        setSendingId(s.spotify_id);
-        const r = await sendRequest(s.spotify_id);
-        setSendingId(null);
-        if (!r.ok) {
-            toast.error(r.error);
-            return;
-        }
-        setSent((prev) => new Set(prev).add(s.spotify_id));
-        toast.success(
-            r.count
-                ? `İsteğe katıldın · ${r.count} kişi istedi: ${s.name}`
-                : `İstek gönderildi: ${s.name}`
-        );
-    }
 
     if (failed && !list) {
         return (
@@ -181,48 +155,21 @@ export default function RequestHistory({
                         {visible.map((s, idx) => {
                             const status = tonight.get(s.spotify_id);
                             const inList = status === "pending" || status === "approved";
-                            const rejected = status === "rejected";
-                            const done = sent.has(s.spotify_id);
-                            const sending = sendingId === s.spotify_id;
-                            const closed = !system.requestsOpen;
-
                             return (
-                                <li
+                                <SongRow
                                     key={s.spotify_id}
+                                    as="li"
                                     id={`old-${s.spotify_id}`}
-                                    className="flex items-center gap-3 py-2"
-                                >
-                                    {s.cover ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            loading={idx < 8 ? "eager" : "lazy"}
-                                            decoding="async"
-                                            src={s.cover}
-                                            alt=""
-                                            width={56}
-                                            height={56}
-                                            className="size-14 shrink-0 rounded-[4px] object-cover"
-                                        />
-                                    ) : (
-                                        <div className="size-14 shrink-0 rounded-[4px] bg-line" />
-                                    )}
-
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-base font-medium text-ink">
-                                            {s.name}
-                                        </p>
-                                        <p className="mt-0.5 truncate text-sm text-muted">
-                                            {s.artists}
-                                        </p>
-                                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-faint">
+                                    cover={s.cover}
+                                    name={s.name}
+                                    artists={s.artists}
+                                    eager={idx < 8}
+                                    meta={
+                                        <>
                                             <span className="font-semibold text-muted">
                                                 {s.requests} kez istendi
                                             </span>
-                                            {s.plays > 0 && (
-                                                <span>
-                                                    {s.plays} kez çalındı
-                                                </span>
-                                            )}
+                                            {s.plays > 0 && <span>{s.plays} kez çalındı</span>}
                                             {s.likes > 0 && (
                                                 <span className="inline-flex items-center gap-1">
                                                     <ThumbsUp size={11} />
@@ -230,36 +177,21 @@ export default function RequestHistory({
                                                 </span>
                                             )}
                                             {inList && (
-                                                <span className="font-bold text-accent">
-                                                    Bu gece listede
-                                                </span>
+                                                <span className="font-bold text-accent">Listede</span>
                                             )}
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => ask(s)}
-                                        disabled={done || rejected || sendingId !== null}
-                                        aria-label={`${s.name} şarkısını iste`}
-                                        className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-extrabold transition enabled:active:scale-95 ${done
-                                            ? "bg-accent/15 text-accent"
-                                            : rejected || closed
-                                                ? "bg-raised text-faint"
-                                                : "bg-accent text-on-accent disabled:opacity-60"
-                                            }`}
-                                    >
-                                        {done
-                                            ? "İstendi"
-                                            : rejected
-                                                ? "Reddedildi"
-                                                : sending
-                                                    ? "…"
-                                                    : "İste"}
-                                    </button>
-
-                                    <LyricsButton name={s.name} artists={s.artists} />
-                                </li>
+                                        </>
+                                    }
+                                    actions={
+                                        <>
+                                            <AskButton
+                                                id={s.spotify_id}
+                                                name={s.name}
+                                                rejected={status === "rejected"}
+                                            />
+                                            <LyricsButton name={s.name} artists={s.artists} />
+                                        </>
+                                    }
+                                />
                             );
                         })}
                     </ul>
