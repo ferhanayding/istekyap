@@ -23,7 +23,7 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 | Parça | Görevi |
 | --- | --- |
 | Next.js 16 (App Router) | Sayfalar ve API route'ları |
-| Vercel (Hobby) | Yayın |
+| Vercel (Hobby) | Yayın. Sunucu fonksiyonları Frankfurt'ta (`vercel.json` → `fra1`), Supabase ile aynı bölgede |
 | Supabase Postgres | İstekler, oylar, yorumlar, çalma ve oy geçmişi |
 | Supabase Auth | Dashboard girişi (e-posta + şifre) |
 | Supabase Realtime (Broadcast) | "Liste değişti" sinyali, `istek-yap` kanalı |
