@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Check, MessageSquareText, Star, X } from "lucide-react";
+import { INSTAGRAM_URL, InstagramIcon } from "./Instagram";
 
 const LABELS = ["", "Çok kötü", "Kötü", "Fena değil", "İyi", "Harika"];
 
@@ -129,10 +130,21 @@ export default function CommentButton() {
                                     <p className="mt-1 text-sm text-[#B3B3B3]">
                                         Yorumun bize ulaştı.
                                     </p>
+                                    <a
+                                        href={INSTAGRAM_URL}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-6 flex h-11 items-center gap-2 rounded-full bg-white/[0.08] px-5 text-sm font-bold text-white transition hover:bg-white/[0.14] active:scale-95"
+                                    >
+                                        <span className="text-[#E1306C]">
+                                            <InstagramIcon size={17} />
+                                        </span>
+                                        Bizi Instagram&apos;da takip et
+                                    </a>
                                     <button
                                         type="button"
                                         onClick={close}
-                                        className="mt-6 h-11 rounded-full bg-[#1ED760] px-8 text-sm font-extrabold text-black transition active:scale-95"
+                                        className="mt-3 h-11 rounded-full bg-[#1ED760] px-8 text-sm font-extrabold text-black transition active:scale-95"
                                     >
                                         Tamam
                                     </button>

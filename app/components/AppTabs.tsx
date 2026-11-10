@@ -16,6 +16,7 @@ import BottomNav, { type Tab } from "./BottomNav";
 import MiniPlayer from "./MiniPlayer";
 import RequestsPanel from "./RequestsPanel";
 import { useToast } from "./Toast";
+import LoadingTracks from "./LoadingTracks";
 
 // Yenileyince kaldığın sekmede kal
 const TAB_KEY = "istekyap:tab";
@@ -103,6 +104,16 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
         openTab(showPlaylist && !inRequests ? "playlist" : "requests");
         window.dispatchEvent(new Event(CLEAR_SEARCH_EVENT));
         setTimeout(() => scrollToTrack(id), 150);
+    }
+
+    // Durum gelmeden hangi sekmenin görüneceği belli değil: önce playlist görünüp
+    // sonra kaybolmasın diye iskelet göster
+    if (!system.loaded) {
+        return (
+            <div className="min-h-0 flex-1 overflow-hidden px-5 pt-4" aria-busy="true">
+                <LoadingTracks />
+            </div>
+        );
     }
 
     return (

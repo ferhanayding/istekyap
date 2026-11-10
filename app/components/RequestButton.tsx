@@ -114,6 +114,15 @@ export default function RequestButton() {
         }
     }
 
+    // Durum gelmeden butonu gösterme: önce açık görünüp sonra "kapalı"ya dönmesin
+    if (!loaded) {
+        return (
+            <section className="relative z-20 shrink-0 px-5" aria-busy="true">
+                <div className="h-11 animate-pulse rounded-full bg-white/[0.07]" />
+            </section>
+        );
+    }
+
     return (
         <section className="relative z-20 shrink-0 px-5">
             <div className="relative h-11">
