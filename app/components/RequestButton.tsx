@@ -5,13 +5,11 @@ import { Check, ChevronRight, Lock, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useSystem } from "@/lib/system-context";
-import { REQUEST_SENT_EVENT } from "@/lib/use-request-feed";
+import { sendRequest } from "@/lib/send-request";
 import { useToast } from "./Toast";
 
 type Requested = "pending" | "approved" | "rejected" | null;
 type Result = Track & { inPlaylist?: boolean; requested?: Requested };
-
-const SEND_ERROR = "İstek gönderilemedi. Tekrar dokun.";
 
 // İstek listesinde zaten olan şarkının sağ tarafında görünen yazı
 const REQUESTED_LABEL: Record<Exclude<Requested, null>, string> = {
@@ -21,7 +19,7 @@ const REQUESTED_LABEL: Record<Exclude<Requested, null>, string> = {
 };
 
 // Sunucudaki sınırla aynı (app/api/requests: cihaz başına 10 dakikada 5)
-const LIMIT_NOTE = "Her cihazdan 10 dakikada en fazla 5 istek atılabilir.";
+export const LIMIT_NOTE = "Her cihazdan 10 dakikada en fazla 5 istek atılabilir.";
 
 export default function RequestButton() {
     const [open, setOpen] = useState(false);
@@ -93,28 +91,15 @@ export default function RequestButton() {
 
     async function pick(t: Track) {
         setSendingId(t.id);
-        try {
-            const res = await fetch("/api/requests", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: t.id }),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                toast.error(data?.error ?? SEND_ERROR);
-                return;
-            }
-            const data = await res.json().catch(() => null);
-            setSentCount(data?.joined ? Number(data.count) || null : null);
-            setSent(t);
-            // Kendi isteğin listede hemen görünsün (canlı sinyali beklemeden)
-            window.dispatchEvent(new Event(REQUEST_SENT_EVENT));
-            setTimeout(() => setOpen(false), 2200);
-        } catch {
-            toast.error(SEND_ERROR);
-        } finally {
-            setSendingId(null);
+        const r = await sendRequest(t.id);
+        setSendingId(null);
+        if (!r.ok) {
+            toast.error(r.error);
+            return;
         }
+        setSentCount(r.count);
+        setSent(t);
+        setTimeout(() => setOpen(false), 2200);
     }
 
     // Durum gelmeden butonu gösterme: önce açık görünüp sonra "kapalı"ya dönmesin

@@ -8,15 +8,20 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 
 **Ziyaretçi sayfası (`/`)**
 - Spotify'da şarkı arama ve istek gönderme; aynı şarkıyı isteyenler sayılır (×3)
-- Canlı istek listesi ve "şu an çalan" kartı
+- İstek listesi iki sekme: **Bu gece** (canlı) ve **Eski istekler** (bugüne kadar istenen her şarkı: kaç kez istendi, çalındı, beğenildi; buradan da istenebilir)
 - Şarkı sözleri (LRCLIB), çalınan şarkılara 👍 / 👎, yorum ve puan
+- Gece kapalıyken en üstte "Canlı müzik başlayınca istek yapma ve oy verme açılacak" uyarısı
 
 **Dashboard (`/dashboard`, giriş gerekli)**
 - İstekler: onayla, reddet, sil, çal
 - Playlist: şarkı başına beğeniler, filtre ve sıralama
 - İstatistik: bu gece / tüm zamanlar, saat saat istekler, en çok istenen / beğenilen / çalınan, geçmiş geceler
 - Yorumlar
-- Sistem: istek alma, oylama, playlist görünürlüğü; listeyi arşivle (geri alınabilir), sıfırlama butonları
+- Sistem: tek buton **Geceyi başlat / Geceyi bitir**, altında elle değiştirilebilen anahtarlar (istek alma, oylama, playlist), "Gelişmiş" altında kalıcı silme butonları
+
+**Gece akışı**
+- *Geceyi başlat*: istek ve oylama açılır. Önceki geceden kalanlar (liste, oylar, "çalındı" işaretleri) ziyaretçinin ekranından kalkar, istatistikte kalır. "Bu gece" istatistiği bu andan sayılır.
+- *Geceyi bitir*: istek ve oylama kapanır, çalan şarkı durur, bu gecenin istekleri arşive gider (Eski istekler'de ve istatistikte "Son gece" olarak kalır). 10 dakika içinde geri alınabilir.
 
 ## Teknik yapı
 
@@ -73,7 +78,7 @@ Temel tablolar Supabase panelinden oluşturuldu ve repoda SQL dosyası olarak yo
 | Tablo | Sütunlar |
 | --- | --- |
 | `requests` | id, spotify_id, name, artists, cover, status (`pending` / `approved` / `played` / `rejected`), created_at |
-| `app_state` | id (tek satır, 1), requests_open, voting_open, playlist_visible, now_playing, now_playing_title, now_playing_cover, now_playing_since, updated_at |
+| `app_state` | id (tek satır, 1), night_open, night_started_at, night_ended_at, requests_open, voting_open, playlist_visible, now_playing, now_playing_title, now_playing_cover, now_playing_since, updated_at |
 | `song_votes` | spotify_id, device_id, value (1 / -1), updated_at |
 | `song_vote_counts` | view: spotify_id, likes, dislikes |
 | `played_songs` | spotify_id, played_at |
@@ -84,6 +89,7 @@ Sonradan eklenenler yerel `supabase/` klasöründe durur. Klasör `.gitignore`'d
 1. `supabase/istek-sayaci.sql` — istek sayacı, arşiv, `request_devices`, `make_request()` fonksiyonu
 2. `supabase/istek-sayaci-2.sql` — `last_requested_at` (1. dosyanın yeni hali bunu zaten içerir; eski kurulumlar için)
 3. `supabase/istatistik.sql` — `play_history`, `vote_history`, `archive_votes()` fonksiyonu
+4. `supabase/gece.sql` — `night_open`, `night_started_at`, `night_ended_at` (Geceyi başlat/bitir)
 
 Tarayıcı veritabanına doğrudan yazmaz; tüm okuma ve yazmalar sunucu (`SUPABASE_SECRET_KEY`) üzerinden geçer. Tarayıcı publishable key'i sadece Realtime kanalını dinlemek için kullanır.
 
@@ -96,6 +102,7 @@ app/
   login/                   dashboard girişi
   api/
     requests/  search/  votes/  comments/  lyrics/  state/   herkese açık API
+    requests/history/      Eski istekler
     dashboard/ (requests, songs, stats, system, comments)              giriş gerektiren API
     auth/                  Spotify refresh token alma (sadece npm run dev ile çalışır)
   components/              arayüz bileşenleri (dashboard/ altında panel bileşenleri)

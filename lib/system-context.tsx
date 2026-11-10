@@ -15,6 +15,7 @@ import { fetchFirst, startEarly } from "@/lib/early-fetch";
 type Raw = {
     requestsOpen: boolean;
     votingOpen: boolean;
+    nightOpen?: boolean;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     played: string[];
@@ -24,6 +25,7 @@ type Raw = {
 
 // Sunucunun sayfaya gömdüğü anahtarlar (lib/app-flags)
 export type InitialFlags = {
+    nightOpen: boolean;
     requestsOpen: boolean;
     votingOpen: boolean;
     playlistVisible: boolean;
@@ -32,6 +34,7 @@ export type InitialFlags = {
 export type System = {
     nowPlayingCover: string | null;
     loaded: boolean;
+    nightOpen: boolean;
     requestsOpen: boolean;
     votingOpen: boolean;
     nowPlaying: string | null;
@@ -50,6 +53,7 @@ startEarly(STATE_URL);
 const EMPTY: System = {
     loaded: false,
     playlistVisible: true,
+    nightOpen: false,
     requestsOpen: false,
     votingOpen: false,
     nowPlaying: null,
@@ -117,6 +121,8 @@ export function SystemProvider({
                 ? {
                     loaded: true,
                     playlistVisible: raw.playlistVisible !== false,
+                    // Eski sunucu cevabında yoksa: istek ya da oylama açıksa gece açık
+                    nightOpen: raw.nightOpen ?? (raw.requestsOpen || raw.votingOpen),
                     requestsOpen: raw.requestsOpen,
                     votingOpen: raw.votingOpen,
                     nowPlaying: raw.nowPlaying,

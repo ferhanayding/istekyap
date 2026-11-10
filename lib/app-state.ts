@@ -6,6 +6,10 @@ import { notifyLive } from "@/lib/live-server";
 export const NOW_PLAYING_MS = 5 * 60_000;
 
 export type AppState = {
+    /** "Geceyi başlat" ile açılır, "Geceyi bitir" ile kapanır */
+    nightOpen: boolean;
+    nightStartedAt: string | null;
+    nightEndedAt: string | null;
     requestsOpen: boolean;
     votingOpen: boolean;
     playlistVisible: boolean;
@@ -50,9 +54,8 @@ export async function getAppState(
     const [s, p] = await Promise.all([
         supabaseAdmin
             .from("app_state")
-            .select(
-                "requests_open, voting_open, playlist_visible, now_playing, now_playing_title, now_playing_cover, now_playing_since"
-            )
+            // "*": gece.sql henüz çalıştırılmadıysa yeni sütunlar yoktur, yine de okunabilsin
+            .select("*")
             .eq("id", 1)
             .maybeSingle(),
         supabaseAdmin.from("played_songs").select("spotify_id"),
@@ -74,11 +77,10 @@ export async function getAppState(
         nowPlayingCover = null;
     }
 
-    // Satır yoksa istek ve oylama kapalı, playlist açık sayılır
     const state: AppState = {
-        requestsOpen: !!s.data?.requests_open,
-        votingOpen: !!s.data?.voting_open,
-        playlistVisible: s.data ? s.data.playlist_visible !== false : true,
+        ...readFlags(s.data),
+        nightStartedAt: s.data?.night_started_at ?? null,
+        nightEndedAt: s.data?.night_ended_at ?? null,
         nowPlaying,
         nowPlayingTitle,
         nowPlayingCover,
@@ -86,6 +88,28 @@ export async function getAppState(
     };
     cache = { state, expires: Date.now() + 2_000 };
     return state;
+}
+
+type FlagRow = {
+    requests_open?: boolean | null;
+    voting_open?: boolean | null;
+    playlist_visible?: boolean | null;
+    night_open?: boolean | null;
+} | null;
+
+// Satır yoksa her şey kapalı, playlist açık sayılır. gece.sql çalıştırılmadıysa:
+// istek ya da oylama açıksa gece açık sayılır.
+export function readFlags(row: FlagRow) {
+    const requestsOpen = !!row?.requests_open;
+    const votingOpen = !!row?.voting_open;
+    const nightOpen =
+        typeof row?.night_open === "boolean" ? row.night_open : requestsOpen || votingOpen;
+    return {
+        nightOpen,
+        requestsOpen,
+        votingOpen,
+        playlistVisible: row?.playlist_visible !== false,
+    };
 }
 
 export function clearAppStateCache() {

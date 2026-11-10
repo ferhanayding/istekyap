@@ -6,15 +6,8 @@ import type { Track } from "@/lib/spotify";
 import { useSystem } from "@/lib/system-context";
 import { useSharedVotes } from "@/lib/votes-context";
 import { CLEAR_SEARCH_EVENT } from "@/lib/scroll";
+import { fold } from "@/lib/fold";
 import TrackItem from "./TrackItem";
-
-// Küçük harfe çevir, Türkçe karakterleri ve aksanları sadeleştir
-const fold = (s: string) =>
-    s
-        .toLocaleLowerCase("tr")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ı/g, "i");
 
 export default function PlaylistPanel({
     tracks,

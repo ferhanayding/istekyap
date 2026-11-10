@@ -83,7 +83,7 @@ export default function StatsPanel() {
                 >
                     {(
                         [
-                            ["night", "Bu gece"],
+                            ["night", data && !data.nightOpen ? "Son gece" : "Bu gece"],
                             ["total", "Tüm zamanlar"],
                         ] as const
                     ).map(([key, label]) => (
@@ -113,9 +113,11 @@ export default function StatsPanel() {
 
             {data && range === "night" && (
                 <p className="text-xs text-[#8F8AA8]">
-                    {data.since
-                        ? `Gece başlangıcı: ${fmtDate(data.since)} (son arşivleme ya da sıfırlama)`
-                        : "Henüz arşivleme ya da sıfırlama yapılmadı, hepsi bu gece sayılıyor."}
+                    {!data.since
+                        ? "Henüz gece başlatılmadı, hepsi bu gece sayılıyor."
+                        : data.until
+                            ? `Son gece: ${fmtDate(data.since)} – ${fmtDate(data.until)}. Yeni gece başlayınca sıfırlanır.`
+                            : `Gece başlangıcı: ${fmtDate(data.since)}`}
                 </p>
             )}
 
@@ -379,7 +381,7 @@ function Nights({ nights }: { nights: NightSummary[] }) {
             <p className="text-base font-bold text-white">Geçmiş geceler</p>
             {nights.length === 0 ? (
                 <p className="mt-1 text-xs text-[#B3B3B3]">
-                    &quot;İstek listesini arşivle&quot;ye her bastığında bir gece buraya eklenir.
+                    &quot;Geceyi bitir&quot;e her bastığında o gece buraya eklenir.
                 </p>
             ) : (
                 <ul className="mt-2 divide-y divide-white/[0.06]">

@@ -75,13 +75,38 @@ async function ensureRequest(id: string, track: Track | null) {
     });
     if (e && e.code !== "23505") throw e;
 }
-const NEW_NIGHT = new Set([
-    "reset_played",
-    "reset_votes",
-    "archive_requests",
-    "reset_requests",
-    "reset_stats",
-]);
+// Gece içinde istatistik silinirse "Bu gece" de o andan yeniden başlar
+const NEW_NIGHT = new Set(["reset_requests", "reset_stats"]);
+
+// Ana sayfanın hazır HTML'ine gömülü anahtarları değiştiren işlemler
+const FLAG_ACTIONS = new Set(["set", "start_night", "end_night", "undo_end"]);
+
+// "Geceyi bitir"den sonra bu süre içinde geri alınabilir
+const UNDO_END_MS = 10 * 60_000;
+
+// gece.sql çalıştırılmadıysa yeni sütunlar yoktur
+function missingColumn(e: { code?: string } | null): boolean {
+    return e?.code === "PGRST204" || e?.code === "42703";
+}
+const NEED_SQL = "Önce Supabase'de supabase/gece.sql dosyasını çalıştır.";
+
+async function updateState(fields: Record<string, unknown>) {
+    const { error } = await supabaseAdmin
+        .from("app_state")
+        .update({ ...fields, updated_at: new Date().toISOString() })
+        .eq("id", 1);
+    return error;
+}
+
+// Gece açılınca ve kapanınca istek ve oylama birlikte açılıp kapanır (sözler hep açık)
+const NIGHT_ON = { night_open: true, requests_open: true, voting_open: true };
+const NIGHT_OFF = { night_open: false, requests_open: false, voting_open: false };
+const NO_PLAYING = {
+    now_playing: null,
+    now_playing_title: null,
+    now_playing_cover: null,
+    now_playing_since: null,
+};
 
 // gece-baslangici.sql çalıştırılmadıysa sütun yoktur: buton yine çalışsın
 async function markNight(at: string | null) {
@@ -116,7 +141,7 @@ async function logPlay(
     if (error) throw error;
 }
 
-// Son "İstek listesini arşivle"yi geri alır. Bir seferde arşivlenenlerin hepsi aynı
+// Son arşivlemeyi ("Geceyi bitir") geri alır. Bir seferde arşivlenenlerin hepsi aynı
 // archived_at'i taşır. Arşivden sonra aynı şarkı yeniden istendiyse ikisi birleşir.
 async function unarchiveLast(): Promise<boolean> {
     const { data: last, error } = await supabaseAdmin
@@ -211,14 +236,95 @@ export async function POST(req: NextRequest) {
                 ) {
                     return NextResponse.json({ error: "Geçersiz ayar." }, { status: 400 });
                 }
-                const { error } = await supabaseAdmin
-                    .from("app_state")
-                    .update({ [key]: value, updated_at: new Date().toISOString() })
-                    .eq("id", 1);
+                const error = await updateState({ [key]: value });
+                if (missingColumn(error)) {
+                    return NextResponse.json({ error: NEED_SQL }, { status: 409 });
+                }
                 if (error) throw error;
-                // Ana sayfanın hazır HTML'i bu anahtarları içerir: hemen yenilensin ki
-                // yeni gelen ziyaretçi sayfayı baştan doğru hâliyle görsün
-                revalidateTag(FLAGS_TAG, { expire: 0 });
+                break;
+            }
+
+            case "start_night": {
+                const current = await getAppState({ fresh: true });
+                if (current.nightOpen) {
+                    return NextResponse.json({ error: "Gece zaten açık." }, { status: 409 });
+                }
+                const now = new Date().toISOString();
+                // Önce durum yazılır: sütunlar yoksa hiçbir şeye dokunmadan hata verir
+                const error = await updateState({
+                    ...NIGHT_ON,
+                    ...NO_PLAYING,
+                    night_started_at: now,
+                    night_ended_at: null,
+                });
+                if (missingColumn(error)) {
+                    return NextResponse.json({ error: NEED_SQL }, { status: 409 });
+                }
+                if (error) throw error;
+
+                // Önceki geceden kalanlar ziyaretçinin ekranından kalkar, istatistikte kalır:
+                // listede kalmış istekler arşive, oylar oy geçmişine gider, "çalındı" işaretleri
+                // silinir. Bitir'e basıldıysa liste zaten boştur; bitişten sonra elle açılıp
+                // gelen istekler bu geceye sayılır, arşivlenmez.
+                const cutoff = current.nightEndedAt ?? now;
+                const steps = await Promise.all([
+                    supabaseAdmin
+                        .from("requests")
+                        .update({ archived_at: now })
+                        .is("archived_at", null)
+                        .lte("created_at", cutoff),
+                    supabaseAdmin.rpc("archive_votes"),
+                    supabaseAdmin.from("played_songs").delete().neq("spotify_id", ""),
+                ]);
+                const failed = steps.find((r) => r.error);
+                if (failed?.error) throw failed.error;
+                clearLikeCountsCache();
+                break;
+            }
+
+            case "end_night": {
+                const current = await getAppState({ fresh: true });
+                if (!current.nightOpen) {
+                    return NextResponse.json({ error: "Gece zaten kapalı." }, { status: 409 });
+                }
+                const now = new Date().toISOString();
+                // Önce her şey kapanır ki bitirirken yeni istek ya da oy gelmesin
+                const error = await updateState({
+                    ...NIGHT_OFF,
+                    ...NO_PLAYING,
+                    night_ended_at: now,
+                });
+                if (missingColumn(error)) {
+                    return NextResponse.json({ error: NEED_SQL }, { status: 409 });
+                }
+                if (error) throw error;
+
+                // Çalan şarkı bir istekse "Çalındı" olarak arşive girsin
+                if (current.nowPlaying) await finishRequest(current.nowPlaying);
+                // Bu gecenin bütün istekleri (onaylı ama çalınmamışlar dahil) ziyaretçinin
+                // ekranından kalkar; dashboard istatistiğinde "Son gece" olarak kalır
+                const { error: e } = await supabaseAdmin
+                    .from("requests")
+                    .update({ archived_at: now })
+                    .is("archived_at", null);
+                if (e) throw e;
+                break;
+            }
+
+            case "undo_end": {
+                const current = await getAppState({ fresh: true });
+                const endedAt = current.nightEndedAt
+                    ? new Date(current.nightEndedAt).getTime()
+                    : 0;
+                if (current.nightOpen || !endedAt || Date.now() - endedAt > UNDO_END_MS) {
+                    return NextResponse.json(
+                        { error: "Geri alma süresi geçti." },
+                        { status: 409 }
+                    );
+                }
+                await unarchiveLast();
+                const error = await updateState({ ...NIGHT_ON, night_ended_at: null });
+                if (error) throw error;
                 break;
             }
 
@@ -269,46 +375,6 @@ export async function POST(req: NextRequest) {
                 break;
             }
 
-            case "reset_played": {
-                const current = await getAppState({ fresh: true });
-                if (current.nowPlaying) await finishRequest(current.nowPlaying);
-                await setNowPlaying(null, null);
-                const { error } = await supabaseAdmin
-                    .from("played_songs")
-                    .delete()
-                    .neq("spotify_id", "");
-                if (error) throw error;
-                break;
-            }
-
-            case "reset_votes": {
-                // Oylar listeden kalkar ama toplamları istatistik için vote_history'de kalır
-                const { error } = await supabaseAdmin.rpc("archive_votes");
-                if (error) throw error;
-                clearLikeCountsCache();
-                break;
-            }
-            case "archive_requests": {
-                // Yeni gece: bekleyen, çalınan ve reddedilenler arşive gider (silinmez),
-                // onaylı ama henüz çalınmamışlar listede kalır. Sayaçlar sıfırdan başlar.
-                const { error } = await supabaseAdmin
-                    .from("requests")
-                    .update({ archived_at: new Date().toISOString() })
-                    .is("archived_at", null)
-                    .in("status", ["pending", "played", "rejected"]);
-                if (error) throw error;
-                break;
-            }
-            case "unarchive_last": {
-                const result = await unarchiveLast();
-                if (!result) {
-                    return NextResponse.json(
-                        { error: "Geri alınacak arşiv yok." },
-                        { status: 404 }
-                    );
-                }
-                break;
-            }
             case "reset_stats": {
                 // Ömür boyu istatistik sıfırdan: çalma ve oy geçmişi, arşivdeki istekler.
                 // Bu geceki liste, oylar ve yorumlar dokunulmadan kalır.
@@ -343,9 +409,8 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: "Geçersiz işlem." }, { status: 400 });
         }
 
-        // "Yeni gece" butonları istatistikteki "Bu gece"yi şimdiden başlatır
         if (NEW_NIGHT.has(body.action)) await markNight(new Date().toISOString());
-        if (body.action === "unarchive_last") await markNight(null);
+        if (FLAG_ACTIONS.has(body.action)) revalidateTag(FLAGS_TAG, { expire: 0 });
 
         clearAppStateCache();
         notifyLive("state", "requests");

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLive } from "@/lib/live-client";
 export type SystemState = {
+    nightOpen: boolean;
+    nightStartedAt: string | null;
+    nightEndedAt: string | null;
     playlistVisible: boolean;
     requestsOpen: boolean;
     votingOpen: boolean;
@@ -19,13 +22,12 @@ export type SystemAction =
         key: "requests_open" | "voting_open" | "playlist_visible";
         value: boolean;
     }
+    | { action: "start_night" }
+    | { action: "end_night" }
+    | { action: "undo_end" }
     | { action: "play"; id: string; title?: string }
     | { action: "stop" }
-    | { action: "reset_played" }
-    | { action: "reset_votes" }
     | { action: "reset_requests" }
-    | { action: "archive_requests" }
-    | { action: "unarchive_last" }
     | { action: "reset_stats" };
 
 

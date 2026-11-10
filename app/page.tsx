@@ -1,5 +1,6 @@
 import Header from "./components/header";
 import RequestButton from "./components/RequestButton";
+import ClosedBanner from "./components/ClosedBanner";
 import AppTabs from "./components/AppTabs";
 import PlaylistSection from "./components/PlaylistSection";
 import { SystemProvider } from "@/lib/system-context";
@@ -25,6 +26,7 @@ export default async function Home() {
           <ToastProvider>
             <VotesProvider>
               <LyricsProvider>
+                <ClosedBanner />
                 <Header />
                 <RequestButton />
                 <AppTabs playlist={<PlaylistSection />} />

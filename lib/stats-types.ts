@@ -42,6 +42,9 @@ export type NightSummary = {
 
 export type StatsResponse = {
     since: string | null;
+    /** Gece bittiyse bitiş anı ("Son gece"), açıksa null */
+    until: string | null;
+    nightOpen: boolean;
     night: Stats;
     total: Stats;
     nights: NightSummary[];

@@ -1,10 +1,11 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getPlaylist } from "@/lib/playlist";
+import { allRows as all } from "@/lib/all-rows";
 import type { SongStat, Stats, StatsResponse } from "@/lib/stats-types";
 
-// Dashboard İstatistik sekmesi. "Bu gece" = son "İstek listesini arşivle"den beri,
-// "Tüm zamanlar" = arşivdekiler dahil hepsi.
+// Dashboard İstatistik sekmesi. "Bu gece" = "Geceyi başlat"tan beri; gece bitince
+// bir sonraki başlatmaya kadar "Son gece" (başlat–bitir arası). "Tüm zamanlar" = hepsi.
 
 type ReqRow = {
     spotify_id: string;
@@ -28,23 +29,6 @@ type PlayRow = {
 type VoteRow = { spotify_id: string; value: number; updated_at: string };
 type VoteHistRow = { spotify_id: string; likes: number; dislikes: number };
 type CommentRow = { rating: number | null; created_at: string };
-
-const PAGE = 1000;
-
-// Supabase bir seferde en fazla 1000 satır verir: sayfa sayfa çek
-async function all<T>(table: string, columns: string): Promise<T[]> {
-    const out: T[] = [];
-    for (let from = 0; ; from += PAGE) {
-        const { data, error } = await supabaseAdmin
-            .from(table)
-            .select(columns)
-            .range(from, from + PAGE - 1);
-        if (error) throw error;
-        out.push(...((data ?? []) as T[]));
-        if (!data || data.length < PAGE) return out;
-        if (from > 50 * PAGE) return out; // emniyet
-    }
-}
 
 const HOUR_FMT = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
@@ -180,16 +164,24 @@ function compute(
     };
 }
 
-// gece-baslangici.sql çalıştırılmadıysa sütun yoktur: o zaman sadece arşive bakılır
-async function nightStartedAt(): Promise<string | null> {
+type NightRow = {
+    night_started_at?: string | null;
+    night_ended_at?: string | null;
+    night_open?: boolean | null;
+};
+
+// "*": gece.sql çalıştırılmadıysa yeni sütunlar yoktur, eski hesaba dönülür
+async function nightInfo(): Promise<NightRow | null> {
     const { data, error } = await supabaseAdmin
         .from("app_state")
-        .select("night_started_at")
+        .select("*")
         .eq("id", 1)
         .maybeSingle();
     if (error) return null;
-    return (data as { night_started_at: string | null } | null)?.night_started_at ?? null;
+    return data as NightRow | null;
 }
+
+const ms = (iso: string) => new Date(iso).getTime();
 
 export async function getStats(): Promise<StatsResponse> {
     const [reqs, devices, plays, votes, voteHist, comments, playlist] = await Promise.all([
@@ -215,24 +207,51 @@ export async function getStats(): Promise<StatsResponse> {
         }
     }
 
-    // Bu gece: son "yeni gece" butonundan (arşivle, sıfırla, kalıcı sil) sonrası
+    const info = await nightInfo();
     const lastArchive = reqs.reduce<string | null>(
-        (m, r) => (r.archived_at && (!m || r.archived_at > m) ? r.archived_at : m),
+        (m, r) => (r.archived_at && (!m || ms(r.archived_at) > ms(m)) ? r.archived_at : m),
         null
     );
-    const nightStart = await nightStartedAt();
-    const startIso =
-        nightStart && (!lastArchive || nightStart > lastArchive) ? nightStart : lastArchive;
-    const since = startIso ? new Date(startIso).getTime() : 0;
-    const after = (iso: string) => new Date(iso).getTime() > since;
+
+    let startIso: string | null;
+    let untilIso: string | null = null;
+    let nightOpen = true;
+    let inNightReq: (r: ReqRow) => boolean;
+
+    if (info && typeof info.night_open === "boolean") {
+        // Gece başlat/bitir: başlangıçtan bitişe (açıksa şimdiye) kadar
+        startIso = info.night_started_at ?? null;
+        nightOpen = info.night_open;
+        const ended = info.night_ended_at ?? null;
+        if (!nightOpen && ended && (!startIso || ms(ended) >= ms(startIso))) untilIso = ended;
+        const from = startIso ? ms(startIso) : 0;
+        // Bitir'de arşivlenenler (arşiv anı başlangıçtan sonra) bu gecenindir;
+        // başlatırken arşivlenen önceki kalıntılar (arşiv anı = başlangıç) değil
+        inNightReq = (r) => !r.archived_at || ms(r.archived_at) > from;
+    } else {
+        // Eski hesap: son arşivleme ya da sıfırlamadan beri
+        const nightStart = info?.night_started_at ?? null;
+        startIso =
+            nightStart && (!lastArchive || ms(nightStart) > ms(lastArchive))
+                ? nightStart
+                : lastArchive;
+        inNightReq = (r) => !r.archived_at;
+    }
+
+    const since = startIso ? ms(startIso) : 0;
+    const until = untilIso ? ms(untilIso) : Infinity;
+    const inNight = (iso: string) => {
+        const t = ms(iso);
+        return t > since && t <= until;
+    };
 
     const night = compute(
-        reqs.filter((r) => !r.archived_at),
-        devices.filter((d) => after(d.created_at)),
-        plays.filter((p) => after(p.played_at)),
-        votes.filter((v) => after(v.updated_at)),
+        reqs.filter(inNightReq),
+        devices.filter((d) => inNight(d.created_at)),
+        plays.filter((p) => inNight(p.played_at)),
+        votes.filter((v) => inNight(v.updated_at)),
         [],
-        comments.filter((c) => after(c.created_at)),
+        comments.filter((c) => inNight(c.created_at)),
         meta
     );
     const total = compute(reqs, devices, plays, votes, voteHist, comments, meta);
@@ -264,5 +283,5 @@ export async function getStats(): Promise<StatsResponse> {
         }))
         .sort((a, b) => (a.archivedAt < b.archivedAt ? 1 : -1));
 
-    return { since: startIso, night, total, nights };
+    return { since: startIso, until: untilIso, nightOpen, night, total, nights };
 }
