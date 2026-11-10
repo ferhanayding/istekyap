@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchFirst, startEarly } from "@/lib/early-fetch";
 
 export type MyVote = -1 | 0 | 1;
 export type VoteState = { likes: number; mine: MyVote };
@@ -8,6 +9,9 @@ export type VoteMap = Record<string, VoteState>;
 
 // Beğeniler acil değil, dakikada bir bakması yeter
 const POLL_MS = 60_000;
+const VOTES_URL = "/api/votes";
+
+startEarly(VOTES_URL);
 
 export function useVotes() {
     const [votes, setVotes] = useState<VoteMap>({});
@@ -21,7 +25,7 @@ export function useVotes() {
 
     const load = useCallback(async () => {
         try {
-            const res = await fetch("/api/votes", { cache: "no-store" });
+            const res = await fetchFirst(VOTES_URL);
             const data: unknown = await res.json();
             if (
                 !res.ok ||
@@ -69,7 +73,7 @@ export function useVotes() {
         setVotes((m) => ({ ...m, [id]: { likes, mine: next } }));
 
         try {
-            const res = await fetch("/api/votes", {
+            const res = await fetch(VOTES_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, value: next }),

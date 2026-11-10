@@ -12,23 +12,28 @@ export async function GET() {
     try {
         const out: Record<string, { likes: number; mine: number }> = {};
 
-        for (const c of await getLikeCounts()) {
+        // Toplam beğeniler ve bu cihazın kendi oyları aynı anda okunur
+        const deviceId = await readDeviceId();
+        const [counts, mine] = await Promise.all([
+            getLikeCounts(),
+            deviceId
+                ? supabaseAdmin
+                    .from("song_votes")
+                    .select("spotify_id, value")
+                    .eq("device_id", deviceId)
+                    .then(({ data, error }) => {
+                        if (error) throw error;
+                        return data ?? [];
+                    })
+                : Promise.resolve([]),
+        ]);
+
+        for (const c of counts) {
             out[c.spotify_id] = { likes: c.likes, mine: 0 };
         }
-
-        // Bu cihazın kendi oyları
-        const deviceId = await readDeviceId();
-        if (deviceId) {
-            const { data, error } = await supabaseAdmin
-                .from("song_votes")
-                .select("spotify_id, value")
-                .eq("device_id", deviceId);
-            if (error) throw error;
-
-            for (const v of data ?? []) {
-                const id = String(v.spotify_id);
-                out[id] = { likes: out[id]?.likes ?? 0, mine: Number(v.value) };
-            }
+        for (const v of mine) {
+            const id = String(v.spotify_id);
+            out[id] = { likes: out[id]?.likes ?? 0, mine: Number(v.value) };
         }
 
         return NextResponse.json(out, { headers: { "Cache-Control": "no-store" } });
@@ -67,7 +72,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const state = await getAppState();
+        // Durum ve playlist aynı anda (ikisi de çoğu zaman önbellekten gelir)
+        const [state, index] = await Promise.all([
+            getAppState(),
+            getPlaylistIndex().catch(() => null),
+        ]);
         if (!state.votingOpen) {
             return NextResponse.json(
                 { error: "Oylama şu an kapalı." },
@@ -75,7 +84,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const index = await getPlaylistIndex().catch(() => null);
         if (!index) {
             return NextResponse.json(
                 { error: "Şu an oy verilemiyor." },

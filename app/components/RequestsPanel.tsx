@@ -71,7 +71,7 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                     </p>
                 ) : (
                     <ul>
-                        {items.map((r) => {
+                        {items.map((r, idx) => {
                             const badge = BADGE[r.status] ?? BADGE.pending;
                             const rejected = r.status === "rejected";
                             const playing = system.nowPlaying === r.spotify_id;
@@ -91,6 +91,8 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                                     {r.cover ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
+                loading={idx < 8 ? "eager" : "lazy"}
+                decoding="async"
                                             src={r.cover}
                                             alt=""
                                             width={56}

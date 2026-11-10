@@ -135,6 +135,8 @@ export default function LyricsBar({
                                         {t.cover ? (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
+                loading="lazy"
+                decoding="async"
                                                 src={t.cover}
                                                 alt=""
                                                 width={40}

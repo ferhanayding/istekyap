@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
-import { getPlaylistTracks, type Track } from "@/lib/spotify";
+import { getPlaylist } from "@/lib/playlist";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// Playlist 60 saniye bellekte durur, Spotify'a her turda gidilmez
-let cache: { tracks: Track[]; expires: number } | null = null;
-
-async function tracks(): Promise<Track[]> {
-    if (cache && Date.now() < cache.expires) return cache.tracks;
-    const list = await getPlaylistTracks();
-    cache = { tracks: list, expires: Date.now() + 60_000 };
-    return list;
-}
+// Playlist ortak önbellekten gelir (lib/playlist), Spotify'a her turda gidilmez
+const tracks = async () => (await getPlaylist()).tracks;
 
 export async function GET() {
     if (!(await requireUser())) {

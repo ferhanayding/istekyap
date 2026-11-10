@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bricolage_Grotesque } from "next/font/google";
 import LoginForm from "./LoginForm";
-
-const font = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"] });
 
 export const metadata: Metadata = {
     title: "Grup girişi · İstekYap",
@@ -13,7 +10,7 @@ export const metadata: Metadata = {
 export default function GirisPage() {
     return (
         <main
-            className={`${font.className} flex min-h-dvh items-center justify-center bg-[#100E1D] px-5 text-white`}
+            className="flex min-h-dvh items-center justify-center bg-[#100E1D] px-5 text-white"
         >
             <div className="w-full max-w-sm rounded-[28px] border border-white/[0.06] bg-[#19162D] p-6 shadow-2xl">
                 <h1 className="text-[32px] font-extrabold leading-none tracking-[-1.5px]">

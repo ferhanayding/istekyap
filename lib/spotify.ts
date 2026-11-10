@@ -1,3 +1,5 @@
+import "server-only";
+
 export type Track = {
     id: string;
     name: string;
@@ -8,7 +10,6 @@ export type Track = {
     addedAt?: string | null | undefined;
     /** Spotify'ın "müstehcen" etiketi (sadece arama / tek şarkı sorgusunda dolu) */
     explicit?: boolean;
-
 };
 
 type SpotifyTrack = {
@@ -29,7 +30,14 @@ type PlaylistPage = {
     next: string | null;
 };
 
-export async function getAccessToken(): Promise<string> {
+// Spotify bir çağrıda takılırsa fonksiyon dakikalarca beklemesin
+const TIMEOUT_MS = 8000;
+
+// Token 1 saat geçerli: 50 dakika saklanır, aynı anda gelen istekler tek token isteğini paylaşır
+let token: { value: string; expires: number } | null = null;
+let tokenRequest: Promise<string> | null = null;
+
+async function requestToken(): Promise<string> {
     const basic = Buffer.from(
         `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
     ).toString("base64");
@@ -44,6 +52,8 @@ export async function getAccessToken(): Promise<string> {
             grant_type: "refresh_token",
             refresh_token: process.env.SPOTIFY_REFRESH_TOKEN!,
         }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -52,18 +62,56 @@ export async function getAccessToken(): Promise<string> {
     return (await res.json()).access_token;
 }
 
+export async function getAccessToken(): Promise<string> {
+    if (token && Date.now() < token.expires) return token.value;
+    tokenRequest ??= requestToken()
+        .then((value) => {
+            token = { value, expires: Date.now() + 50 * 60_000 };
+            return value;
+        })
+        .finally(() => {
+            tokenRequest = null;
+        });
+    return tokenRequest;
+}
+
+// Spotify API çağrısı: token süresi dolmuşsa (401) bir kez yenileyip tekrar dener,
+// geçici hatada (429 / 5xx / zaman aşımı) kısa bir beklemeyle bir kez daha dener
+export async function spotifyFetch(url: string): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+        let res: Response;
+        try {
+            res = await fetch(url, {
+                headers: { Authorization: `Bearer ${await getAccessToken()}` },
+                cache: "no-store",
+                signal: AbortSignal.timeout(TIMEOUT_MS),
+            });
+        } catch (e) {
+            if (attempt >= 1) throw e;
+            await new Promise((r) => setTimeout(r, 400));
+            continue;
+        }
+
+        if (res.status === 401 && attempt === 0) {
+            token = null;
+            continue;
+        }
+        if ((res.status === 429 || res.status >= 500) && attempt === 0) {
+            const wait = Number(res.headers.get("retry-after")) || 0.5;
+            await new Promise((r) => setTimeout(r, Math.min(wait, 3) * 1000));
+            continue;
+        }
+        return res;
+    }
+}
+
 export async function getPlaylistTracks(): Promise<Track[]> {
-
-
-    const token = await getAccessToken();
     const tracks: Track[] = [];
     let url: string | null =
         `https://api.spotify.com/v1/playlists/${process.env.SPOTIFY_PLAYLIST_ID}/items?limit=50`;
 
     while (url) {
-        const res: Response = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const res: Response = await spotifyFetch(url);
         if (!res.ok) {
             throw new Error(`Playlist alınamadı: ${res.status} ${await res.text()}`);
         }

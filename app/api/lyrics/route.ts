@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         // böylece 30 kişi aynı şarkıya bassa da fonksiyon bir kez çalışır
         const maxAge = result.ok ? 86_400 : 3_600;
         return NextResponse.json(result, {
-            headers: { "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge}` },
+            headers: { "Cache-Control": `public, max-age=3600, s-maxage=${maxAge}, stale-while-revalidate=${maxAge}` },
         });
     } catch (e) {
         console.error(e);

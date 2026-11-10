@@ -5,6 +5,7 @@ import { Check, ChevronRight, Lock, Search, Sparkles, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useSystem } from "@/lib/system-context";
+import { REQUEST_SENT_EVENT } from "@/lib/use-request-feed";
 import { useToast } from "./Toast";
 
 type Requested = "pending" | "approved" | "rejected" | null;
@@ -106,6 +107,8 @@ export default function RequestButton() {
             const data = await res.json().catch(() => null);
             setSentCount(data?.joined ? Number(data.count) || null : null);
             setSent(t);
+            // Kendi isteğin listede hemen görünsün (canlı sinyali beklemeden)
+            window.dispatchEvent(new Event(REQUEST_SENT_EVENT));
             setTimeout(() => setOpen(false), 2200);
         } catch {
             toast.error(SEND_ERROR);

@@ -10,6 +10,7 @@ import {
     type ReactNode,
 } from "react";
 import { useLive } from "@/lib/live-client";
+import { fetchFirst, startEarly } from "@/lib/early-fetch";
 
 type Raw = {
     requestsOpen: boolean;
@@ -19,6 +20,13 @@ type Raw = {
     played: string[];
     playlistVisible?: boolean;
     nowPlayingCover?: string | null;
+};
+
+// Sunucunun sayfaya gömdüğü anahtarlar (lib/app-flags)
+export type InitialFlags = {
+    requestsOpen: boolean;
+    votingOpen: boolean;
+    playlistVisible: boolean;
 };
 
 export type System = {
@@ -35,6 +43,9 @@ export type System = {
 // Canlı bağlantı varken sadece yedek olarak, yoksa eskisi gibi sık bakar
 const POLL_MS = 60_000;
 const FALLBACK_POLL_MS = 5_000;
+const STATE_URL = "/api/state";
+
+startEarly(STATE_URL);
 
 const EMPTY: System = {
     loaded: false,
@@ -49,14 +60,25 @@ const EMPTY: System = {
 
 const SystemContext = createContext<System>(EMPTY);
 
-export function SystemProvider({ children }: { children: ReactNode }) {
-    const [raw, setRaw] = useState<Raw | null>(null);
+export function SystemProvider({
+    initial,
+    children,
+}: {
+    initial: InitialFlags | null;
+    children: ReactNode;
+}) {
+    // Anahtarlar sayfayla birlikte gelir: istek butonu ve playlist ilk anda doğru görünür.
+    // Çalan şarkı ve çalınanlar ilk /api/state cevabıyla gelir.
+    const [raw, setRaw] = useState<Raw | null>(() =>
+        initial
+            ? { ...initial, nowPlaying: null, nowPlayingTitle: null, played: [] }
+            : null
+    );
 
-    const load = useCallback(async (fresh = false) => {
+    // v: canlı sinyalin sürümü. Herkes aynı adresi ister, Vercel CDN'den tek cevapla döner
+    const load = useCallback(async (v?: number) => {
         try {
-            // fresh: sinyal gelince ortak (CDN) önbelleği atla
-            const url = fresh ? `/api/state?t=${Date.now()}` : "/api/state";
-            const res = await fetch(url, { cache: "no-store" });
+            const res = await (v ? fetch(`${STATE_URL}?v=${v}`) : fetchFirst(STATE_URL));
             const data: unknown = await res.json();
             if (!res.ok || typeof data !== "object" || data === null) {
                 throw new Error();
@@ -67,22 +89,26 @@ export function SystemProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const live = useLive("state", () => load(true));
+    const live = useLive("state", (v) => load(v));
 
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
-        const timer = setInterval(() => {
-            if (!document.hidden) load();
-        }, live ? POLL_MS : FALLBACK_POLL_MS);
         const onVisible = () => {
             if (!document.hidden) load();
         };
         document.addEventListener("visibilitychange", onVisible);
         return () => {
             clearTimeout(first);
-            clearInterval(timer);
             document.removeEventListener("visibilitychange", onVisible);
         };
+    }, [load]);
+
+    // Yedek yoklama: canlı bağlantı varken dakikada bir, yokken 5 sn'de bir
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (!document.hidden) load();
+        }, live ? POLL_MS : FALLBACK_POLL_MS);
+        return () => clearInterval(timer);
     }, [load, live]);
 
     const value = useMemo<System>(

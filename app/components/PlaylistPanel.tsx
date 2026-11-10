@@ -16,8 +16,21 @@ const fold = (s: string) =>
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/ı/g, "i");
 
-export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
+export default function PlaylistPanel({
+    tracks,
+    fetchedAt,
+}: {
+    tracks: Track[];
+    fetchedAt: number;
+}) {
     const [query, setQuery] = useState("");
+    // "Bu hafta / 2 hafta önce" etiketleri: sunucudaki hazır HTML playlistin çekildiği ana göre,
+    // sayfa açılınca telefonun saatine göre hesaplanır (ikisi aynı çıkar, hydration bozulmaz)
+    const [now, setNow] = useState(fetchedAt);
+    useEffect(() => {
+        const t = setTimeout(() => setNow(Date.now()), 0);
+        return () => clearTimeout(t);
+    }, []);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const { votes, vote } = useSharedVotes();
@@ -99,7 +112,7 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
             >
                 {visible.length > 0 ? (
                     <div>
-                        {visible.map(({ t, i }) => (
+                        {visible.map(({ t, i }, pos) => (
                             <TrackItem
                                 key={`${t.id}-${i}`}
                                 track={t}
@@ -109,6 +122,8 @@ export default function PlaylistPanel({ tracks }: { tracks: Track[] }) {
                                 played={system.played.has(t.id)}
                                 votingOpen={system.votingOpen}
                                 playing={system.nowPlaying === t.id}
+                                now={now}
+                                eager={pos < 8}
                             />
                         ))}
                     </div>

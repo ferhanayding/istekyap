@@ -1,15 +1,12 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Bricolage_Grotesque } from "next/font/google";
+import { preconnect } from "react-dom";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// Sitenin tek yazı tipi: bir kez tanımlanır, bütün sayfalar kullanır
+const font = Bricolage_Grotesque({
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
 });
 
 const DESCRIPTION =
@@ -30,13 +27,27 @@ export const metadata: Metadata = {
   },
 };
 
+// Telefonun üst çubuğu sitenin rengini alsın
+export const viewport: Viewport = {
+  themeColor: "#100E1D",
+  colorScheme: "dark",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // Şarkı kapakları ve canlı bağlantı için bağlantıyı erkenden aç
+  preconnect("https://i.scdn.co");
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    preconnect(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  }
+
   return (
-    <html
-      lang="tr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
+    <html lang="tr" className="h-full antialiased">
+      <body
+        className={`${font.className} flex min-h-full flex-col bg-[#100E1D] text-white`}
+        suppressHydrationWarning
+      >
+        {children}
+      </body>
     </html>
   );
 }

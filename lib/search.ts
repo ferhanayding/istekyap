@@ -1,5 +1,5 @@
-import { getAccessToken } from "@/lib/spotify";
-import type { Track } from "@/lib/spotify";
+import "server-only";
+import { spotifyFetch, type Track } from "@/lib/spotify";
 
 type SearchItem = {
     id: string;
@@ -11,16 +11,6 @@ type SearchItem = {
 };
 
 type SearchResponse = { tracks?: { items: (SearchItem | null)[] } };
-
-// Token'ı ~50 dk sakla
-let cached: { token: string; expires: number } | null = null;
-
-async function getToken(): Promise<string> {
-    if (cached && Date.now() < cached.expires) return cached.token;
-    const token = await getAccessToken();
-    cached = { token, expires: Date.now() + 50 * 60 * 1000 };
-    return token;
-}
 
 function toTrack(t: SearchItem): Track {
     return {
@@ -39,7 +29,7 @@ const resultCache = new Map<string, { items: Track[]; expires: number }>();
 const CACHE_MS = 10 * 60 * 1000;
 
 export async function searchTracks(query: string): Promise<Track[]> {
-    const key = query.toLowerCase();
+    const key = query.toLocaleLowerCase("tr");
     const hit = resultCache.get(key);
     if (hit && Date.now() < hit.expires) return hit.items;
 
@@ -50,12 +40,7 @@ export async function searchTracks(query: string): Promise<Track[]> {
         market: "TR",
     });
 
-    const res = await fetch(`https://api.spotify.com/v1/search?${params}`, {
-        headers: { Authorization: `Bearer ${await getToken()}` },
-        cache: "no-store",
-    });
-
-    if (res.status === 401) cached = null;
+    const res = await spotifyFetch(`https://api.spotify.com/v1/search?${params}`);
     if (!res.ok) {
         throw new Error(`Arama başarısız: ${res.status} ${await res.text()}`);
     }
@@ -70,17 +55,22 @@ export async function searchTracks(query: string): Promise<Track[]> {
     return items;
 }
 
-// İstek gelince şarkıyı Spotify'dan doğrula (tarayıcının yolladığına güvenme)
-export async function getTrackById(id: string): Promise<Track | null> {
-    const res = await fetch(`https://api.spotify.com/v1/tracks/${id}?market=TR`, {
-        headers: { Authorization: `Bearer ${await getToken()}` },
-        cache: "no-store",
-    });
+// İstek gelince şarkıyı Spotify'dan doğrula (tarayıcının yolladığına güvenme).
+// Aynı şarkı kısa sürede tekrar sorulursa (çok kişi aynı şarkıyı isterse) Spotify'a gidilmez.
+const trackCache = new Map<string, { track: Track | null; expires: number }>();
 
+export async function getTrackById(id: string): Promise<Track | null> {
+    const hit = trackCache.get(id);
+    if (hit && Date.now() < hit.expires) return hit.track;
+
+    const res = await spotifyFetch(`https://api.spotify.com/v1/tracks/${id}?market=TR`);
     if (res.status === 400 || res.status === 404) return null;
-    if (res.status === 401) cached = null;
     if (!res.ok) {
         throw new Error(`Şarkı alınamadı: ${res.status} ${await res.text()}`);
     }
-    return toTrack(await res.json());
+    const track = toTrack(await res.json());
+
+    if (trackCache.size >= 1000) trackCache.clear();
+    trackCache.set(id, { track, expires: Date.now() + 60 * 60_000 });
+    return track;
 }

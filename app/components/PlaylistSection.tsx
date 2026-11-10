@@ -1,11 +1,23 @@
 import { Suspense } from "react";
-import { getTracks } from "@/lib/tracks";
+import { getPlaylist } from "@/lib/playlist";
 import PlaylistPanel from "./PlaylistPanel";
 import LoadingTracks from "./LoadingTracks";
 
 async function PlaylistData() {
-    const tracks = await getTracks();
-    return <PlaylistPanel tracks={tracks} />;
+    // Spotify geçici olarak cevap vermezse sayfa çökmesin, kısa bir mesaj görünsün
+    const playlist = await getPlaylist().catch((e) => {
+        console.error(e);
+        return null;
+    });
+    if (!playlist) {
+        return (
+            <p className="rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                Playlist şu an yüklenemedi. Birazdan sayfayı yenile; istek listesi çalışmaya
+                devam ediyor.
+            </p>
+        );
+    }
+    return <PlaylistPanel tracks={playlist.tracks} fetchedAt={playlist.fetchedAt} />;
 }
 
 export default function PlaylistSection() {
@@ -14,7 +26,7 @@ export default function PlaylistSection() {
             <Suspense
                 fallback={
                     <>
-                        <div className="mb-3 h-11 shrink-0 rounded-2xl border border-white/[0.08] bg-[#1E1A3D]" />
+                        <div className="mb-1 h-10 shrink-0 rounded-lg bg-white/[0.09]" />
                         <div className="-mx-5 min-h-0 flex-1 overflow-hidden px-5">
                             <LoadingTracks />
                         </div>

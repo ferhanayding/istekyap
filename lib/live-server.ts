@@ -22,7 +22,8 @@ async function flush(wait: number) {
     lastSent = Date.now();
     if (topics.length === 0) return;
 
-    const res = await channel.httpSend(LIVE_EVENT, { topics }).catch((e) => ({
+    // v: bu sinyalin sürümü. Telefonlar /api/...?v= ile ister, CDN tek cevabı herkese verir
+    const res = await channel.httpSend(LIVE_EVENT, { topics, v: lastSent }).catch((e) => ({
         success: false as const,
         status: 0,
         error: String(e),

@@ -211,6 +211,8 @@ export default function SongStats({
                                     {s.cover ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
+                loading="lazy"
+                decoding="async"
                                             src={s.cover}
                                             alt=""
                                             width={56}

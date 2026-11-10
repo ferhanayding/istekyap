@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLive } from "@/lib/live-client";
 export type SystemState = {
     playlistVisible: boolean;
     requestsOpen: boolean;
@@ -28,7 +29,10 @@ export type SystemAction =
     | { action: "reset_stats" };
 
 
-const POLL_MS = 10_000;
+// Canlı bağlantı varken sadece yedek olarak dakikada bir, yokken 10 sn'de bir
+const POLL_MS = 60_000;
+const FALLBACK_POLL_MS = 10_000;
+
 export function useDashboardSystem() {
     const [state, setState] = useState<SystemState | null>(null);
     const [busy, setBusy] = useState(false);
@@ -51,14 +55,18 @@ export function useDashboardSystem() {
         }
     }, [router]);
 
+    // Başka bir telefondan (diğer grup üyesi) değişiklik olunca anında yenilenir
+    const live = useLive("state", () => load(), { whenHidden: true });
+
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
-        const timer = setInterval(() => load(), POLL_MS);
-        return () => {
-            clearTimeout(first);
-            clearInterval(timer);
-        };
+        return () => clearTimeout(first);
     }, [load]);
+
+    useEffect(() => {
+        const timer = setInterval(() => load(), live ? POLL_MS : FALLBACK_POLL_MS);
+        return () => clearInterval(timer);
+    }, [load, live]);
 
     const act = useCallback(async (body: SystemAction): Promise<boolean> => {
         setBusy(true);

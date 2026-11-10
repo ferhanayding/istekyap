@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { useDashboardSystem } from "@/lib/use-dashboard-system";
+import { useLive } from "@/lib/live-client";
 import EqBars from "../EqBars";
 import { ToastProvider, useToast } from "../Toast";
 import LoadingTracks from "../LoadingTracks";
@@ -67,7 +68,9 @@ type RequestRow = {
     last_requested_at?: string;
 };
 
-const POLL_MS = 10_000;
+// Yeni istek canlı sinyalle anında gelir; yoklama sadece yedek
+const POLL_MS = 60_000;
+const FALLBACK_POLL_MS = 10_000;
 const TABS: { key: Tab; label: string }[] = [
     { key: "all", label: "Hepsi" },
     { key: "pending", label: "Bekleyen" },
@@ -133,6 +136,8 @@ function DashPlayer({
                 {cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
+                loading="lazy"
+                decoding="async"
                         src={cover}
                         alt=""
                         width={40}
@@ -271,15 +276,19 @@ function DashboardInner() {
         }
     }, [beep, router]);
 
-    // Dashboard arka plandayken de yenilenir, yeni istek sekme başlığına yazılır
+    // Yeni istek gelince anında yenilenir. Dashboard arka plandayken de çalışır:
+    // ses çalar, yeni istek sayısı sekme başlığına yazılır.
+    const live = useLive("requests", () => load(), { whenHidden: true });
+
     useEffect(() => {
         const first = setTimeout(() => load(), 0);
-        const timer = setInterval(() => load(), POLL_MS);
-        return () => {
-            clearTimeout(first);
-            clearInterval(timer);
-        };
+        return () => clearTimeout(first);
     }, [load]);
+
+    useEffect(() => {
+        const timer = setInterval(() => load(), live ? POLL_MS : FALLBACK_POLL_MS);
+        return () => clearInterval(timer);
+    }, [load, live]);
 
     useEffect(() => {
         document.title =
@@ -454,7 +463,11 @@ function DashboardInner() {
 
                 <p className="mt-1 text-[11px] leading-snug text-white/55">
                     {items ? `${count("pending")} bekleyen istek` : "…"} ·{" "}
-                    {POLL_MS / 1000} saniyede bir güncellenir
+                    {live ? (
+                        <span className="text-[#1ED760]">canlı</span>
+                    ) : (
+                        `${FALLBACK_POLL_MS / 1000} saniyede bir güncellenir`
+                    )}
                 </p>
             </header>
 
@@ -540,6 +553,8 @@ function DashboardInner() {
                                                     {r.cover ? (
                                                         // eslint-disable-next-line @next/next/no-img-element
                                                         <img
+                loading="lazy"
+                decoding="async"
                                                             src={r.cover}
                                                             alt=""
                                                             width={56}

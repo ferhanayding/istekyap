@@ -328,7 +328,9 @@ function TopLists({
                                 </span>
                                 {r.cover ? (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={r.cover} alt="" className="size-10 shrink-0 rounded-[4px] object-cover" />
+                                    <img
+                loading="lazy"
+                decoding="async" src={r.cover} alt="" className="size-10 shrink-0 rounded-[4px] object-cover" />
                                 ) : (
                                     <span className="size-10 shrink-0 rounded-[4px] bg-white/10" />
                                 )}
@@ -467,7 +469,9 @@ function SongDetail({ song: s, onClose }: { song: SongStat; onClose: () => void 
                 <div className="flex items-center gap-3">
                     {s.cover ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.cover} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+                        <img
+                loading="lazy"
+                decoding="async" src={s.cover} alt="" className="size-14 shrink-0 rounded-md object-cover" />
                     ) : (
                         <span className="size-14 shrink-0 rounded-md bg-white/10" />
                     )}

@@ -4,7 +4,10 @@ import { clearAppStateCache, getAppState } from "@/lib/app-state";
 import { clearLikeCountsCache } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
+import { revalidateTag } from "next/cache";
+import { FLAGS_TAG } from "@/lib/app-flags";
 import { getTrackById } from "@/lib/search";
+import type { Track } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -37,12 +40,9 @@ async function setNowPlaying(
     if (error) throw error;
 }
 // Playlistte olmayan şarkı istek listesine de girer, böylece oylanabilir
-async function ensureRequest(id: string) {
-    const [index, track] = await Promise.all([
-        getPlaylistIndex().catch(() => null),
-        getTrackById(id).catch(() => null),
-    ]);
+async function ensureRequest(id: string, track: Track | null) {
     if (!track) return;
+    const index = await getPlaylistIndex().catch(() => null);
     if (index && isInPlaylist(index, track)) return;
 
     const { data: row, error } = await supabaseAdmin
@@ -216,6 +216,9 @@ export async function POST(req: NextRequest) {
                     .update({ [key]: value, updated_at: new Date().toISOString() })
                     .eq("id", 1);
                 if (error) throw error;
+                // Ana sayfanın hazır HTML'i bu anahtarları içerir: hemen yenilensin ki
+                // yeni gelen ziyaretçi sayfayı baştan doğru hâliyle görsün
+                revalidateTag(FLAGS_TAG, { expire: 0 });
                 break;
             }
 
@@ -227,34 +230,42 @@ export async function POST(req: NextRequest) {
                 const title =
                     typeof body.title === "string" ? body.title.slice(0, 120) : null;
 
-                const current = await getAppState({ fresh: true });
-                if (current.nowPlaying && current.nowPlaying !== id) {
-                    await finishRequest(current.nowPlaying);
-                }
-                await ensureRequest(id).catch((e) => console.error(e));
-
-                const { error } = await supabaseAdmin
-                    .from("played_songs")
-                    .upsert(
-                        { spotify_id: id, played_at: new Date().toISOString() },
-                        { onConflict: "spotify_id" }
-                    );
-                if (error) throw error;
-
-                const track = await getTrackById(id).catch(() => null);
-                await logPlay(id, track).catch((e) => console.error(e));
-                await setNowPlaying(
-                    id,
-                    track ? `${track.name} · ${track.artists}` : title,
-                    track?.cover ?? null
-                );
+                // Birbirinden bağımsız adımlar aynı anda yapılır: buton hızlı cevap verir
+                const [current, track] = await Promise.all([
+                    getAppState({ fresh: true }),
+                    getTrackById(id).catch(() => null),
+                ]);
+                const playedUpsert = async () => {
+                    const { error } = await supabaseAdmin
+                        .from("played_songs")
+                        .upsert(
+                            { spotify_id: id, played_at: new Date().toISOString() },
+                            { onConflict: "spotify_id" }
+                        );
+                    if (error) throw error;
+                };
+                await Promise.all([
+                    current.nowPlaying && current.nowPlaying !== id
+                        ? finishRequest(current.nowPlaying)
+                        : null,
+                    ensureRequest(id, track).catch((e) => console.error(e)),
+                    playedUpsert(),
+                    logPlay(id, track).catch((e) => console.error(e)),
+                    setNowPlaying(
+                        id,
+                        track ? `${track.name} · ${track.artists}` : title,
+                        track?.cover ?? null
+                    ),
+                ]);
                 break;
             }
 
             case "stop": {
                 const current = await getAppState({ fresh: true });
-                if (current.nowPlaying) await finishRequest(current.nowPlaying);
-                await setNowPlaying(null, null);
+                await Promise.all([
+                    current.nowPlaying ? finishRequest(current.nowPlaying) : null,
+                    setNowPlaying(null, null),
+                ]);
                 break;
             }
 

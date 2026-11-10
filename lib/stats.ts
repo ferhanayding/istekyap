@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getPlaylistTracks } from "@/lib/spotify";
+import { getPlaylist } from "@/lib/playlist";
 import type { SongStat, Stats, StatsResponse } from "@/lib/stats-types";
 
 // Dashboard İstatistik sekmesi. "Bu gece" = son "İstek listesini arşivle"den beri,
@@ -202,7 +202,7 @@ export async function getStats(): Promise<StatsResponse> {
         all<VoteRow>("song_votes", "spotify_id, value, updated_at"),
         all<VoteHistRow>("vote_history", "spotify_id, likes, dislikes"),
         all<CommentRow>("comments", "rating, created_at"),
-        getPlaylistTracks().catch(() => []),
+        getPlaylist().then((p) => p.tracks).catch(() => []),
     ]);
 
     // Şarkı adı/kapağı: playlist, sonra istekler, sonra çalma geçmişi

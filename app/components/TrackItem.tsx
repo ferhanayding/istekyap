@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { Track } from "@/lib/spotify";
 import type { MyVote } from "@/lib/use-votes";
 import { addedInfo } from "@/lib/added";
@@ -7,7 +8,8 @@ import { LyricsButton } from "./LyricsSheet";
 import EqBars from "./EqBars";
 import VoteButtons from "./VoteButtons";
 
-export default function TrackItem({
+// memo: oylar ya da çalan şarkı değişince sadece etkilenen satırlar yeniden çizilir
+export default memo(function TrackItem({
     track: t,
     likes,
     mine,
@@ -15,6 +17,8 @@ export default function TrackItem({
     played,
     votingOpen,
     playing,
+    now,
+    eager = false,
 }: {
     track: Track;
     likes: number;
@@ -23,8 +27,11 @@ export default function TrackItem({
     played: boolean;
     votingOpen: boolean;
     playing: boolean;
+    now: number;
+    /** İlk ekranda görünenler hemen, gerisi kaydırdıkça yüklenir */
+    eager?: boolean;
 }) {
-    const added = addedInfo(t.addedAt);
+    const added = addedInfo(t.addedAt, now);
 
     return (
         <div id={`track-${t.id}`} className="flex items-center gap-3 py-2">
@@ -35,6 +42,8 @@ export default function TrackItem({
                     alt={`${t.album} kapağı`}
                     width={56}
                     height={56}
+                    loading={eager ? "eager" : "lazy"}
+                    decoding="async"
                     className="size-14 shrink-0 rounded-[4px] object-cover"
                 />
             ) : (
@@ -58,10 +67,7 @@ export default function TrackItem({
                     <span className="truncate">{t.artists}</span>
                 </p>
                 {added && (
-                    <p
-                        className="truncate text-[11px] text-[#7C7794]"
-                        suppressHydrationWarning
-                    >
+                    <p className="truncate text-[11px] text-[#7C7794]">
                         {added.label}
                     </p>
                 )}
@@ -80,4 +86,4 @@ export default function TrackItem({
             <LyricsButton name={t.name} artists={t.artists} />
         </div>
     );
-}
+});

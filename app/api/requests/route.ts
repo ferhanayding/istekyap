@@ -45,15 +45,27 @@ const RANK: Record<string, number> = {
 };
 
 export async function POST(req: NextRequest) {
-    const state = await getAppState().catch(() => null);
+    const deviceId = await getOrCreateDeviceId();
+
+    // Durum, bu cihazın son istekleri ve gövde aynı anda okunur (sırayla beklemek yerine)
+    const [state, recent, body] = await Promise.all([
+        getAppState().catch(() => null),
+        // Bellekteki sayaç Vercel'de her sunucu örneğinde ayrı tutulur ve yeniden başlayınca
+        // sıfırlanır. Asıl sınır veritabanından: bu cihazın son 10 dakikadaki istekleri.
+        recentRequestTimes(deviceId).catch((e) => {
+            console.error(e);
+            return [] as number[];
+        }),
+        req.json().catch(() => null),
+    ]);
+
     if (!state?.requestsOpen) {
         return NextResponse.json(
             { error: "İstekler şu an kapalı." },
             { status: 403 }
         );
     }
-    // Cihaz başına 10 dakikada 5 istek, aynı IP'den (ortak Wi-Fi) 10 dakikada 100
-    const deviceId = await getOrCreateDeviceId();
+
     // Cihaz başına 10 dakikada 5 istek, aynı IP'den (ortak Wi-Fi) 10 dakikada 100
     const limit = limitDeviceAndIp(
         "request",
@@ -68,13 +80,6 @@ export async function POST(req: NextRequest) {
             { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
         );
     }
-
-    // Bellekteki sayaç Vercel'de her sunucu örneğinde ayrı tutulur ve yeniden başlayınca
-    // sıfırlanır. Asıl sınır veritabanından: bu cihazın son 10 dakikadaki istekleri.
-    const recent = await recentRequestTimes(deviceId).catch((e) => {
-        console.error(e);
-        return [] as number[];
-    });
     if (recent.length >= DEVICE_LIMIT) {
         const retryAfter = Math.max(
             1,
@@ -86,19 +91,21 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const body = await req.json().catch(() => null);
     const id = body?.id;
     if (typeof id !== "string" || !SPOTIFY_ID.test(id)) {
         return NextResponse.json({ error: "Geçersiz şarkı." }, { status: 400 });
     }
 
     try {
-        const track = await getTrackById(id);
+        // Şarkı ve playlist aynı anda (playlist önbellekte, çoğu zaman anında gelir)
+        const [track, index] = await Promise.all([
+            getTrackById(id),
+            getPlaylistIndex().catch(() => null),
+        ]);
         if (!track) {
             return NextResponse.json({ error: "Şarkı bulunamadı." }, { status: 404 });
         }
         // Aramada gizlenen şarkı doğrudan ID ile de istenemesin
-        const index = track.explicit ? await getPlaylistIndex().catch(() => null) : null;
         const explicitBlocked = track.explicit && !(index && isInPlaylist(index, track));
         if (explicitBlocked || isBlocked(`${track.name} ${track.artists}`)) {
             return NextResponse.json(
@@ -145,7 +152,7 @@ export async function POST(req: NextRequest) {
     }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     const { data, error } = await supabaseAdmin
         .from("requests")
         .select("id, spotify_id, name, artists, cover, status, request_count, created_at, last_requested_at")
@@ -165,10 +172,14 @@ export async function GET() {
             (b.request_count ?? 1) - (a.request_count ?? 1)
     );
 
-    // Vercel birkaç saniye herkese aynı cevabı verir, veritabanı yorulmaz
+    // Vercel birkaç saniye herkese aynı cevabı verir, veritabanı yorulmaz.
+    // ?v= (canlı sinyal sürümü) ile gelenler o sinyale ait: herkes aynı cevabı alır.
+    const v = req.nextUrl.searchParams.has("v");
     return NextResponse.json(sorted, {
         headers: {
-            "Cache-Control": "public, s-maxage=5",
+            "Cache-Control": v
+                ? "public, s-maxage=30"
+                : "public, s-maxage=5",
         },
     });
 }

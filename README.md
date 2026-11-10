@@ -30,7 +30,12 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 | Spotify Web API | Şarkı arama ve playlist |
 | LRCLIB | Şarkı sözleri (anahtar istemez) |
 
-Akış: Telefon `/api/requests`'e istek atar → sunucu veritabanına yazar → Realtime kanalına `changed` sinyali gönderir → açık sayfalar listeyi yeniden çeker. Canlı bağlantı varken sayfalar sadece dakikada bir yedek kontrol yapar, bağlantı koparsa 5–10 saniyelik yoklamaya döner. Arka plandaki sekme hiç istek atmaz.
+Akış: Telefon `/api/requests`'e istek atar → sunucu veritabanına yazar → Realtime kanalına `changed` sinyali (`v` sürüm numarasıyla) gönderir → açık sayfalar ve dashboard listeyi `?v=` ile yeniden çeker; aynı `v`'yi isteyen herkese Vercel CDN tek cevap verir. Canlı bağlantı varken sayfalar sadece dakikada bir yedek kontrol yapar, bağlantı koparsa 5–10 saniyelik yoklamaya döner. Arka plandaki sekme hiç istek atmaz (dashboard hariç: yeni istek sesi için).
+
+Hız için:
+- Ana sayfa tamamen hazır (statik) HTML'dir. Spotify playlist'i (`lib/playlist.ts`) ve istek/oylama/playlist anahtarları (`lib/app-flags.ts`) bu HTML'e gömülür: playlist en geç 2 dakikada bir, anahtarlar dashboard'dan değişince hemen yenilenir.
+- İlk veriler (`/api/state`, `/api/requests`, `/api/votes`) JS yüklenir yüklenmez istenir (`lib/early-fetch.ts`), Realtime kütüphanesi sayfa açıldıktan sonra ayrı yüklenir.
+- Dashboard API'leri girişi `getClaims` ile sunucuda doğrular (Supabase'e ayrıca gitmez).
 
 ## Kurulum
 
@@ -90,9 +95,9 @@ app/
   dashboard/               yönetim paneli
   login/                   dashboard girişi
   api/
-    requests/  search/  votes/  comments/  lyrics/  state/  playlist/   herkese açık API
+    requests/  search/  votes/  comments/  lyrics/  state/   herkese açık API
     dashboard/ (requests, songs, stats, system, comments)              giriş gerektiren API
-    auth/                  Spotify refresh token alma
+    auth/                  Spotify refresh token alma (sadece npm run dev ile çalışır)
   components/              arayüz bileşenleri (dashboard/ altında panel bileşenleri)
 lib/
   rate-limit.ts            cihaz + IP başına hız sınırı
@@ -100,7 +105,10 @@ lib/
   live-server.ts / live-client.ts   Realtime sinyali
   lrclib.ts                şarkı sözleri
   stats.ts                 istatistik hesabı
-  spotify.ts / search.ts   Spotify erişimi
+  spotify.ts / search.ts   Spotify erişimi (token önbelleği, zaman aşımı, tekrar deneme)
+  playlist.ts              önbellekli playlist ("use cache")
+  app-flags.ts             sayfaya gömülen açma/kapama anahtarları
+  early-fetch.ts           ilk verileri erken isteme
 proxy.ts                   /dashboard ve /api/dashboard için giriş kontrolü
 scripts/load-test.mjs      yük testi
 supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)

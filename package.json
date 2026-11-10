@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/realtime-js": "^2.118.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
-    "genius-lyrics-api": "^3.2.1",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",
     "react": "19.3.0",
