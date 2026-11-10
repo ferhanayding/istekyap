@@ -1,9 +1,43 @@
 @import "tailwindcss";
 
+/*
+ * İstekYap renkleri. Bütün site sadece bunları kullanır:
+ *  - page/surface/raised: zemin, kart, kartın içindeki kutu
+ *  - ink/muted/faint: yazı (hepsi koyu zeminde WCAG AA'yı geçer, en düşük 4.7:1)
+ *  - accent: tek vurgu rengi (nane). Ana buton, "çalıyor", sözler, seçili/aktif şeyler
+ *  - danger: sadece hata, reddetme, silme, beğenmeme
+ * Koyu ve sıcak: barın loş ışığında göz almaz.
+ */
+@theme {
+  --color-page: #121110;
+  --color-surface: #1a1916;
+  --color-raised: #26241f;
+  --color-line: #332f29;
+  --color-ink: #f3eee5;
+  --color-muted: #b5aea2;
+  --color-faint: #948d82;
+  --color-accent: #6edba6;
+  --color-on-accent: #05200f;
+  --color-danger: #f27a64;
+}
+
 /* Site her yerde koyu: telefonda sayfa sonunda esneyince beyaz görünmesin */
 html {
-  background: #100e1d;
+  background: var(--color-page);
+  color: var(--color-ink);
   color-scheme: dark;
+}
+
+/* Klavyeyle gezenler nerede olduğunu her yerde aynı şekilde görsün (buton, link).
+   Yazı kutuları hariç: onlar zaten kendi kutusunun içinde, imleçle belli oluyor */
+:focus-visible:not(input, textarea, select) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 @keyframes eq {

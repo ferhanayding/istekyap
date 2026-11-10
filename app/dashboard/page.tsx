@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function DashboardPage() {
     return (
-        <main className="h-dvh bg-[#100E1D] text-white">
+        <main className="h-dvh bg-page text-ink">
             <DashboardClient />
         </main>
     );

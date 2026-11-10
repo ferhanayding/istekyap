@@ -18,10 +18,8 @@ export default async function Home() {
   });
 
   return (
-    <main className="flex h-dvh items-center justify-center bg-[#100E1D] text-white sm:p-6">
-      <div className="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden bg-[#141124] sm:max-h-[860px] sm:rounded-[36px] sm:border sm:border-white/[0.08] sm:shadow-2xl">
-        {/* Spotify tarzı üst renk geçişi */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#4A38B0]/55 via-[#2A1F66]/25 to-transparent" />
+    <main className="flex h-dvh items-center justify-center bg-page text-ink sm:bg-[#0b0a09] sm:p-6">
+      <div className="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden bg-page sm:max-h-[860px] sm:rounded-3xl sm:border sm:border-line">
         <SystemProvider initial={flags}>
           <ToastProvider>
             <VotesProvider>

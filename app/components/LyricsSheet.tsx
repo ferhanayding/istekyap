@@ -23,7 +23,7 @@ const LyricsContext = createContext<(song: Song) => void>(() => {});
 // Sayfanın herhangi bir yerinden sözleri açar
 export const useLyrics = () => useContext(LyricsContext);
 
-// Her yerde aynı: ince, küçük, yeşil "Sözler" butonu
+// Her yerde aynı: ince, küçük, nane zeminli "Sözler" butonu
 export function LyricsButton({
     name,
     artists,
@@ -39,7 +39,7 @@ export function LyricsButton({
                 open({ name, artists });
             }}
             aria-label={`${name} şarkısının sözlerini aç`}
-            className={`relative h-6 shrink-0 rounded-full bg-[#1ED760]/15 px-2.5 text-[11px] font-bold leading-none text-[#1ED760] transition after:absolute after:-inset-2 after:content-[''] hover:bg-[#1ED760]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1ED760]/60 ${className}`}
+            className={`relative h-7 shrink-0 rounded-full bg-accent/15 px-2.5 text-xs font-bold leading-none text-accent transition after:absolute after:-inset-1.5 after:content-[''] hover:bg-accent/25 ${className}`}
         >
             Sözler
         </button>
@@ -110,7 +110,7 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
             href={lyricsUrl(song.name, song.artists)}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex h-10 items-center rounded-full bg-white/[0.08] px-4 text-sm font-bold text-[#CFC4FF] transition hover:bg-white/[0.14]"
+            className="mt-4 inline-flex h-10 items-center rounded-full bg-raised px-4 text-sm font-bold text-ink transition hover:bg-line"
         >
             Google&apos;da ara
         </a>
@@ -126,22 +126,22 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="flex h-[92dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl border border-white/[0.08] bg-[#141124] shadow-2xl sm:h-[86dvh] sm:rounded-3xl"
+                className="flex h-[92dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl border border-line bg-page sm:h-[86dvh] sm:rounded-3xl"
             >
-                <div className="flex shrink-0 items-center gap-3 border-b border-white/[0.06] px-5 py-4">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1ED760]/15 text-[#1ED760]">
+                <div className="flex shrink-0 items-center gap-3 border-b border-line px-5 py-4">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
                         <Mic size={18} />
                     </span>
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-extrabold text-white">{title}</p>
-                        <p className="truncate text-xs text-[#B3B3B3]">{artist}</p>
+                        <p className="truncate text-base font-extrabold text-ink">{title}</p>
+                        <p className="truncate text-xs text-muted">{artist}</p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
                         aria-label="Kapat"
                         autoFocus
-                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-white transition hover:bg-white/[0.14]"
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-raised text-ink transition hover:bg-line"
                     >
                         <X size={18} />
                     </button>
@@ -153,7 +153,7 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
                             {[80, 65, 72, 50, 0, 76, 60, 70].map((w, i) => (
                                 <div
                                     key={i}
-                                    className="h-4 animate-pulse rounded bg-white/[0.07]"
+                                    className="h-4 animate-pulse rounded bg-raised"
                                     style={{ width: `${w}%`, opacity: w ? 1 : 0 }}
                                 />
                             ))}
@@ -162,13 +162,13 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
 
                     {state.status === "ok" && (
                         <>
-                            <p className="mb-5 flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-xl bg-white/[0.05] px-3 py-2 text-xs text-[#9D97B8]">
+                            <p className="mb-5 flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-xl bg-surface px-3 py-2 text-xs text-muted">
                                 Bu sözler
                                 <a
                                     href="https://lrclib.net"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="font-bold text-[#CFC4FF] hover:underline"
+                                    className="font-bold text-ink hover:underline"
                                 >
                                     lrclib.net
                                 </a>
@@ -178,7 +178,7 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
                                     href={lyricsUrl(song.name, song.artists)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="font-bold text-[#B9A6FF] hover:underline"
+                                    className="font-bold text-ink hover:underline"
                                 >
                                     Yanlışsa Google&apos;da ara
                                 </a>
@@ -189,7 +189,7 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
 
                     {state.status === "missing" && (
                         <div className="py-10 text-center">
-                            <p className="text-sm text-[#B3B3B3]">
+                            <p className="text-sm text-muted">
                                 {state.instrumental
                                     ? "Bu şarkı enstrümantal, sözü yok."
                                     : "Bu şarkının sözleri bulunamadı."}
@@ -200,7 +200,7 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
 
                     {state.status === "error" && (
                         <div className="py-10 text-center">
-                            <p className="text-sm text-[#B3B3B3]">
+                            <p className="text-sm text-muted">
                                 Sözler şu an alınamadı.
                             </p>
                             {google}
@@ -218,7 +218,7 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
 function LyricsText({ text }: { text: string }) {
     const stanzas = text.split(/\n\s*\n/);
     return (
-        <div className="space-y-6 text-lg leading-relaxed text-[#EDEAF7]">
+        <div className="space-y-6 text-lg leading-relaxed text-ink">
             {stanzas.map((stanza, i) => (
                 <p key={i}>
                     {stanza.split("\n").map((line, j) => {
@@ -226,7 +226,7 @@ function LyricsText({ text }: { text: string }) {
                         return (
                             <span
                                 key={j}
-                                className={`block ${backing ? "italic text-[#9D97B8]" : ""}`}
+                                className={`block ${backing ? "italic text-muted" : ""}`}
                             >
                                 {line}
                             </span>

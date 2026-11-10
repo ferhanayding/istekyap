@@ -141,7 +141,7 @@ export default function SongStats({
     return (
         <>
             <div
-                className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-1 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-1 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
                 role="tablist"
             >
                 {FILTERS.map((f) => (
@@ -152,8 +152,8 @@ export default function SongStats({
                         aria-selected={filter === f.key}
                         onClick={() => setFilter(f.key)}
                         className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-bold transition ${filter === f.key
-                            ? "bg-[#1ED760] text-black"
-                            : "bg-white/[0.09] text-white hover:bg-white/[0.14]"
+                            ? "bg-accent text-on-accent"
+                            : "bg-raised text-ink hover:bg-line"
                             }`}
                     >
                         {f.label} <span className="opacity-70">{count(f.key)}</span>
@@ -161,15 +161,15 @@ export default function SongStats({
                 ))}
             </div>
 
-            <div className="mb-1 flex shrink-0 items-center gap-2 text-xs font-bold text-[#B3B3B3]">
+            <div className="mb-1 flex shrink-0 items-center gap-2 text-xs font-bold text-muted">
                 {songs && (
                     <>
                         <span>{songs.length} şarkı</span>
-                        <span className="flex items-center gap-1 rounded-full bg-[#1ED760]/15 px-2 py-0.5 text-[#1ED760]">
+                        <span className="flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-accent">
                             <ThumbsUp size={12} />
                             {totalLikes}
                         </span>
-                        <span className="flex items-center gap-1 rounded-full bg-[#FF729B]/15 px-2 py-0.5 text-[#FF8FB0]">
+                        <span className="flex items-center gap-1 rounded-full bg-danger/15 px-2 py-0.5 text-danger">
                             <ThumbsDown size={12} />
                             {totalDislikes}
                         </span>
@@ -182,21 +182,21 @@ export default function SongStats({
                     id="song-sort"
                     value={sort}
                     onChange={(e) => setSort(e.target.value as Sort)}
-                    className="ml-auto h-8 rounded-full bg-white/[0.09] px-3 text-xs font-bold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
+                    className="ml-auto h-8 rounded-full bg-raised px-3 text-xs font-bold text-ink focus:outline-none"
                 >
                     {SORTS.map((s) => (
-                        <option key={s.key} value={s.key} className="bg-[#1B1733]">
+                        <option key={s.key} value={s.key} className="bg-surface">
                             {s.label}
                         </option>
                     ))}
                 </select>
             </div>
 
-            <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+            <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
                 {songs === null ? (
                     <LoadingTracks />
                 ) : visible.length === 0 ? (
-                    <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                    <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                         {EMPTY[filter]}
                     </p>
                 ) : (
@@ -220,55 +220,55 @@ export default function SongStats({
                                             className="size-14 shrink-0 rounded-[4px] object-cover"
                                         />
                                     ) : (
-                                        <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
+                                        <div className="size-14 shrink-0 rounded-[4px] bg-line" />
                                     )}
 
                                     <div className="min-w-0 flex-1">
                                         <p
                                             className={`truncate text-base ${playing
-                                                ? "font-bold text-[#1ED760]"
-                                                : "font-medium text-white"
+                                                ? "font-bold text-accent"
+                                                : "font-medium text-ink"
                                                 }`}
                                         >
                                             {s.name}
                                         </p>
-                                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-[#B3B3B3]">
+                                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-muted">
                                             {playing && <EqBars className="shrink-0" />}
                                             {!playing && wasPlayed && (
-                                                <span className="shrink-0 rounded bg-[#9B80FF]/20 px-1.5 text-[10px] font-extrabold uppercase text-[#C3B3FF]">
+                                                <span className="shrink-0 rounded bg-raised px-1.5 text-xs font-extrabold uppercase text-ink">
                                                     Çalındı
                                                 </span>
                                             )}
                                             {!playing && added?.isNew && (
-                                                <span className="shrink-0 rounded bg-[#1ED760] px-1.5 text-[10px] font-extrabold uppercase text-black">
+                                                <span className="shrink-0 rounded bg-accent px-1.5 text-xs font-extrabold uppercase text-on-accent">
                                                     Yeni
                                                 </span>
                                             )}
                                             <span className="truncate">{s.artists}</span>
                                         </p>
                                         <div className="mt-1 flex items-center gap-2 text-xs font-bold">
-                                            <span className="flex items-center gap-1 text-[#1ED760]">
+                                            <span className="flex items-center gap-1 text-accent">
                                                 <ThumbsUp size={12} />
                                                 {s.likes}
                                             </span>
-                                            <span className="flex items-center gap-1 text-[#FF8FB0]">
+                                            <span className="flex items-center gap-1 text-danger">
                                                 <ThumbsDown size={12} />
                                                 {s.dislikes}
                                             </span>
                                             <span
                                                 className={
                                                     net > 0
-                                                        ? "text-[#1ED760]"
+                                                        ? "text-accent"
                                                         : net < 0
-                                                            ? "text-[#FF8FB0]"
-                                                            : "text-[#8F8AA8]"
+                                                            ? "text-danger"
+                                                            : "text-faint"
                                                 }
                                             >
                                                 Net {net > 0 ? `+${net}` : net}
                                             </span>
                                             {added && (
                                                 <span
-                                                    className="truncate font-normal text-[#7C7794]"
+                                                    className="truncate font-normal text-faint"
                                                     suppressHydrationWarning
                                                 >
                                                     {added.label}
@@ -285,8 +285,8 @@ export default function SongStats({
                                         }
                                         aria-label={playing ? `${s.name} durdur` : `${s.name} çal`}
                                         className={`flex size-10 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-50 ${playing
-                                            ? "bg-[#FF729B]/20 text-[#FF8FB0]"
-                                            : "bg-[#1ED760] text-black"
+                                            ? "bg-danger/20 text-danger"
+                                            : "bg-accent text-on-accent"
                                             }`}
                                     >
                                         {playing ? (

@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 
 // Telefonun üst çubuğu sitenin rengini alsın
 export const viewport: Viewport = {
-  themeColor: "#100E1D",
+  themeColor: "#121110",
   colorScheme: "dark",
 };
 
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tr" className="h-full antialiased">
       <body
-        className={`${font.className} flex min-h-full flex-col bg-[#100E1D] text-white`}
+        className={`${font.className} flex min-h-full flex-col bg-page text-ink`}
         suppressHydrationWarning
       >
         {children}

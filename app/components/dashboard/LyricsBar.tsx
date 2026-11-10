@@ -87,9 +87,9 @@ export default function LyricsBar({
         <div ref={rootRef} className="relative z-30 mb-2 shrink-0 px-5">
             <form
                 onSubmit={submit}
-                className="flex h-11 items-center gap-2 rounded-full border border-[#1ED760]/60 bg-[#1F1B33] px-4 transition focus-within:border-[#1ED760]"
+                className="flex h-11 items-center gap-2 rounded-full border border-accent/60 bg-raised px-4 transition focus-within:border-accent"
             >
-                <Search size={17} className="shrink-0 text-[#A99EC9]" />
+                <Search size={17} className="shrink-0 text-muted" />
                 <input
                     value={query}
                     onChange={(e) => {
@@ -103,7 +103,7 @@ export default function LyricsBar({
                     enterKeyHint="search"
                     autoComplete="off"
                     maxLength={150}
-                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#7E769B]"
+                    className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-faint"
                 />
                 {query && (
                     <button
@@ -113,7 +113,7 @@ export default function LyricsBar({
                             setOpen(false);
                         }}
                         aria-label="Temizle"
-                        className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#A99EC9] transition hover:bg-white/10"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                     >
                         <X size={15} />
                     </button>
@@ -121,7 +121,7 @@ export default function LyricsBar({
             </form>
 
             {active && (
-                <div className="absolute inset-x-5 top-12 max-h-80 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
+                <div className="absolute inset-x-5 top-12 max-h-80 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-2xl">
                     {hasItems && (
                         <ul className={fresh ? "" : "opacity-60"}>
                             {result.items.map((t) => {
@@ -129,7 +129,7 @@ export default function LyricsBar({
                                 return (
                                     <li
                                         key={t.id}
-                                        className={`flex items-center gap-2 rounded-xl p-2 transition ${playing ? "bg-[#1ED760]/10" : "hover:bg-white/[0.06]"
+                                        className={`flex items-center gap-2 rounded-xl p-2 transition ${playing ? "bg-accent/10" : "hover:bg-raised"
                                             }`}
                                     >
                                         {t.cover ? (
@@ -144,19 +144,19 @@ export default function LyricsBar({
                                                 className="size-10 shrink-0 rounded-[4px] object-cover"
                                             />
                                         ) : (
-                                            <div className="size-10 shrink-0 rounded-[4px] bg-white/10" />
+                                            <div className="size-10 shrink-0 rounded-[4px] bg-line" />
                                         )}
 
                                         <span className="min-w-0 flex-1">
                                             <span
-                                                className={`block truncate text-sm font-bold ${playing ? "text-[#1ED760]" : ""
+                                                className={`block truncate text-sm font-bold ${playing ? "text-accent" : ""
                                                     }`}
                                             >
                                                 {t.name}
                                             </span>
-                                            <span className="flex items-center gap-1.5 truncate text-xs text-[#B3B3B3]">
+                                            <span className="flex items-center gap-1.5 truncate text-xs text-muted">
                                                 {t.inPlaylist && (
-                                                    <span className="shrink-0 rounded bg-[#1ED760]/15 px-1.5 text-[10px] font-extrabold uppercase text-[#1ED760]">
+                                                    <span className="shrink-0 rounded bg-accent/15 px-1.5 text-xs font-extrabold uppercase text-accent">
                                                         Listemizde
                                                     </span>
                                                 )}
@@ -176,8 +176,8 @@ export default function LyricsBar({
                                                 playing ? `${t.name} durdur` : `${t.name} çal`
                                             }
                                             className={`flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-extrabold transition active:scale-95 disabled:opacity-50 ${playing
-                                                ? "bg-[#FF729B]/20 text-[#FF8FB0]"
-                                                : "bg-[#1ED760] text-black"
+                                                ? "bg-danger/20 text-danger"
+                                                : "bg-accent text-on-accent"
                                                 }`}
                                         >
                                             {playing ? (
@@ -196,10 +196,10 @@ export default function LyricsBar({
                     )}
 
                     {!hasItems && fresh && (
-                        <p className="p-3 text-sm text-[#89839F]">Spotify&apos;da sonuç yok.</p>
+                        <p className="p-3 text-sm text-muted">Spotify&apos;da sonuç yok.</p>
                     )}
                     {!hasItems && !fresh && (
-                        <p className="p-3 text-sm text-[#89839F]">Aranıyor…</p>
+                        <p className="p-3 text-sm text-muted">Aranıyor…</p>
                     )}
 
                     <a
@@ -207,7 +207,7 @@ export default function LyricsBar({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setOpen(false)}
-                        className="mt-1 block rounded-xl px-3 py-2.5 text-xs font-bold text-[#B9A6FF] transition hover:bg-white/[0.06]"
+                        className="mt-1 block rounded-xl px-3 py-2.5 text-xs font-bold text-ink transition hover:bg-raised"
                     >
                         Bulamadın mı? Google&apos;da ara: “{q}”
                     </a>

@@ -82,7 +82,7 @@ export default function CommentButton() {
                 type="button"
                 onClick={() => setOpen(true)}
                 aria-haspopup="dialog"
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#1ED760] px-3.5 text-xs font-extrabold text-black shadow-[0_6px_18px_-8px_#1ED760] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:scale-95"
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-extrabold text-on-accent transition hover:brightness-105 active:scale-95"
             >
                 <MessageSquareText size={15} />
                 <span>
@@ -105,20 +105,20 @@ export default function CommentButton() {
                             aria-modal="true"
                             aria-labelledby="yorum-baslik"
                             tabIndex={-1}
-                            className="relative max-h-[92dvh] w-full max-w-md animate-[mini-in_0.25s_ease-out] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#1B1733] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-white shadow-2xl outline-none motion-reduce:animate-none sm:rounded-3xl"
+                            className="relative max-h-[92dvh] w-full max-w-md animate-[mini-in_0.25s_ease-out] overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-2xl outline-none motion-reduce:animate-none sm:rounded-3xl"
                         >
                             <button
                                 type="button"
                                 onClick={close}
                                 aria-label="Kapat"
-                                className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-white/[0.08] text-[#B3B3B3] transition hover:bg-white/[0.14]"
+                                className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-raised text-muted transition hover:bg-line"
                             >
                                 <X size={17} />
                             </button>
 
                             {state === "done" ? (
                                 <div className="flex flex-col items-center py-8 text-center">
-                                    <span className="flex size-14 items-center justify-center rounded-full bg-[#1ED760] text-black">
+                                    <span className="flex size-14 items-center justify-center rounded-full bg-accent text-on-accent">
                                         <Check size={28} strokeWidth={3} />
                                     </span>
                                     <h2
@@ -127,16 +127,16 @@ export default function CommentButton() {
                                     >
                                         Teşekkürler!
                                     </h2>
-                                    <p className="mt-1 text-sm text-[#B3B3B3]">
+                                    <p className="mt-1 text-sm text-muted">
                                         Yorumun bize ulaştı.
                                     </p>
                                     <a
                                         href={INSTAGRAM_URL}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-6 flex h-11 items-center gap-2 rounded-full bg-white/[0.08] px-5 text-sm font-bold text-white transition hover:bg-white/[0.14] active:scale-95"
+                                        className="mt-6 flex h-11 items-center gap-2 rounded-full bg-[linear-gradient(90deg,#833AB4,#C13584_70%,#D6306F)] px-5 text-sm font-bold text-white transition hover:brightness-110 active:scale-95"
                                     >
-                                        <span className="text-[#E1306C]">
+                                        <span>
                                             <InstagramIcon size={17} />
                                         </span>
                                         Bizi Instagram&apos;da takip et
@@ -144,7 +144,7 @@ export default function CommentButton() {
                                     <button
                                         type="button"
                                         onClick={close}
-                                        className="mt-3 h-11 rounded-full bg-[#1ED760] px-8 text-sm font-extrabold text-black transition active:scale-95"
+                                        className="mt-3 h-11 rounded-full bg-accent px-8 text-sm font-extrabold text-on-accent transition active:scale-95"
                                     >
                                         Tamam
                                     </button>
@@ -157,7 +157,7 @@ export default function CommentButton() {
                                     >
                                         Bize yorum bırak
                                     </h2>
-                                    <p className="mt-1 text-sm text-[#B3B3B3]">
+                                    <p className="mt-1 text-sm text-muted">
                                         Bu geceyi nasıl buldun?
                                     </p>
 
@@ -177,26 +177,26 @@ export default function CommentButton() {
                                                     setRating(n);
                                                     setError(null);
                                                 }}
-                                                className="flex size-11 items-center justify-center rounded-full transition active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]"
+                                                className="flex size-11 items-center justify-center rounded-full transition active:scale-90"
                                             >
                                                 <Star
                                                     size={32}
                                                     strokeWidth={1.8}
                                                     className={
-                                                        n <= shown ? "text-[#FFBD59]" : "text-[#5F5875]"
+                                                        n <= shown ? "text-accent" : "text-faint"
                                                     }
                                                     fill={n <= shown ? "currentColor" : "none"}
                                                 />
                                             </button>
                                         ))}
-                                        <span className="ml-2 min-w-20 text-sm font-bold text-[#FFBD59]">
+                                        <span className="ml-2 min-w-20 text-sm font-bold text-accent">
                                             {LABELS[rating]}
                                         </span>
                                     </div>
 
                                     <label
                                         htmlFor="yorum-metin"
-                                        className="mt-4 block text-xs font-bold text-[#B3B3B3]"
+                                        className="mt-4 block text-xs font-bold text-muted"
                                     >
                                         Yorumun
                                     </label>
@@ -207,15 +207,15 @@ export default function CommentButton() {
                                         maxLength={500}
                                         rows={4}
                                         placeholder="Ne düşündüğünü yaz…"
-                                        className="mt-1.5 w-full resize-none rounded-xl bg-white/[0.08] px-3.5 py-3 text-base text-white outline-none placeholder:text-[#8F8AA8] focus:bg-white/[0.12]"
+                                        className="mt-1.5 w-full resize-none rounded-xl bg-raised px-3.5 py-3 text-base text-ink outline-none placeholder:text-faint focus:bg-line"
                                     />
-                                    <p className="mt-1 text-right text-[11px] text-[#7C7794]">
+                                    <p className="mt-1 text-right text-xs text-faint">
                                         {message.length} / 500
                                     </p>
 
                                     <label
                                         htmlFor="yorum-isim"
-                                        className="mt-2 block text-xs font-bold text-[#B3B3B3]"
+                                        className="mt-2 block text-xs font-bold text-muted"
                                     >
                                         İsmin <span className="font-normal">(isteğe bağlı)</span>
                                     </label>
@@ -226,7 +226,7 @@ export default function CommentButton() {
                                         maxLength={30}
                                         autoComplete="off"
                                         placeholder="Boş bırakırsan anonim"
-                                        className="mt-1.5 h-11 w-full rounded-xl bg-white/[0.08] px-3.5 text-base text-white outline-none placeholder:text-[#8F8AA8] focus:bg-white/[0.12]"
+                                        className="mt-1.5 h-11 w-full rounded-xl bg-raised px-3.5 text-base text-ink outline-none placeholder:text-faint focus:bg-line"
                                     />
 
                                     {/* Bot tuzağı: insanlar görmez */}
@@ -243,7 +243,7 @@ export default function CommentButton() {
                                     {error && (
                                         <p
                                             role="alert"
-                                            className="mt-3 rounded-lg bg-[#FF729B]/15 px-3 py-2 text-sm font-medium text-[#FF8FB0]"
+                                            className="mt-3 rounded-lg bg-danger/15 px-3 py-2 text-sm font-medium text-danger"
                                         >
                                             {error}
                                         </p>
@@ -252,7 +252,7 @@ export default function CommentButton() {
                                     <button
                                         type="submit"
                                         disabled={state === "sending"}
-                                        className="mt-4 h-12 w-full rounded-full bg-[#1ED760] text-sm font-extrabold text-black transition active:scale-[0.98] disabled:opacity-60"
+                                        className="mt-4 h-12 w-full rounded-full bg-accent text-sm font-extrabold text-on-accent transition active:scale-[0.98] disabled:opacity-60"
                                     >
                                         {state === "sending" ? "Gönderiliyor…" : "Gönder"}
                                     </button>

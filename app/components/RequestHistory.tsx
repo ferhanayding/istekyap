@@ -104,12 +104,12 @@ export default function RequestHistory({
 
     if (failed && !list) {
         return (
-            <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+            <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                 Eski istekler alınamadı.{" "}
                 <button
                     type="button"
                     onClick={() => void load()}
-                    className="font-bold text-[#CFC4FF]"
+                    className="font-bold text-ink"
                 >
                     Tekrar dene
                 </button>
@@ -121,7 +121,7 @@ export default function RequestHistory({
 
     if (list.length === 0) {
         return (
-            <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+            <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                 Henüz eski istek yok. Geceler geçtikçe istenen şarkılar burada birikir.
             </p>
         );
@@ -130,8 +130,8 @@ export default function RequestHistory({
     return (
         <>
             <div className="mb-1 flex shrink-0 items-center gap-2">
-                <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg bg-white/[0.09] px-3 transition focus-within:bg-white/[0.13]">
-                    <Search size={15} className="shrink-0 text-[#B3B3B3]" />
+                <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg bg-raised px-3 transition focus-within:bg-line">
+                    <Search size={15} className="shrink-0 text-muted" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -144,14 +144,14 @@ export default function RequestHistory({
                         enterKeyHint="search"
                         autoComplete="off"
                         maxLength={100}
-                        className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#8F8AA8]"
+                        className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-faint"
                     />
                     {query && (
                         <button
                             type="button"
                             onClick={() => setQuery("")}
                             aria-label="Aramayı temizle"
-                            className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                         >
                             <X size={14} />
                         </button>
@@ -161,7 +161,7 @@ export default function RequestHistory({
                     type="button"
                     onClick={() => setSort(sort === "most" ? "recent" : "most")}
                     aria-label="Sıralamayı değiştir"
-                    className="h-9 shrink-0 rounded-lg bg-white/[0.09] px-3 text-xs font-bold text-[#CFC4FF] transition hover:bg-white/[0.13]"
+                    className="h-9 shrink-0 rounded-lg bg-raised px-3 text-xs font-bold text-ink transition hover:bg-line"
                 >
                     {sort === "most" ? "En çok istenen" : "En yeni"}
                 </button>
@@ -169,10 +169,10 @@ export default function RequestHistory({
 
             <div
                 data-scroll-list
-                className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
             >
                 {visible.length === 0 ? (
-                    <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                    <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                         &quot;{query.trim()}&quot; daha önce istenmemiş. Yukarıdaki &quot;İstek
                         Parça Yap&quot; butonundan arayabilirsin.
                     </p>
@@ -204,18 +204,18 @@ export default function RequestHistory({
                                             className="size-14 shrink-0 rounded-[4px] object-cover"
                                         />
                                     ) : (
-                                        <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
+                                        <div className="size-14 shrink-0 rounded-[4px] bg-line" />
                                     )}
 
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-base font-medium text-white">
+                                        <p className="truncate text-base font-medium text-ink">
                                             {s.name}
                                         </p>
-                                        <p className="mt-0.5 truncate text-sm text-[#B3B3B3]">
+                                        <p className="mt-0.5 truncate text-sm text-muted">
                                             {s.artists}
                                         </p>
-                                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#8F8AA8]">
-                                            <span className="rounded-full bg-[#9B80FF]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#CFC4FF]">
+                                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-faint">
+                                            <span className="font-semibold text-muted">
                                                 {s.requests} kez istendi
                                             </span>
                                             {s.plays > 0 && (
@@ -230,7 +230,7 @@ export default function RequestHistory({
                                                 </span>
                                             )}
                                             {inList && (
-                                                <span className="font-bold text-[#1ED760]">
+                                                <span className="font-bold text-accent">
                                                     Bu gece listede
                                                 </span>
                                             )}
@@ -243,10 +243,10 @@ export default function RequestHistory({
                                         disabled={done || rejected || sendingId !== null}
                                         aria-label={`${s.name} şarkısını iste`}
                                         className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-extrabold transition enabled:active:scale-95 ${done
-                                            ? "bg-[#1ED760]/15 text-[#1ED760]"
+                                            ? "bg-accent/15 text-accent"
                                             : rejected || closed
-                                                ? "bg-white/[0.07] text-[#7C7794]"
-                                                : "bg-[#1ED760] text-black disabled:opacity-60"
+                                                ? "bg-raised text-faint"
+                                                : "bg-accent text-on-accent disabled:opacity-60"
                                             }`}
                                     >
                                         {done

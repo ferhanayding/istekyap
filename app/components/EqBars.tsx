@@ -8,7 +8,7 @@ export default function EqBars({ className = "" }: { className?: string }) {
                 <span
                     key={d}
                     style={{ animationDelay: `${d}s` }}
-                    className="h-full w-[3px] origin-bottom animate-[eq_0.9s_ease-in-out_infinite] rounded-sm bg-[#1ED760] motion-reduce:animate-none"
+                    className="h-full w-[3px] origin-bottom animate-[eq_0.9s_ease-in-out_infinite] rounded-sm bg-accent motion-reduce:animate-none"
                 />
             ))}
         </span>

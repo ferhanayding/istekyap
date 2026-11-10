@@ -10,7 +10,20 @@ export type Track = {
     addedAt?: string | null | undefined;
     /** Spotify'ın "müstehcen" etiketi (sadece arama / tek şarkı sorgusunda dolu) */
     explicit?: boolean;
+    /** Süre, milisaniye (sadece arama / tek şarkı sorgusunda dolu) */
+    durationMs?: number;
 };
+
+// Canlıda istenebilecek uzunluk: 1 dakikadan kısa (intro, skeç, zil sesi) ve
+// 12 dakikadan uzun (saatlik mix, uyku sesi, sesli kitap) parçalar istenemez.
+// Playlistimizdeki şarkılar bu kurala takılmaz.
+export const MIN_TRACK_MS = 60_000;
+export const MAX_TRACK_MS = 12 * 60_000;
+
+export function hasRequestableLength(t: Pick<Track, "durationMs">): boolean {
+    if (typeof t.durationMs !== "number") return true; // süre bilinmiyorsa engelleme
+    return t.durationMs >= MIN_TRACK_MS && t.durationMs <= MAX_TRACK_MS;
+}
 
 type SpotifyTrack = {
     id: string;

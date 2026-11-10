@@ -10,12 +10,12 @@ export default function LoginForm() {
     );
 
     const input =
-        "w-full rounded-2xl border border-white/[0.08] bg-[#1E1A3D] px-4 py-3 text-base text-white outline-none placeholder:text-[#7E769B] focus:border-[#9B80FF]/60";
+        "w-full rounded-2xl border border-line bg-raised px-4 py-3 text-base text-ink outline-none placeholder:text-faint focus:border-accent";
 
     return (
         <form action={action} className="space-y-3">
             <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[#A99EC9]">
+                <span className="mb-1.5 block text-xs font-bold text-muted">
                     E-posta
                 </span>
                 <input
@@ -28,7 +28,7 @@ export default function LoginForm() {
             </label>
 
             <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[#A99EC9]">
+                <span className="mb-1.5 block text-xs font-bold text-muted">
                     Şifre
                 </span>
                 <input
@@ -41,7 +41,7 @@ export default function LoginForm() {
             </label>
 
             {state?.error && (
-                <p role="alert" className="text-sm text-[#FF729B]">
+                <p role="alert" className="text-sm text-danger">
                     {state.error}
                 </p>
             )}
@@ -49,7 +49,7 @@ export default function LoginForm() {
             <button
                 type="submit"
                 disabled={pending}
-                className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#7555E9] to-[#5A3FC0] text-sm font-extrabold shadow-[0_10px_30px_-14px_#795BFF] transition active:scale-[0.98] disabled:opacity-60"
+                className="h-12 w-full rounded-2xl bg-accent text-sm font-extrabold text-on-accent transition active:scale-[0.98] disabled:opacity-60"
             >
                 {pending ? "Giriş yapılıyor…" : "Giriş yap"}
             </button>

@@ -11,7 +11,7 @@ async function PlaylistData() {
     });
     if (!playlist) {
         return (
-            <p className="rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+            <p className="rounded-lg bg-surface p-4 text-sm text-muted">
                 Playlist şu an yüklenemedi. Birazdan sayfayı yenile; istek listesi çalışmaya
                 devam ediyor.
             </p>
@@ -26,7 +26,7 @@ export default function PlaylistSection() {
             <Suspense
                 fallback={
                     <>
-                        <div className="mb-1 h-10 shrink-0 rounded-lg bg-white/[0.09]" />
+                        <div className="mb-1 h-10 shrink-0 rounded-lg bg-raised" />
                         <div className="-mx-5 min-h-0 flex-1 overflow-hidden px-5">
                             <LoadingTracks />
                         </div>

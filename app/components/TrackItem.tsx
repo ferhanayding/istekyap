@@ -47,30 +47,27 @@ export default memo(function TrackItem({
                     className="size-14 shrink-0 rounded-[4px] object-cover"
                 />
             ) : (
-                <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
+                <div className="size-14 shrink-0 rounded-[4px] bg-line" />
             )}
 
             <div className="min-w-0 flex-1">
                 <p
-                    className={`truncate text-base ${playing ? "font-bold text-[#1ED760]" : "font-medium text-white"
-                        }`}
+                    className={`truncate text-base ${
+                        playing ? "font-bold text-accent" : "font-medium text-ink"
+                    }`}
                 >
                     {t.name}
                 </p>
-                <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-[#B3B3B3]">
+                <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-muted">
                     {playing && <EqBars className="shrink-0" />}
                     {!playing && added?.isNew && (
-                        <span className="shrink-0 rounded bg-[#1ED760] px-1.5 text-[10px] font-extrabold uppercase text-black">
+                        <span className="shrink-0 rounded bg-accent px-1.5 text-xs font-extrabold uppercase text-on-accent">
                             Yeni
                         </span>
                     )}
                     <span className="truncate">{t.artists}</span>
                 </p>
-                {added && (
-                    <p className="truncate text-[11px] text-[#7C7794]">
-                        {added.label}
-                    </p>
-                )}
+                {added && <p className="truncate text-xs text-faint">{added.label}</p>}
             </div>
 
             <VoteButtons

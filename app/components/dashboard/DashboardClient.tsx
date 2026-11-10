@@ -46,10 +46,10 @@ const STATUS_ORDER: Record<Status, number> = {
 };
 
 const STATUS_BADGE: Record<Status, { text: string; className: string }> = {
-    pending: { text: "Bekliyor", className: "bg-white/[0.09] text-[#B3B3B3]" },
-    approved: { text: "Onaylı", className: "bg-[#1ED760]/15 text-[#1ED760]" },
-    played: { text: "Çalındı", className: "bg-[#9B80FF]/20 text-[#C3B3FF]" },
-    rejected: { text: "Reddedildi", className: "bg-[#FF729B]/15 text-[#FF8FB0]" },
+    pending: { text: "Bekliyor", className: "bg-raised text-muted" },
+    approved: { text: "Onaylı", className: "bg-accent/15 text-accent" },
+    played: { text: "Çalındı", className: "bg-raised text-ink" },
+    rejected: { text: "Reddedildi", className: "bg-danger/15 text-danger" },
 };
 
 // Çok istenen üstte; sort kararlı, eşitler yeniden eskiye kalır
@@ -112,7 +112,7 @@ const btn =
 const iconBtn =
     "flex size-9 shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:opacity-50";
 const headBtn =
-    "flex size-9 items-center justify-center rounded-full bg-white/[0.08] text-[#CFC4FF] transition hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF]";
+    "flex size-9 items-center justify-center rounded-full bg-raised text-ink transition hover:bg-line";
 
 // Çalan şarkı: listenin altında sabit, Durdur butonuyla
 function DashPlayer({
@@ -131,7 +131,7 @@ function DashPlayer({
     const artists = title && cut > 0 ? title.slice(cut + 3) : "";
 
     return (
-        <div className="relative mx-2 mb-1.5 shrink-0 rounded-lg bg-gradient-to-r from-[#3A2B8F] to-[#2A2060] shadow-[0_-10px_30px_-12px_#000]">
+        <div className="relative mx-2 mb-1.5 shrink-0 rounded-xl border border-line bg-raised">
             <div className="flex items-center gap-3 p-2">
                 {cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -145,15 +145,15 @@ function DashPlayer({
                         className="size-10 shrink-0 rounded-[4px] object-cover"
                     />
                 ) : (
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-[4px] bg-white/10">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-[4px] bg-line">
                         <Music2 size={18} />
                     </div>
                 )}
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-white">{name}</p>
-                    <p className="flex items-center gap-1.5 truncate text-xs text-white/65">
+                    <p className="truncate text-sm font-bold text-ink">{name}</p>
+                    <p className="flex items-center gap-1.5 truncate text-xs text-muted">
                         <EqBars className="shrink-0" />
-                        <span className="shrink-0 font-bold text-[#1ED760]">Çalıyor</span>
+                        <span className="shrink-0 font-bold text-accent">Çalıyor</span>
                         {artists && <span className="truncate">· {artists}</span>}
                     </p>
                 </div>
@@ -163,7 +163,7 @@ function DashPlayer({
                     disabled={busy}
                     onClick={onStop}
                     aria-label="Durdur"
-                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-extrabold text-black transition active:scale-95 disabled:opacity-50"
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-danger/15 px-3.5 text-xs font-extrabold text-danger transition active:scale-95 disabled:opacity-50"
                 >
                     <Square size={12} fill="currentColor" />
                     Durdur
@@ -418,16 +418,14 @@ function DashboardInner() {
 
     return (
         <div className="relative mx-auto flex h-dvh max-w-2xl flex-col overflow-hidden">
-            {/* Spotify tarzı üst renk geçişi */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#4A38B0]/55 via-[#2A1F66]/25 to-transparent" />
 
             <header className="relative shrink-0 px-5 pb-2 pt-4">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-baseline gap-2">
                         <h1 className="text-[26px] font-extrabold leading-none tracking-[-1.2px]">
-                            Dash<span className="text-[#B9A6FF]">board</span>
+                            Dashboard<span className="text-accent">.</span>
                         </h1>
-                        <span className="truncate text-[10px] font-bold uppercase tracking-[2.5px] text-white/45">
+                        <span className="truncate text-xs font-bold uppercase tracking-[2.5px] text-muted">
                             LƏYSAN
                         </span>
                     </div>
@@ -438,9 +436,9 @@ function DashboardInner() {
                             onClick={toggleSound}
                             aria-label={sound ? "Bildirim sesini kapat" : "Bildirim sesini aç"}
                             aria-pressed={sound}
-                            className={`flex size-9 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B80FF] ${sound
-                                ? "bg-[#1ED760]/20 text-[#1ED760]"
-                                : "bg-white/[0.08] text-[#CFC4FF] hover:bg-white/[0.14]"
+                            className={`flex size-9 items-center justify-center rounded-full transition ${sound
+                                ? "bg-accent/20 text-accent"
+                                : "bg-raised text-ink hover:bg-line"
                                 }`}
                         >
                             {sound ? <Volume2 size={17} /> : <VolumeX size={17} />}
@@ -461,10 +459,10 @@ function DashboardInner() {
                     </div>
                 </div>
 
-                <p className="mt-1 text-[11px] leading-snug text-white/55">
+                <p className="mt-1 text-xs leading-snug text-muted">
                     {items ? `${count("pending")} bekleyen istek` : "…"} ·{" "}
                     {live ? (
-                        <span className="text-[#1ED760]">canlı</span>
+                        <span className="text-accent">canlı</span>
                     ) : (
                         `${FALLBACK_POLL_MS / 1000} saniyede bir güncellenir`
                     )}
@@ -497,12 +495,12 @@ function DashboardInner() {
                 ) : (
                     <>
                         {newIds.size > 0 && (
-                            <div className="mb-2 flex shrink-0 items-center justify-between gap-3 rounded-lg bg-[#7555E9]/25 px-4 py-2.5 text-sm font-bold">
+                            <div className="mb-2 flex shrink-0 items-center justify-between gap-3 rounded-lg bg-raised px-4 py-2.5 text-sm font-bold">
                                 <span>{newIds.size} yeni istek geldi</span>
                                 <button
                                     type="button"
                                     onClick={() => setNewIds(new Set())}
-                                    className="text-xs font-bold text-[#C3B3FF] hover:text-white"
+                                    className="text-xs font-bold text-ink hover:text-ink"
                                 >
                                     Hepsini gördüm
                                 </button>
@@ -510,7 +508,7 @@ function DashboardInner() {
                         )}
 
                         <div
-                            className="mb-1 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                            className="mb-1 flex shrink-0 gap-2 overflow-x-auto pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
                             role="tablist"
                         >
                             {TABS.map((t) => (
@@ -521,8 +519,8 @@ function DashboardInner() {
                                     aria-selected={tab === t.key}
                                     onClick={() => setTab(t.key)}
                                     className={`h-8 shrink-0 rounded-full px-3.5 text-xs font-bold transition ${tab === t.key
-                                        ? "bg-[#1ED760] text-black"
-                                        : "bg-white/[0.09] text-white hover:bg-white/[0.14]"
+                                        ? "bg-accent text-on-accent"
+                                        : "bg-raised text-ink hover:bg-line"
                                         }`}
                                 >
                                     {t.label} <span className="opacity-70">{count(t.key)}</span>
@@ -530,11 +528,11 @@ function DashboardInner() {
                             ))}
                         </div>
 
-                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
                             {items === null ? (
                                 <LoadingTracks />
                             ) : visible.length === 0 ? (
-                                <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                                <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                                     {EMPTY[tab]}
                                 </p>
                             ) : (
@@ -546,7 +544,7 @@ function DashboardInner() {
                                         return (
                                             <li
                                                 key={r.id}
-                                                className={`border-b border-white/[0.05] py-3 ${isNew ? "-mx-5 bg-[#9B80FF]/[0.08] px-5" : ""
+                                                className={`border-b border-line py-3 ${isNew ? "-mx-5 bg-accent/10 px-5" : ""
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
@@ -562,31 +560,31 @@ function DashboardInner() {
                                                             className="size-14 shrink-0 rounded-[4px] object-cover"
                                                         />
                                                     ) : (
-                                                        <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
+                                                        <div className="size-14 shrink-0 rounded-[4px] bg-line" />
                                                     )}
 
                                                     <div className="min-w-0 flex-1">
                                                         <p
                                                             className={`truncate text-base ${playing
-                                                                ? "font-bold text-[#1ED760]"
-                                                                : "font-medium text-white"
+                                                                ? "font-bold text-accent"
+                                                                : "font-medium text-ink"
                                                                 }`}
                                                         >
                                                             {r.name}
                                                         </p>
-                                                        <p className="mt-0.5 truncate text-sm text-[#B3B3B3]">
+                                                        <p className="mt-0.5 truncate text-sm text-muted">
                                                             {r.artists}
                                                         </p>
                                                         <div className="mt-1 flex flex-wrap items-center gap-2">
                                                             {playing ? (
-                                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#1ED760]">
+                                                                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-accent">
                                                                     <EqBars />
                                                                     Çalıyor
                                                                 </span>
                                                             ) : (
                                                                 (tab === "all" || isNew) && (
                                                                     <span
-                                                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_BADGE[r.status].className}`}
+                                                                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_BADGE[r.status].className}`}
                                                                     >
                                                                         {STATUS_BADGE[r.status].text}
                                                                     </span>
@@ -595,17 +593,17 @@ function DashboardInner() {
                                                             {(r.request_count ?? 1) > 1 && (
                                                                 <span
                                                                     title={`${r.request_count} kişi istedi`}
-                                                                    className="rounded-full bg-[#9B80FF]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#CFC4FF]"
+                                                                    className="rounded-full bg-raised px-2 py-0.5 text-xs font-extrabold text-ink"
                                                                 >
                                                                     ×{r.request_count} istek
                                                                 </span>
                                                             )}
                                                             {isNew && (
-                                                                <span className="rounded bg-[#9B80FF] px-1.5 py-px text-[10px] font-extrabold uppercase text-white">
+                                                                <span className="rounded bg-accent px-1.5 py-px text-xs font-extrabold uppercase text-on-accent">
                                                                     Yeni
                                                                 </span>
                                                             )}
-                                                            <span className="text-[11px] text-[#7C7794]">
+                                                            <span className="text-xs text-faint">
                                                                 {ago(r.last_requested_at ?? r.created_at, now)}
                                                             </span>
                                                         </div>
@@ -621,7 +619,7 @@ function DashboardInner() {
                                                                 type="button"
                                                                 disabled={busy}
                                                                 onClick={() => changeStatus(r.id, "approved")}
-                                                                className={`${btn} flex-1 bg-[#1ED760] text-black`}
+                                                                className={`${btn} flex-1 bg-accent text-on-accent`}
                                                             >
                                                                 <Check size={15} />
                                                                 Onayla
@@ -630,7 +628,7 @@ function DashboardInner() {
                                                                 type="button"
                                                                 disabled={busy}
                                                                 onClick={() => changeStatus(r.id, "rejected")}
-                                                                className={`${btn} flex-1 bg-white/[0.09] text-[#FF8FB0]`}
+                                                                className={`${btn} flex-1 bg-raised text-danger`}
                                                             >
                                                                 <X size={15} />
                                                                 Reddet
@@ -650,8 +648,8 @@ function DashboardInner() {
                                                                         )
                                                                 }
                                                                 className={`${btn} flex-1 ${playing
-                                                                    ? "bg-[#FF729B]/20 text-[#FF8FB0]"
-                                                                    : "bg-[#1ED760] text-black"
+                                                                    ? "bg-danger/20 text-danger"
+                                                                    : "bg-accent text-on-accent"
                                                                     }`}
                                                             >
                                                                 {playing ? (
@@ -665,7 +663,7 @@ function DashboardInner() {
                                                                 type="button"
                                                                 disabled={busy}
                                                                 onClick={() => changeStatus(r.id, "played")}
-                                                                className={`${btn} flex-1 bg-[#7555E9]/35 text-white`}
+                                                                className={`${btn} flex-1 bg-raised text-ink`}
                                                             >
                                                                 <CheckCheck size={15} />
                                                                 Çalındı
@@ -675,7 +673,7 @@ function DashboardInner() {
                                                                 disabled={busy}
                                                                 onClick={() => changeStatus(r.id, "pending")}
                                                                 aria-label="Bekleyene al"
-                                                                className={`${iconBtn} bg-white/[0.09] text-[#D0CAE8]`}
+                                                                className={`${iconBtn} bg-raised text-ink`}
                                                             >
                                                                 <Undo2 size={15} />
                                                             </button>
@@ -686,7 +684,7 @@ function DashboardInner() {
                                                                 type="button"
                                                                 disabled={busy}
                                                                 onClick={() => changeStatus(r.id, "pending")}
-                                                                className={`${btn} flex-1 bg-white/[0.09] text-white`}
+                                                                className={`${btn} flex-1 bg-raised text-ink`}
                                                             >
                                                                 <Undo2 size={15} />
                                                                 Bekleyene al
@@ -695,7 +693,7 @@ function DashboardInner() {
                                                                 type="button"
                                                                 disabled={busy}
                                                                 onClick={() => remove(r.id)}
-                                                                className={`${btn} bg-[#FF729B]/15 text-[#FF8FB0]`}
+                                                                className={`${btn} bg-danger/15 text-danger`}
                                                             >
                                                                 <Trash2 size={15} />
                                                                 Sil
@@ -725,7 +723,7 @@ function DashboardInner() {
             {/* Alt menü: sitedekiyle aynı tarz */}
             <nav
                 aria-label="Dashboard menüsü"
-                className="relative z-30 shrink-0 border-t border-white/[0.06] bg-[#0E0C1A]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+                className="relative z-30 shrink-0 border-t border-line bg-page/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
             >
                 <ul className="grid grid-cols-5" role="tablist">
                     {MAIN_TABS.map(({ key, label, Icon }) => {
@@ -737,24 +735,24 @@ function DashboardInner() {
                                     role="tab"
                                     aria-selected={active}
                                     onClick={() => setMain(key)}
-                                    className="group flex w-full flex-col items-center gap-1 py-1 outline-none"
+                                    className="group flex w-full flex-col items-center gap-1 rounded-lg py-1"
                                 >
                                     <span
-                                        className={`relative flex h-8 w-14 items-center justify-center rounded-full transition ${active ? "bg-[#7555E9]" : "group-hover:bg-white/[0.06]"
+                                        className={`relative flex h-8 w-14 items-center justify-center rounded-full transition ${active ? "bg-ink" : "group-hover:bg-raised"
                                             }`}
                                     >
                                         <Icon
                                             size={20}
-                                            className={active ? "text-white" : "text-[#9A94B0]"}
+                                            className={active ? "text-page" : "text-muted"}
                                         />
                                         {key === "requests" && newIds.size > 0 && (
-                                            <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-[#FF729B] px-1 text-center text-[10px] font-bold leading-[18px] text-white">
+                                            <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-xs font-bold leading-[18px] text-on-accent">
                                                 {newIds.size > 9 ? "9+" : newIds.size}
                                             </span>
                                         )}
                                     </span>
                                     <span
-                                        className={`text-[11px] font-bold ${active ? "text-white" : "text-[#9A94B0]"
+                                        className={`text-xs font-bold ${active ? "text-ink" : "text-muted"
                                             }`}
                                     >
                                         {label}

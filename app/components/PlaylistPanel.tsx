@@ -61,8 +61,8 @@ export default function PlaylistPanel({
 
     return (
         <>
-            <div className="mb-1 flex h-10 shrink-0 items-center gap-2 rounded-lg bg-white/[0.09] px-3 transition focus-within:bg-white/[0.13]">
-                <Search size={17} className="shrink-0 text-[#B3B3B3]" />
+            <div className="mb-1 flex h-10 shrink-0 items-center gap-2 rounded-lg bg-raised px-3 transition focus-within:bg-line">
+                <Search size={17} className="shrink-0 text-muted" />
                 <input
                     ref={inputRef}
                     value={query}
@@ -79,18 +79,18 @@ export default function PlaylistPanel({
                     enterKeyHint="search"
                     autoComplete="off"
                     maxLength={100}
-                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#8F8AA8]"
+                    className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-faint"
                 />
                 {searching && (
                     <>
-                        <span className="shrink-0 text-xs font-bold text-[#8F8AA8]">
+                        <span className="shrink-0 text-xs font-bold text-faint">
                             {visible.length} / {tracks.length}
                         </span>
                         <button
                             type="button"
                             onClick={clear}
                             aria-label="Aramayı temizle"
-                            className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-white/10"
+                            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                         >
                             <X size={15} />
                         </button>
@@ -101,7 +101,7 @@ export default function PlaylistPanel({
             <div
                 ref={scrollRef}
                 data-scroll-list
-                className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+                className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
             >
                 {visible.length > 0 ? (
                     <div>
@@ -121,13 +121,13 @@ export default function PlaylistPanel({
                         ))}
                     </div>
                 ) : (
-                    <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                    <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                         &quot;{query.trim()}&quot; playlistte yok. &quot;İstek Parça
                         Yap&quot; butonundan isteyebilirsin.
                     </p>
                 )}
 
-                <p className="py-6 text-center text-[10px] tracking-wider text-[#5F5875]">
+                <p className="py-6 text-center text-xs tracking-wider text-faint">
                     MADE FOR MUSIC LOVERS · LƏYSAN
                 </p>
             </div>

@@ -5,6 +5,7 @@ import { getOrCreateDeviceId } from "@/lib/device";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { requireUser } from "@/lib/auth";
+import { hasRequestableLength } from "@/lib/spotify";
 
 export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
@@ -43,7 +44,8 @@ export async function GET(req: NextRequest) {
 
         // Playlistteki şarkılar da istenebilir: gizlenmez, "Listemizde" diye işaretlenir
         // Spotify'ın "müstehcen" (explicit) etiketli şarkıları ve küfürlü adlar görünmez.
-        // Playlistimizdeki şarkılar etiketli olsa da kalır (repertuvar bizim seçimimiz).
+        // 1 dakikadan kısa, 12 dakikadan uzun parçalar da görünmez (lib/spotify).
+        // Playlistimizdeki şarkılar etiketli ya da uzun olsa da kalır (repertuvar bizim seçimimiz).
         const visible = items
             .map((t) => ({
                 ...t,
@@ -52,7 +54,8 @@ export async function GET(req: NextRequest) {
             .filter(
                 (t) =>
                     all ||
-                    ((t.inPlaylist || !t.explicit) && !isBlocked(`${t.name} ${t.artists}`))
+                    ((t.inPlaylist || (!t.explicit && hasRequestableLength(t))) &&
+                        !isBlocked(`${t.name} ${t.artists}`))
             );
 
         // Aynı aramayı yapan herkese 5 dk boyunca Vercel CDN cevap verir (Spotify'a gidilmez).

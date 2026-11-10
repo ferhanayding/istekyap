@@ -17,13 +17,13 @@ type View = "night" | "history";
 const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
 
 const BADGE: Record<RequestStatus, { text: string; className: string }> = {
-    pending: { text: "Bekliyor", className: "bg-white/[0.09] text-[#B3B3B3]" },
+    pending: { text: "Bekliyor", className: "bg-raised text-muted" },
     approved: {
         text: "Onaylandı · Çalınacak",
-        className: "bg-[#1ED760]/15 text-[#1ED760]",
+        className: "bg-accent/15 text-accent",
     },
-    played: { text: "Çalındı", className: "bg-[#9B80FF]/20 text-[#C3B3FF]" },
-    rejected: { text: "Reddedildi", className: "bg-[#FF729B]/15 text-[#FF729B]" },
+    played: { text: "Çalındı", className: "bg-raised text-ink" },
+    rejected: { text: "Reddedildi", className: "bg-danger/15 text-danger" },
 };
 
 function ago(iso: string, now: number): string {
@@ -71,11 +71,11 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
             <div className="mb-2 flex shrink-0 items-baseline justify-between">
                 <h2 className="text-lg font-extrabold tracking-tight">İstek Listesi</h2>
                 {view === "night" && (
-                    <span className="text-xs text-[#8F8AA8]">
+                    <span className="text-xs text-faint">
                         {items ? `${pendingCount} bekleyen` : "…"}
                         {live && (
-                            <span className="ml-1.5 inline-flex items-center gap-1 text-[#1ED760]">
-                                · <span className="h-1.5 w-1.5 rounded-full bg-[#1ED760]" aria-hidden />
+                            <span className="ml-1.5 inline-flex items-center gap-1 text-accent">
+                                · <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
                                 canlı
                             </span>
                         )}
@@ -86,7 +86,7 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
             <div
                 role="tablist"
                 aria-label="İstek listesi"
-                className="mb-2 flex shrink-0 rounded-full bg-white/[0.06] p-1"
+                className="mb-2 flex shrink-0 rounded-full bg-raised p-1"
             >
                 {(
                     [
@@ -100,7 +100,7 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                         role="tab"
                         aria-selected={view === key}
                         onClick={() => show(key)}
-                        className={`h-8 flex-1 rounded-full text-xs font-extrabold transition ${view === key ? "bg-[#7555E9] text-white" : "text-[#B3B3B3] hover:text-white"
+                        className={`h-8 flex-1 rounded-full text-xs font-extrabold transition ${view === key ? "bg-ink text-page" : "text-muted hover:text-ink"
                             }`}
                     >
                         {label}
@@ -128,12 +128,12 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
     return (
         <div
             data-scroll-list
-            className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]"
+            className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
         >
             {items === null ? (
                 <LoadingTracks />
             ) : items.length === 0 ? (
-                <div className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                <div className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                     {system.requestsOpen ? (
                         <p>Henüz istek yok. Yukarıdaki butondan ilk isteği sen yap.</p>
                     ) : (
@@ -145,7 +145,7 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                             <button
                                 type="button"
                                 onClick={onHistory}
-                                className="mt-3 h-9 rounded-full bg-white/[0.09] px-4 text-xs font-extrabold text-[#CFC4FF] transition hover:bg-white/[0.14]"
+                                className="mt-3 h-9 rounded-full bg-raised px-4 text-xs font-extrabold text-ink transition hover:bg-line"
                             >
                                 Eski isteklere bak
                             </button>
@@ -184,30 +184,30 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                             }`}
                                     />
                                 ) : (
-                                    <div className="size-14 shrink-0 rounded-[4px] bg-white/10" />
+                                    <div className="size-14 shrink-0 rounded-[4px] bg-line" />
                                 )}
 
                                 <div className="min-w-0 flex-1">
                                     <p
                                         className={`truncate text-base ${playing
-                                            ? "font-bold text-[#1ED760]"
-                                            : "font-medium text-white"
+                                            ? "font-bold text-accent"
+                                            : "font-medium text-ink"
                                             }`}
                                     >
                                         {r.name}
                                     </p>
-                                    <p className="mt-0.5 truncate text-sm text-[#B3B3B3]">
+                                    <p className="mt-0.5 truncate text-sm text-muted">
                                         {r.artists}
                                     </p>
                                     <div className="mt-1 flex items-center gap-2">
                                         {playing ? (
-                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#1ED760]">
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-accent">
                                                 <EqBars />
                                                 Çalıyor
                                             </span>
                                         ) : (
                                             <span
-                                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.className}`}
+                                                className={`rounded-full px-2 py-0.5 text-xs font-bold ${badge.className}`}
                                             >
                                                 {badge.text}
                                             </span>
@@ -215,12 +215,12 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                         {(r.request_count ?? 1) > 1 && (
                                             <span
                                                 title={`${r.request_count} kişi istedi`}
-                                                className="rounded-full bg-[#9B80FF]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#CFC4FF]"
+                                                className="rounded-full bg-raised px-2 py-0.5 text-xs font-extrabold text-ink"
                                             >
                                                 ×{r.request_count}
                                             </span>
                                         )}
-                                        <span className="text-[11px] text-[#7C7794]">
+                                        <span className="text-xs text-faint">
                                             {ago(r.last_requested_at ?? r.created_at, now)}
                                         </span>
                                     </div>

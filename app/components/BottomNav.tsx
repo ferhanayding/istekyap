@@ -21,7 +21,7 @@ export default function BottomNav({
     return (
         <nav
             aria-label="Ana menü"
-            className="relative z-30 shrink-0 border-t border-white/[0.06] bg-[#0E0C1A]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+            className="relative z-30 shrink-0 border-t border-line bg-page px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2"
         >
             <ul className="grid grid-cols-2">
                 {ITEMS.map(({ key, label, Icon }) => {
@@ -32,24 +32,24 @@ export default function BottomNav({
                                 type="button"
                                 onClick={() => onTab(key)}
                                 aria-current={active ? "page" : undefined}
-                                className="group flex w-full flex-col items-center gap-1 py-1 outline-none"
+                                className="group flex w-full flex-col items-center gap-1 rounded-lg py-1"
                             >
                                 <span
-                                    className={`relative flex h-8 w-16 items-center justify-center rounded-full transition ${active ? "bg-[#7555E9]" : "group-hover:bg-white/[0.06]"
+                                    className={`relative flex h-8 w-16 items-center justify-center rounded-full transition ${active ? "bg-ink" : "group-hover:bg-raised"
                                         }`}
                                 >
                                     <Icon
                                         size={20}
-                                        className={active ? "text-white" : "text-[#9A94B0]"}
+                                        className={active ? "text-page" : "text-muted"}
                                     />
                                     {key === "requests" && unread > 0 && (
-                                        <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-[#FF729B] px-1 text-center text-[10px] font-bold leading-[18px] text-white">
+                                        <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-accent px-1 text-center text-xs font-bold leading-[18px] text-on-accent">
                                             {unread > 9 ? "9+" : unread}
                                         </span>
                                     )}
                                 </span>
                                 <span
-                                    className={`text-[11px] font-bold ${active ? "text-white" : "text-[#9A94B0]"
+                                    className={`text-xs font-bold ${active ? "text-ink" : "text-muted"
                                         }`}
                                 >
                                     {label}

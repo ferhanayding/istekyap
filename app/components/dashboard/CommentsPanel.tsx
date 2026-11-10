@@ -42,7 +42,7 @@ function Stars({ value, size }: { value: number; size: number }) {
                     key={n}
                     size={size}
                     strokeWidth={1.8}
-                    className={n <= Math.round(value) ? "text-[#FFBD59]" : "text-[#5F5875]"}
+                    className={n <= Math.round(value) ? "text-accent" : "text-faint"}
                     fill={n <= Math.round(value) ? "currentColor" : "none"}
                 />
             ))}
@@ -115,9 +115,9 @@ export default function CommentsPanel() {
     const max = Math.max(1, ...data.distribution);
 
     return (
-        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
             {/* Genel puan */}
-            <div className="mb-2 flex items-center gap-5 rounded-lg bg-white/[0.05] p-4">
+            <div className="mb-2 flex items-center gap-5 rounded-lg bg-surface p-4">
                 <div className="shrink-0 text-center">
                     <p className="text-5xl font-extrabold leading-none tracking-tight">
                         {data.count ? data.average.toFixed(1) : "–"}
@@ -125,16 +125,16 @@ export default function CommentsPanel() {
                     <div className="mt-2 flex justify-center">
                         <Stars value={data.average} size={14} />
                     </div>
-                    <p className="mt-1 text-xs text-[#B3B3B3]">{data.count} yorum</p>
+                    <p className="mt-1 text-xs text-muted">{data.count} yorum</p>
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1">
                     {[5, 4, 3, 2, 1].map((n) => (
-                        <div key={n} className="flex items-center gap-2 text-[11px] text-[#B3B3B3]">
+                        <div key={n} className="flex items-center gap-2 text-xs text-muted">
                             <span className="w-3 text-right font-bold">{n}</span>
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.09]">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-raised">
                                 <div
-                                    className="h-full rounded-full bg-[#FFBD59]"
+                                    className="h-full rounded-full bg-accent"
                                     style={{ width: `${(data.distribution[n - 1] / max) * 100}%` }}
                                 />
                             </div>
@@ -147,7 +147,7 @@ export default function CommentsPanel() {
             </div>
 
             {data.items.length === 0 ? (
-                <p className="mt-2 rounded-lg bg-white/[0.05] p-4 text-sm text-[#B3B3B3]">
+                <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                     Henüz yorum yok. Ziyaretçiler siteden yorum bırakınca burada görünür.
                 </p>
             ) : (
@@ -155,9 +155,9 @@ export default function CommentsPanel() {
                     {data.items.map((c) => (
                         <li
                             key={c.id}
-                            className="mb-2 flex items-start gap-3 rounded-lg bg-white/[0.05] p-3"
+                            className="mb-2 flex items-start gap-3 rounded-lg bg-surface p-3"
                         >
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#7555E9]/40 text-sm font-extrabold uppercase text-white">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-raised text-sm font-extrabold uppercase text-ink">
                                 {(c.name || "A").slice(0, 1)}
                             </span>
 
@@ -167,16 +167,16 @@ export default function CommentsPanel() {
                                         {c.name || "Anonim"}
                                     </span>
                                     <Stars value={c.rating} size={13} />
-                                    <span className="text-[11px] text-[#7C7794]">
+                                    <span className="text-xs text-faint">
                                         {ago(c.created_at, now)}
                                     </span>
                                 </div>
                                 {c.message ? (
-                                    <p className="mt-1 whitespace-pre-wrap break-words text-sm text-[#D8D3EC]">
+                                    <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink">
                                         {c.message}
                                     </p>
                                 ) : (
-                                    <p className="mt-1 text-xs italic text-[#7C7794]">
+                                    <p className="mt-1 text-xs italic text-faint">
                                         Sadece puan verdi.
                                     </p>
                                 )}
@@ -187,7 +187,7 @@ export default function CommentsPanel() {
                                 disabled={busyId === c.id}
                                 onClick={() => remove(c.id)}
                                 aria-label="Yorumu sil"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#B3B3B3] transition hover:bg-[#FF729B]/15 hover:text-[#FF8FB0] disabled:opacity-50"
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-danger/15 hover:text-danger disabled:opacity-50"
                             >
                                 <Trash2 size={16} />
                             </button>

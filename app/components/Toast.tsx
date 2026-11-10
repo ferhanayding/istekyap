@@ -46,16 +46,16 @@ export const useToast = () => useContext(ToastContext);
 
 const STYLE: Record<Tone, { box: string; icon: ReactNode }> = {
     error: {
-        box: "border-[#FF729B]/40 bg-[#3A1730]/95 text-[#FFD3E0]",
-        icon: <AlertCircle size={17} className="shrink-0 text-[#FF729B]" />,
+        box: "border-danger/40 bg-raised text-ink",
+        icon: <AlertCircle size={17} className="shrink-0 text-danger" />,
     },
     info: {
-        box: "border-[#9B80FF]/40 bg-[#2A2255]/95 text-white",
-        icon: <Info size={17} className="shrink-0 text-[#B9A6FF]" />,
+        box: "border-line bg-raised text-ink",
+        icon: <Info size={17} className="shrink-0 text-muted" />,
     },
     success: {
-        box: "border-[#37D9BD]/40 bg-[#123430]/95 text-[#D5FFF6]",
-        icon: <CheckCircle2 size={17} className="shrink-0 text-[#37D9BD]" />,
+        box: "border-accent/40 bg-raised text-ink",
+        icon: <CheckCircle2 size={17} className="shrink-0 text-accent" />,
     },
 };
 
@@ -140,7 +140,7 @@ export function ToastProvider({
                             t.onClick?.();
                             dismiss(t.id);
                         }}
-                        className={`pointer-events-auto flex w-full animate-[toast-in_0.25s_ease-out] items-center gap-2.5 rounded-2xl border px-4 py-3 text-left text-sm font-bold shadow-2xl backdrop-blur motion-reduce:animate-none ${STYLE[t.tone].box}`}
+                        className={`pointer-events-auto flex w-full animate-[toast-in_0.25s_ease-out] items-center gap-2.5 rounded-2xl border px-4 py-3 text-left text-sm font-bold shadow-lg motion-reduce:animate-none ${STYLE[t.tone].box}`}
                     >
                         {t.icon ?? STYLE[t.tone].icon}
                         <span className="min-w-0 flex-1">{t.text}</span>

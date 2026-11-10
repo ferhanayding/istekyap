@@ -80,7 +80,7 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
             toast.show(text, {
                 tone: "info",
                 duration: 5000,
-                icon: <Bell size={17} className="shrink-0 text-[#B9A6FF]" />,
+                icon: <Bell size={17} className="shrink-0 text-ink" />,
                 onClick: openRequests,
             });
 

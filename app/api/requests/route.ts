@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAppState } from "@/lib/app-state";
 import { notifyLive } from "@/lib/live-server";
 import { isBlocked } from "@/lib/blocklist";
+import { hasRequestableLength } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
@@ -106,8 +107,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Şarkı bulunamadı." }, { status: 404 });
         }
         // Aramada gizlenen şarkı doğrudan ID ile de istenemesin
-        const explicitBlocked = track.explicit && !(index && isInPlaylist(index, track));
-        if (explicitBlocked || isBlocked(`${track.name} ${track.artists}`)) {
+        const ours = !!index && isInPlaylist(index, track);
+        const explicitBlocked = track.explicit && !ours;
+        const lengthBlocked = !ours && !hasRequestableLength(track);
+        if (explicitBlocked || lengthBlocked || isBlocked(`${track.name} ${track.artists}`)) {
             return NextResponse.json(
                 { error: "Bu şarkı istek listesine eklenemez." },
                 { status: 403 }

@@ -10,13 +10,13 @@ export const metadata: Metadata = {
 export default function GirisPage() {
     return (
         <main
-            className="flex min-h-dvh items-center justify-center bg-[#100E1D] px-5 text-white"
+            className="flex min-h-dvh items-center justify-center bg-page px-5 text-ink"
         >
-            <div className="w-full max-w-sm rounded-[28px] border border-white/[0.06] bg-[#19162D] p-6 shadow-2xl">
+            <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6">
                 <h1 className="text-[32px] font-extrabold leading-none tracking-[-1.5px]">
-                    İstek<span className="text-[#9B80FF]">Yap.</span>
+                    İstekYap<span className="text-accent">.</span>
                 </h1>
-                <p className="mb-6 mt-2 text-sm text-[#928BA8]">
+                <p className="mb-6 mt-2 text-sm text-muted">
                     Grup girişi. Sadece grup üyeleri girebilir.
                 </p>
 
@@ -24,7 +24,7 @@ export default function GirisPage() {
 
                 <Link
                     href="/"
-                    className="mt-5 block text-center text-xs text-[#817A98] hover:text-white"
+                    className="mt-5 block text-center text-xs text-faint hover:text-ink"
                 >
                     Siteye dön
                 </Link>

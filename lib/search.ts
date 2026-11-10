@@ -8,6 +8,7 @@ type SearchItem = {
     album: { name: string; images?: { url: string }[] };
     external_urls: { spotify: string };
     explicit?: boolean;
+    duration_ms?: number;
 };
 
 type SearchResponse = { tracks?: { items: (SearchItem | null)[] } };
@@ -21,6 +22,7 @@ function toTrack(t: SearchItem): Track {
         cover: t.album.images?.[2]?.url ?? t.album.images?.[0]?.url ?? null,
         url: t.external_urls.spotify,
         explicit: t.explicit === true,
+        durationMs: typeof t.duration_ms === "number" ? t.duration_ms : undefined,
     };
 }
 

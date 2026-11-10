@@ -37,7 +37,7 @@ function waitText(min: number | null): string {
     return `${(min / 60).toFixed(1).replace(".", ",")} sa`;
 }
 
-const card = "rounded-lg bg-white/[0.05] p-4";
+const card = "rounded-lg bg-surface p-4";
 
 export default function StatsPanel() {
     const router = useRouter();
@@ -74,12 +74,12 @@ export default function StatsPanel() {
     const stats = data ? (range === "night" ? data.night : data.total) : null;
 
     return (
-        <div className="-mx-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 [scrollbar-color:#3A3270_transparent] [scrollbar-width:thin]">
+        <div className="-mx-5 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-4 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
             <div className="flex items-center gap-2">
                 <div
                     role="tablist"
                     aria-label="Zaman aralığı"
-                    className="flex flex-1 rounded-full bg-white/[0.06] p-1"
+                    className="flex flex-1 rounded-full bg-raised p-1"
                 >
                     {(
                         [
@@ -93,7 +93,7 @@ export default function StatsPanel() {
                             role="tab"
                             aria-selected={range === key}
                             onClick={() => setRange(key)}
-                            className={`h-8 flex-1 rounded-full text-xs font-extrabold transition ${range === key ? "bg-[#7555E9] text-white" : "text-[#B3B3B3] hover:text-white"
+                            className={`h-8 flex-1 rounded-full text-xs font-extrabold transition ${range === key ? "bg-ink text-page" : "text-muted hover:text-ink"
                                 }`}
                         >
                             {label}
@@ -105,14 +105,14 @@ export default function StatsPanel() {
                     onClick={() => void load()}
                     disabled={loading}
                     aria-label="Yenile"
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[#CFC4FF] transition hover:bg-white/[0.14] disabled:opacity-50"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-raised text-ink transition hover:bg-line disabled:opacity-50"
                 >
                     <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                 </button>
             </div>
 
             {data && range === "night" && (
-                <p className="text-xs text-[#8F8AA8]">
+                <p className="text-xs text-faint">
                     {!data.since
                         ? "Henüz gece başlatılmadı, hepsi bu gece sayılıyor."
                         : data.until
@@ -122,9 +122,9 @@ export default function StatsPanel() {
             )}
 
             {failed && !data && (
-                <p className="py-10 text-center text-sm text-[#B3B3B3]">
+                <p className="py-10 text-center text-sm text-muted">
                     İstatistikler alınamadı.{" "}
-                    <button type="button" onClick={() => void load()} className="font-bold text-[#CFC4FF]">
+                    <button type="button" onClick={() => void load()} className="font-bold text-ink">
                         Tekrar dene
                     </button>
                 </p>
@@ -133,7 +133,7 @@ export default function StatsPanel() {
             {!stats && !failed && (
                 <div className="grid grid-cols-2 gap-2" aria-label="Yükleniyor">
                     {Array.from({ length: 6 }, (_, i) => (
-                        <div key={i} className="h-[76px] animate-pulse rounded-lg bg-white/[0.05]" />
+                        <div key={i} className="h-[76px] animate-pulse rounded-lg bg-surface" />
                     ))}
                 </div>
             )}
@@ -154,10 +154,10 @@ export default function StatsPanel() {
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
     return (
-        <div className="rounded-lg bg-white/[0.05] px-4 py-3">
-            <p className="text-[11px] font-bold text-[#9D97B8]">{label}</p>
-            <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-white">{value}</p>
-            {sub && <p className="text-[11px] text-[#7C7794]">{sub}</p>}
+        <div className="rounded-lg bg-surface px-4 py-3">
+            <p className="text-xs font-bold text-muted">{label}</p>
+            <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-ink">{value}</p>
+            {sub && <p className="text-xs text-faint">{sub}</p>}
         </div>
     );
 }
@@ -194,8 +194,8 @@ function HourChart({ hours }: { hours: number[] }) {
     return (
         <div className={card}>
             <div className="flex items-baseline justify-between gap-2">
-                <p className="text-base font-bold text-white">Saat saat istekler</p>
-                <p className="text-xs text-[#B3B3B3]" aria-live="polite">
+                <p className="text-base font-bold text-ink">Saat saat istekler</p>
+                <p className="text-xs text-muted" aria-live="polite">
                     {shown >= 0
                         ? `${label(shown)}–${label((shown + 1) % 24)} · ${hours[shown]} istek${hover === null ? " (en yoğun)" : ""}`
                         : "Henüz istek yok"}
@@ -215,10 +215,10 @@ function HourChart({ hours }: { hours: number[] }) {
                             onBlur={() => setHover(null)}
                             onClick={() => setHover(h)}
                             aria-label={`${label(h)}: ${v} istek`}
-                            className="flex h-full flex-1 items-end outline-none"
+                            className="flex h-full flex-1 items-end"
                         >
                             <span
-                                className={`block w-full rounded-t-[4px] transition-colors ${active ? "bg-[#B9A6FF]" : "bg-[#7555E9]"
+                                className={`block w-full rounded-t-[4px] transition-colors ${active ? "bg-accent" : "bg-faint/60"
                                     }`}
                                 style={{ height: `${height}%` }}
                             />
@@ -226,7 +226,7 @@ function HourChart({ hours }: { hours: number[] }) {
                     );
                 })}
             </div>
-            <div className="mt-1.5 grid grid-cols-6 border-t border-white/[0.08] pt-1.5 text-[10px] tabular-nums text-[#7C7794]">
+            <div className="mt-1.5 grid grid-cols-6 border-t border-line pt-1.5 text-xs tabular-nums text-faint">
                 {[12, 16, 20, 0, 4, 8].map((h) => (
                     <span key={h}>{label(h)}</span>
                 ))}
@@ -309,8 +309,8 @@ function TopLists({
                         onClick={() => onList(l.key)}
                         aria-pressed={list === l.key}
                         className={`h-8 shrink-0 rounded-full px-3 text-xs font-bold transition ${list === l.key
-                            ? "bg-white text-black"
-                            : "bg-white/[0.08] text-[#D0CAE8] hover:bg-white/[0.14]"
+                            ? "bg-ink text-page"
+                            : "bg-raised text-ink hover:bg-line"
                             }`}
                     >
                         {l.label}
@@ -319,13 +319,13 @@ function TopLists({
             </div>
 
             {items.length === 0 ? (
-                <p className="py-8 text-center text-sm text-[#B3B3B3]">Henüz veri yok.</p>
+                <p className="py-8 text-center text-sm text-muted">Henüz veri yok.</p>
             ) : (
                 <ol className="mt-2">
                     {items.map((r, i) => {
                         const inner = (
                             <>
-                                <span className="w-5 shrink-0 text-center text-xs font-extrabold tabular-nums text-[#7C7794]">
+                                <span className="w-5 shrink-0 text-center text-xs font-extrabold tabular-nums text-faint">
                                     {i + 1}
                                 </span>
                                 {r.cover ? (
@@ -334,13 +334,13 @@ function TopLists({
                 loading="lazy"
                 decoding="async" src={r.cover} alt="" className="size-10 shrink-0 rounded-[4px] object-cover" />
                                 ) : (
-                                    <span className="size-10 shrink-0 rounded-[4px] bg-white/10" />
+                                    <span className="size-10 shrink-0 rounded-[4px] bg-line" />
                                 )}
                                 <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-semibold text-white">{r.name}</span>
-                                    <span className="block truncate text-xs text-[#B3B3B3]">{r.sub}</span>
+                                    <span className="block truncate text-sm font-semibold text-ink">{r.name}</span>
+                                    <span className="block truncate text-xs text-muted">{r.sub}</span>
                                 </span>
-                                <span className="shrink-0 text-sm font-extrabold tabular-nums text-[#CFC4FF]">
+                                <span className="shrink-0 text-sm font-extrabold tabular-nums text-ink">
                                     {r.value}
                                 </span>
                             </>
@@ -351,7 +351,7 @@ function TopLists({
                                     <button
                                         type="button"
                                         onClick={() => onSong(r.song!)}
-                                        className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition hover:bg-white/[0.05]"
+                                        className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition hover:bg-surface"
                                     >
                                         {inner}
                                     </button>
@@ -378,13 +378,13 @@ function Nights({ nights }: { nights: NightSummary[] }) {
     const [open, setOpen] = useState<string | null>(null);
     return (
         <div className={card}>
-            <p className="text-base font-bold text-white">Geçmiş geceler</p>
+            <p className="text-base font-bold text-ink">Geçmiş geceler</p>
             {nights.length === 0 ? (
-                <p className="mt-1 text-xs text-[#B3B3B3]">
+                <p className="mt-1 text-xs text-muted">
                     &quot;Geceyi bitir&quot;e her bastığında o gece buraya eklenir.
                 </p>
             ) : (
-                <ul className="mt-2 divide-y divide-white/[0.06]">
+                <ul className="mt-2 divide-y divide-line">
                     {nights.map((n) => {
                         const isOpen = open === n.archivedAt;
                         return (
@@ -396,31 +396,31 @@ function Nights({ nights }: { nights: NightSummary[] }) {
                                     className="flex w-full items-center gap-3 py-3 text-left"
                                 >
                                     <span className="min-w-0 flex-1">
-                                        <span className="block text-sm font-bold capitalize text-white">
+                                        <span className="block text-sm font-bold capitalize text-ink">
                                             {dayFmt.format(new Date(n.startedAt))}
                                         </span>
-                                        <span className="block text-xs text-[#B3B3B3]">
+                                        <span className="block text-xs text-muted">
                                             {n.requests} istek · {n.songs.length} şarkı · {n.played} çalındı
                                             {n.rejected ? ` · ${n.rejected} reddedildi` : ""}
                                         </span>
                                     </span>
                                     <ChevronDown
                                         size={18}
-                                        className={`shrink-0 text-[#9A94B0] transition ${isOpen ? "rotate-180" : ""}`}
+                                        className={`shrink-0 text-muted transition ${isOpen ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {isOpen && (
                                     <ol className="mb-3 space-y-1.5">
                                         {n.songs.map((s) => (
                                             <li key={s.id} className="flex items-center gap-2 text-sm">
-                                                <span className="min-w-0 flex-1 truncate text-[#EDEAF7]">
-                                                    {s.name} <span className="text-[#8F8AA8]">· {s.artists}</span>
+                                                <span className="min-w-0 flex-1 truncate text-ink">
+                                                    {s.name} <span className="text-faint">· {s.artists}</span>
                                                 </span>
-                                                <span className="shrink-0 text-[11px] text-[#9D97B8]">
+                                                <span className="shrink-0 text-xs text-muted">
                                                     {STATUS_TEXT[s.status] ?? s.status}
                                                 </span>
                                                 {s.count > 1 && (
-                                                    <span className="shrink-0 rounded-full bg-[#9B80FF]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#CFC4FF]">
+                                                    <span className="shrink-0 rounded-full bg-raised px-2 py-0.5 text-xs font-extrabold text-ink">
                                                         ×{s.count}
                                                     </span>
                                                 )}
@@ -466,7 +466,7 @@ function SongDetail({ song: s, onClose }: { song: SongStat; onClose: () => void 
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="max-h-[90dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-white/[0.08] bg-[#141124] p-5 shadow-2xl sm:rounded-3xl"
+                className="max-h-[90dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-page p-5 shadow-2xl sm:rounded-3xl"
             >
                 <div className="flex items-center gap-3">
                     {s.cover ? (
@@ -475,18 +475,18 @@ function SongDetail({ song: s, onClose }: { song: SongStat; onClose: () => void 
                 loading="lazy"
                 decoding="async" src={s.cover} alt="" className="size-14 shrink-0 rounded-md object-cover" />
                     ) : (
-                        <span className="size-14 shrink-0 rounded-md bg-white/10" />
+                        <span className="size-14 shrink-0 rounded-md bg-line" />
                     )}
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-extrabold text-white">{s.name}</p>
-                        <p className="truncate text-xs text-[#B3B3B3]">{s.artists}</p>
+                        <p className="truncate text-base font-extrabold text-ink">{s.name}</p>
+                        <p className="truncate text-xs text-muted">{s.artists}</p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
                         aria-label="Kapat"
                         autoFocus
-                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-white transition hover:bg-white/[0.14]"
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-raised text-ink transition hover:bg-line"
                     >
                         <X size={18} />
                     </button>
@@ -494,9 +494,9 @@ function SongDetail({ song: s, onClose }: { song: SongStat; onClose: () => void 
 
                 <dl className="mt-4 grid grid-cols-2 gap-2">
                     {items.map(([k, v]) => (
-                        <div key={k} className="rounded-lg bg-white/[0.05] px-3 py-2.5">
-                            <dt className="text-[11px] font-bold text-[#9D97B8]">{k}</dt>
-                            <dd className="text-lg font-extrabold tabular-nums text-white">{v}</dd>
+                        <div key={k} className="rounded-lg bg-surface px-3 py-2.5">
+                            <dt className="text-xs font-bold text-muted">{k}</dt>
+                            <dd className="text-lg font-extrabold tabular-nums text-ink">{v}</dd>
                         </div>
                     ))}
                 </dl>
@@ -509,8 +509,8 @@ function SongDetail({ song: s, onClose }: { song: SongStat; onClose: () => void 
                         ] as const
                     ).map(([k, v]) => (
                         <div key={k} className="flex justify-between gap-3">
-                            <dt className="text-[#9D97B8]">{k}</dt>
-                            <dd className="font-semibold text-white">{v}</dd>
+                            <dt className="text-muted">{k}</dt>
+                            <dd className="font-semibold text-ink">{v}</dd>
                         </div>
                     ))}
                 </dl>

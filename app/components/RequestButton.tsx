@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, Lock, Search, Sparkles, X } from "lucide-react";
+import { Check, ChevronRight, Lock, Plus, Search, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useSystem } from "@/lib/system-context";
@@ -106,7 +106,7 @@ export default function RequestButton() {
     if (!loaded) {
         return (
             <section className="relative z-20 shrink-0 px-5" aria-busy="true">
-                <div className="h-11 animate-pulse rounded-full bg-white/[0.07]" />
+                <div className="h-11 animate-pulse rounded-full bg-raised" />
             </section>
         );
     }
@@ -121,8 +121,8 @@ export default function RequestButton() {
                     inert={open}
                     disabled={!loaded || !requestsOpen}
                     className={`absolute inset-0 flex w-full items-center justify-between rounded-full px-5 text-sm font-extrabold transition duration-300 ease-out motion-reduce:transition-none ${closed
-                        ? "cursor-not-allowed bg-white/[0.07] text-[#9A94B0]"
-                        : "bg-[#1ED760] text-black shadow-[0_8px_24px_-12px_#1ED760] disabled:opacity-70"
+                        ? "cursor-not-allowed bg-raised text-muted"
+                        : "bg-accent text-on-accent disabled:opacity-70"
                         } ${open ? "scale-95 opacity-0" : "opacity-100 enabled:active:scale-[0.98]"
                         }`}
                 >
@@ -130,22 +130,22 @@ export default function RequestButton() {
                         {closed ? (
                             <Lock size={17} />
                         ) : (
-                            <Sparkles size={17} className="text-black" />
+                            <Plus size={18} strokeWidth={2.5} className="text-on-accent" />
                         )}
                         {closed ? "İstekler şu an kapalı" : "İstek Parça Yap"}
                     </span>
-                    {!closed && <ChevronRight size={18} className="text-black/60" />}
+                    {!closed && <ChevronRight size={18} className="text-on-accent/60" />}
                 </button>
 
                 {/* Arama kutusu */}
                 <div
                     inert={!open}
-                    className={`absolute inset-0 flex items-center gap-2 rounded-full border border-[#1ED760]/60 bg-[#1F1B33] px-4 transition duration-300 ease-out motion-reduce:transition-none ${open ? "scale-x-100 opacity-100" : "scale-x-90 opacity-0"
+                    className={`absolute inset-0 flex items-center gap-2 rounded-full bg-raised px-4 transition duration-300 ease-out motion-reduce:transition-none ${open ? "scale-x-100 opacity-100" : "scale-x-90 opacity-0"
                         }`}
                 >
                     {sent ? (
                         <>
-                            <Check size={18} className="shrink-0 text-[#1ED760]" />
+                            <Check size={18} className="shrink-0 text-accent" />
                             <p className="min-w-0 flex-1 truncate text-sm font-semibold">
                                 {sentCount
                                     ? `İsteğe katıldın · ${sentCount} kişi istedi: ${sent.name}`
@@ -154,7 +154,7 @@ export default function RequestButton() {
                         </>
                     ) : (
                         <>
-                            <Search size={18} className="shrink-0 text-[#A99EC9]" />
+                            <Search size={18} className="shrink-0 text-muted" />
                             <input
                                 ref={inputRef}
                                 value={query}
@@ -163,7 +163,7 @@ export default function RequestButton() {
                                 placeholder="Şarkı adı yaz"
                                 aria-label="Şarkı ara"
                                 maxLength={100}
-                                className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#7E769B]"
+                                className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-faint"
                             />
                         </>
                     )}
@@ -171,7 +171,7 @@ export default function RequestButton() {
                         type="button"
                         onClick={() => setOpen(false)}
                         aria-label="Kapat"
-                        className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#A99EC9] transition hover:bg-white/10"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                     >
                         <X size={17} />
                     </button>
@@ -179,16 +179,16 @@ export default function RequestButton() {
 
                 {/* Kutu açık ama henüz yazılmadı: kuralı göster */}
                 {open && !sent && !active && (
-                    <p className="absolute inset-x-0 top-12 rounded-2xl border border-white/[0.08] bg-[#1B1733] px-4 py-3 text-xs text-[#89839F] shadow-2xl">
+                    <p className="absolute inset-x-0 top-12 rounded-2xl border border-line bg-surface px-4 py-3 text-xs text-muted shadow-2xl">
                         {LIMIT_NOTE}
                     </p>
                 )}
 
                 {/* Öneriler */}
                 {active && (
-                    <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#1B1733] p-1.5 shadow-2xl">
+                    <div className="absolute inset-x-0 top-12 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-2xl">
                         {blocked ? (
-                            <p role="alert" className="p-3 text-sm text-[#FF8FB0]">
+                            <p role="alert" className="p-3 text-sm text-danger">
                                 {BLOCKED_MESSAGE}
                             </p>
                         ) : (
@@ -201,7 +201,7 @@ export default function RequestButton() {
                                                     type="button"
                                                     onClick={() => pick(t)}
                                                     disabled={!!t.requested || sendingId !== null}
-                                                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                                                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     {t.cover ? (
                                                         // eslint-disable-next-line @next/next/no-img-element
@@ -213,24 +213,26 @@ export default function RequestButton() {
                                                             className="size-10 shrink-0 rounded-lg object-cover"
                                                         />
                                                     ) : (
-                                                        <div className="size-10 shrink-0 rounded-lg bg-white/10" />
+                                                        <div className="size-10 shrink-0 rounded-lg bg-line" />
                                                     )}
                                                     <span className="min-w-0 flex-1">
                                                         <span className="block truncate text-sm font-bold">
                                                             {t.name}
                                                         </span>
-                                                        <span className="block truncate text-xs text-[#89839F]">
+                                                        <span className="block truncate text-xs text-muted">
                                                             {t.artists}
                                                         </span>
                                                     </span>
                                                     <span className="flex shrink-0 flex-col items-end gap-1">
                                                         {t.inPlaylist && (
-                                                            <span className="rounded bg-[#1ED760]/15 px-1.5 py-px text-[10px] font-extrabold uppercase text-[#1ED760]">
+                                                            <span className="rounded bg-raised px-1.5 py-px text-xs font-bold text-muted">
                                                                 Listemizde
                                                             </span>
                                                         )}
                                                         <span
-                                                            className={`text-xs font-bold ${t.requested ? "text-[#89839F]" : "text-[#B9A6FF]"
+                                                            className={`text-xs font-bold ${t.requested
+                                                                ? "text-muted"
+                                                                : "rounded-full bg-accent px-2.5 py-1 text-on-accent"
                                                                 }`}
                                                         >
                                                             {t.requested
@@ -247,14 +249,14 @@ export default function RequestButton() {
                                 )}
 
                                 {!hasItems && fresh && (
-                                    <p className="p-3 text-sm text-[#89839F]">
+                                    <p className="p-3 text-sm text-muted">
                                         Sonuç yok. Şarkı adını farklı yazmayı dene.
                                     </p>
                                 )}
                                 {!hasItems && !fresh && (
-                                    <p className="p-3 text-sm text-[#89839F]">Aranıyor…</p>
+                                    <p className="p-3 text-sm text-muted">Aranıyor…</p>
                                 )}
-                                <p className="border-t border-white/[0.06] px-3 pb-1.5 pt-2.5 text-[11px] text-[#7C7794]">
+                                <p className="border-t border-line px-3 pb-1.5 pt-2.5 text-xs text-faint">
                                     {LIMIT_NOTE}
                                 </p>
                             </>
