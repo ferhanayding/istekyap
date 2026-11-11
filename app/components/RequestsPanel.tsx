@@ -151,8 +151,7 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                         const badge = BADGE[r.status] ?? BADGE.pending;
                         const playing = system.nowPlaying === r.spotify_id;
 
-                        // Onaylı ve çalınmış istekler oylanabilir
-                        const voteable = r.status === "approved" || r.status === "played";
+                        // Oy sadece çalınmış şarkılara
                         const wasPlayed =
                             r.status === "played" || system.played.has(r.spotify_id);
 
@@ -196,7 +195,7 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                 }
                                 actions={
                                     <>
-                                        {voteable && (
+                                        {wasPlayed && (
                                             <VoteButtons
                                                 id={r.spotify_id}
                                                 name={r.name}

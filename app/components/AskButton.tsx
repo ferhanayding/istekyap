@@ -18,7 +18,9 @@ export default function AskButton({
     /** Bu gece reddedildi: tekrar istenemez */
     rejected?: boolean;
 }) {
-    const { requestsOpen } = useSystem();
+    const { requestsOpen, played: playedTonight } = useSystem();
+    // Bu gece çalındı: tekrar istenemez
+    const played = playedTonight.has(id);
     const toast = useToast();
     const [state, setState] = useState<"idle" | "sending" | "done">("idle");
 
@@ -36,7 +38,9 @@ export default function AskButton({
         }
         setState("done");
         toast.success(
-            r.count ? `İsteğe katıldın · ${r.count} kişi istedi: ${name}` : `İstek gönderildi: ${name}`
+            r.count
+                ? `İsteğe katıldın · ${r.count} kişi istedi: ${name}`
+                : `İstek gönderildi: ${name}`,
         );
     }
 
@@ -45,16 +49,25 @@ export default function AskButton({
         <button
             type="button"
             onClick={ask}
-            disabled={done || rejected || state === "sending"}
+            disabled={done || rejected || played || state === "sending"}
             aria-label={`${name} şarkısını iste`}
-            className={`h-7 shrink-0 rounded-full px-3 text-xs font-extrabold transition enabled:active:scale-95 ${done
-                ? "bg-accent/15 text-accent"
-                : rejected || !requestsOpen
-                    ? "bg-raised text-faint"
-                    : "bg-accent text-on-accent disabled:opacity-60"
-                }`}
+            className={`h-7 shrink-0 rounded-full px-3 text-xs font-extrabold transition enabled:active:scale-95 ${
+                done
+                    ? "bg-accent/15 text-accent"
+                    : rejected || played || !requestsOpen
+                      ? "bg-raised text-faint"
+                      : "bg-accent text-on-accent disabled:opacity-60"
+            }`}
         >
-            {done ? "İstendi" : rejected ? "Reddedildi" : state === "sending" ? "…" : "İste"}
+            {done
+                ? "İstendi"
+                : played
+                  ? "Çalındı"
+                  : rejected
+                    ? "Reddedildi"
+                    : state === "sending"
+                      ? "…"
+                      : "İste"}
         </button>
     );
 }

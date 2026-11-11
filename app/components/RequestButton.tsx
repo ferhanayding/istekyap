@@ -32,7 +32,7 @@ export default function RequestButton() {
     const [sent, setSent] = useState<Track | null>(null);
     const [sentCount, setSentCount] = useState<number | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const { loaded, requestsOpen } = useSystem();
+    const { loaded, requestsOpen, played } = useSystem();
     const toast = useToast();
     const closed = loaded && !requestsOpen;
 
@@ -200,7 +200,7 @@ export default function RequestButton() {
                                                 <button
                                                     type="button"
                                                     onClick={() => pick(t)}
-                                                    disabled={!!t.requested || sendingId !== null}
+                                                    disabled={!!t.requested || played.has(t.id) || sendingId !== null}
                                                     className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     {t.cover ? (
@@ -230,12 +230,14 @@ export default function RequestButton() {
                                                             </span>
                                                         )}
                                                         <span
-                                                            className={`text-xs font-bold ${t.requested
+                                                            className={`text-xs font-bold ${t.requested || played.has(t.id)
                                                                 ? "text-muted"
                                                                 : "rounded-full bg-accent px-2.5 py-1 text-on-accent"
                                                                 }`}
                                                         >
-                                                            {t.requested
+                                                            {played.has(t.id)
+                                                                ? "Çalındı"
+                                                                : t.requested
                                                                 ? REQUESTED_LABEL[t.requested]
                                                                 : sendingId === t.id
                                                                     ? "Gönderiliyor…"

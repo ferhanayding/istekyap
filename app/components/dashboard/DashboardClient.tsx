@@ -226,7 +226,8 @@ function DashboardInner() {
         if (shownError) toast.error(shownError);
     }, [shownError, toast]);
 
-    const known = useRef<Set<string> | null>(null);
+    // id -> durum: yeni gelen ya da tekrar "Bekliyor"a düşen (çalınmış şarkı yeniden istendi) istek bildirilir
+    const known = useRef<Map<string, Status> | null>(null);
     const audio = useRef<AudioContext | null>(null);
     const soundOn = useRef(false);
 
@@ -258,9 +259,9 @@ function DashboardInner() {
             const list = data as RequestRow[];
             const prev = known.current;
             const fresh = prev
-                ? list.filter((r) => r.status === "pending" && !prev.has(r.id))
+                ? list.filter((r) => r.status === "pending" && prev.get(r.id) !== "pending")
                 : [];
-            known.current = new Set(list.map((r) => r.id));
+            known.current = new Map(list.map((r) => [r.id, r.status]));
 
             setItems(list);
             setNow(Date.now());
@@ -360,6 +361,8 @@ function DashboardInner() {
             setItems((list) =>
                 list ? list.map((r) => (r.id === id ? { ...r, status } : r)) : list
             );
+            // Kendi değişikliğimiz (örn. "Bekleyene al") yeni istek gibi bildirilmesin
+            known.current?.set(id, status);
             dismiss(id);
             // Çalan istek elle başka duruma alınırsa çalma işareti de kalksın
             if (row && nowPlaying === row.spotify_id) {

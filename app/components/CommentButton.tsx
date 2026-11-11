@@ -17,15 +17,16 @@ export default function CommentButton() {
     const [error, setError] = useState<string | null>(null);
     const sheetRef = useRef<HTMLDivElement>(null);
 
+    // Kapatınca (X, Esc, dışarı dokunma) form sıfırlanır: bir sonraki açılış hep boş gelir
     function close() {
+        // Gönderilirken kapatılmasın: cevap gelince form yarım kalmış gibi açılmasın
+        if (state === "sending") return;
         setOpen(false);
-        // Gönderildiyse bir sonraki açılışta form boş gelsin
-        if (state === "done") {
-            setRating(0);
-            setMessage("");
-            setName("");
-            setState("idle");
-        }
+        setRating(0);
+        setMessage("");
+        setName("");
+        setTrap("");
+        setState("idle");
         setError(null);
     }
 

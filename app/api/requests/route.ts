@@ -31,6 +31,21 @@ async function recentRequestTimes(deviceId: string): Promise<number[]> {
     return (data ?? []).map((r) => new Date(r.created_at).getTime());
 }
 
+// Bu gece çalındı mı: "Çal"/"Çalındı" ile bu gecenin çalınanlar listesine girenler ya da
+// listede "Çalındı" olan istekler. Gece başlatılınca liste sıfırlanır.
+async function playedTonight(spotifyId: string, played: string[]): Promise<boolean> {
+    if (played.includes(spotifyId)) return true;
+    const { data, error } = await supabaseAdmin
+        .from("requests")
+        .select("id")
+        .eq("spotify_id", spotifyId)
+        .is("archived_at", null)
+        .eq("status", "played")
+        .limit(1);
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
+}
+
 type MakeResult = {
     result: "created" | "joined" | "already";
     status: string;
@@ -114,6 +129,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 { error: "Bu şarkı istek listesine eklenemez." },
                 { status: 403 }
+            );
+        }
+
+        // Bu gece çalınmış şarkı tekrar istenemez
+        if (await playedTonight(track.id, state.played)) {
+            return NextResponse.json(
+                { error: "Bu şarkı bu gece zaten çalındı." },
+                { status: 409 }
             );
         }
 

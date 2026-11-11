@@ -30,7 +30,7 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
     const [items, setItems] = useState<RequestItem[] | null>(null);
     const [failed, setFailed] = useState(false);
     const [now, setNow] = useState(0);
-    const known = useRef<Set<string> | null>(null);
+    const known = useRef<Map<string, RequestStatus> | null>(null);
     const onNewRef = useRef(onNew);
 
     useEffect(() => {
@@ -52,11 +52,11 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
 
                 const list = data as RequestItem[];
                 const prev = known.current;
-                // Bildirim sadece daha önce görmediğimiz yeni bekleyen istekler için
+                // Bildirim yeni bekleyen istekler ve tekrar istenen (çalınmışken "Bekliyor"a dönen) şarkılar için
                 const fresh = prev
-                    ? list.filter((r) => r.status === "pending" && !prev.has(r.id))
+                    ? list.filter((r) => r.status === "pending" && prev.get(r.id) !== "pending")
                     : [];
-                known.current = new Set([...(prev ?? []), ...list.map((r) => r.id)]);
+                known.current = new Map(list.map((r) => [r.id, r.status]));
 
                 setItems(list);
                 setNow(Date.now());

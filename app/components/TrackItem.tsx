@@ -52,6 +52,11 @@ export default memo(function TrackItem({
                     </span>
                 ) : (
                     <>
+                        {played && (
+                            <span className="rounded-full bg-raised px-2 py-px font-bold text-ink">
+                                Çalındı
+                            </span>
+                        )}
                         {added?.isNew && (
                             <span className="rounded bg-accent px-1.5 font-extrabold uppercase text-on-accent">
                                 Yeni
@@ -63,16 +68,20 @@ export default memo(function TrackItem({
             }
             actions={
                 <>
-                    <VoteButtons
-                        id={t.id}
-                        name={t.name}
-                        likes={likes}
-                        mine={mine}
-                        played={played}
-                        votingOpen={votingOpen}
-                        onVote={onVote}
-                    />
-                    <AskButton id={t.id} name={t.name} />
+                    {/* Oy sadece çalınmış şarkılara */}
+                    {played && (
+                        <VoteButtons
+                            id={t.id}
+                            name={t.name}
+                            likes={likes}
+                            mine={mine}
+                            played={played}
+                            votingOpen={votingOpen}
+                            onVote={onVote}
+                        />
+                    )}
+                    {/* Çalınmış şarkı bu gece tekrar istenemez: rozet yeterli, buton yerine oy */}
+                    {!played && <AskButton id={t.id} name={t.name} />}
                     <LyricsButton name={t.name} artists={t.artists} />
                 </>
             }
