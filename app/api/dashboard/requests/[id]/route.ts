@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
 import { clearAppStateCache } from "@/lib/app-state";
-import { recordPlay } from "@/lib/plays";
+import { recordPlay, unmarkPlayedTonight } from "@/lib/plays";
 
 const UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +55,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         } catch (e) {
             console.error(e);
         }
+        clearAppStateCache();
+        notifyLive("requests", "state");
+    } else if (status === "pending" || status === "approved") {
+        // Çalındı'dan geri alındıysa (yanlış basıldı ya da tekrar çalınacak) şarkı yine
+        // istenebilir olsun: listede bekleyen ama "zaten çalındı" diye katılınamayan kart kalmasın
+        await unmarkPlayedTonight(row.spotify_id).catch((e) => console.error(e));
         clearAppStateCache();
         notifyLive("requests", "state");
     } else {

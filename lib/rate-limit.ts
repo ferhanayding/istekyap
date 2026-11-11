@@ -1,3 +1,5 @@
+import { readDeviceId } from "@/lib/device";
+
 type Entry = { count: number; reset: number };
 const hits = new Map<string, Entry>();
 
@@ -39,4 +41,16 @@ export function limitDeviceAndIp(
     const byIp = rateLimit(`${name}-ip:${ip}`, ipRule.limit, ipRule.windowMs);
     if (!byIp.ok) return byIp;
     return rateLimit(`${name}-dev:${deviceId}`, device.limit, device.windowMs);
+}
+
+
+// Önbelleğe alınabilen (herkese aynı giden) cevaplar için: çerez YAZMAZ, sadece okur.
+// Çerezi olmayan (henüz hiç istek atmamış) ziyaretçiye sadece IP sınırı uygulanır:
+// barda herkes aynı IP'den geldiği için cihaz sınırını IP'ye bağlamak bütün barı kısıtlardı.
+export async function limitVisitor(name: string, req: Request, device: Rule, ipRule: Rule) {
+    const ip = getIp(req);
+    const deviceId = await readDeviceId();
+    return deviceId
+        ? limitDeviceAndIp(name, deviceId, ip, device, ipRule)
+        : rateLimit(`${name}-ip:${ip}`, ipRule.limit, ipRule.windowMs);
 }

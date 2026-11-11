@@ -11,6 +11,7 @@ import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 const DEVICE_LIMIT = 5;
+const ATTEMPT_LIMIT = 30;
 const DEVICE_WINDOW_MS = 10 * 60_000;
 
 // Sınıra gelince toast'ta görünen mesaj
@@ -31,19 +32,23 @@ async function recentRequestTimes(deviceId: string): Promise<number[]> {
     return (data ?? []).map((r) => new Date(r.created_at).getTime());
 }
 
-// Bu gece çalındı mı: "Çal"/"Çalındı" ile bu gecenin çalınanlar listesine girenler ya da
-// listede "Çalındı" olan istekler. Gece başlatılınca liste sıfırlanır.
-async function playedTonight(spotifyId: string, played: string[]): Promise<boolean> {
-    if (played.includes(spotifyId)) return true;
+// Bu gece istenemeyecek şarkı: çalınmış (dashboard'da "Çal"/"Çalındı") ya da reddedilmiş.
+// Önceden bakılır ki sayaç artmasın ve kişinin istek hakkı boşa gitmesin.
+// Gece başlatılınca ikisi de sıfırlanır.
+async function blockedTonight(
+    spotifyId: string,
+    played: string[]
+): Promise<"played" | "rejected" | null> {
+    if (played.includes(spotifyId)) return "played";
     const { data, error } = await supabaseAdmin
         .from("requests")
-        .select("id")
+        .select("status")
         .eq("spotify_id", spotifyId)
         .is("archived_at", null)
-        .eq("status", "played")
-        .limit(1);
+        .in("status", ["played", "rejected"]);
     if (error) throw error;
-    return (data?.length ?? 0) > 0;
+    if (data?.some((r) => r.status === "played")) return "played";
+    return data?.length ? "rejected" : null;
 }
 
 type MakeResult = {
@@ -82,17 +87,19 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Cihaz başına 10 dakikada 5 istek, aynı IP'den (ortak Wi-Fi) 10 dakikada 100
+    // Bellekteki sayaç her denemeyi sayar (başarısızlar dahil), o yüzden sadece kötüye
+    // kullanıma karşı geniş bir emniyet: cihaz başına 10 dakikada 30 deneme, aynı IP'den
+    // (ortak Wi-Fi) 300. Asıl "10 dakikada 5 istek" kuralı aşağıda, gerçekleşen isteklerden sayılır.
     const limit = limitDeviceAndIp(
         "request",
         deviceId,
         getIp(req),
-        { limit: DEVICE_LIMIT, windowMs: DEVICE_WINDOW_MS },
-        { limit: 100, windowMs: DEVICE_WINDOW_MS }
+        { limit: ATTEMPT_LIMIT, windowMs: DEVICE_WINDOW_MS },
+        { limit: 300, windowMs: DEVICE_WINDOW_MS }
     );
     if (!limit.ok) {
         return NextResponse.json(
-            { error: limitMessage(limit.retryAfter) },
+            { error: "Çok fazla deneme yaptın, biraz bekle." },
             { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
         );
     }
@@ -132,10 +139,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Bu gece çalınmış şarkı tekrar istenemez
-        if (await playedTonight(track.id, state.played)) {
+        const blocked = await blockedTonight(track.id, state.played);
+        if (blocked) {
             return NextResponse.json(
-                { error: "Bu şarkı bu gece zaten çalındı." },
+                {
+                    error:
+                        blocked === "played"
+                            ? "Bu şarkı bu gece zaten çalındı."
+                            : "Bu şarkı bu gece için reddedildi.",
+                },
                 { status: 409 }
             );
         }
@@ -153,9 +165,10 @@ export async function POST(req: NextRequest) {
 
         if (r.result !== "already") notifyLive("requests");
 
+        // Kontrolle istek arasında reddedildiyse (çok dar bir an)
         if (r.status === "rejected") {
             return NextResponse.json(
-                { error: "Bu şarkı istendi ama reddedildi.", count: r.count },
+                { error: "Bu şarkı bu gece için reddedildi.", count: r.count },
                 { status: 409 }
             );
         }

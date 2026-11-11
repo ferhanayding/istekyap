@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTracks } from "@/lib/search";
-import { getIp, limitDeviceAndIp } from "@/lib/rate-limit";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { limitVisitor } from "@/lib/rate-limit";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { requireUser } from "@/lib/auth";
@@ -20,11 +19,11 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: BLOCKED_MESSAGE }, { status: 400 });
     }
 
-    // Cihaz başına dakikada 30 arama, aynı IP'den (ortak Wi-Fi) dakikada 300
-    const limit = limitDeviceAndIp(
+    // Cihaz başına dakikada 30 arama, aynı IP'den (ortak Wi-Fi) dakikada 300.
+    // Çerez yazılmaz: cevap herkese ortak önbellekten gider, içine kişiye özel çerez girmemeli.
+    const limit = await limitVisitor(
         "search",
-        await getOrCreateDeviceId(),
-        getIp(req),
+        req,
         { limit: 30, windowMs: 60_000 },
         { limit: 300, windowMs: 60_000 }
     );

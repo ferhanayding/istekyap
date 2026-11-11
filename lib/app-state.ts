@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
+import { finishRequest } from "@/lib/plays";
 
 // "Çalıyor" işareti bu süre sonra kendiliğinden kapanır
 export const NOW_PLAYING_MS = 5 * 60_000;
@@ -24,12 +25,7 @@ let cache: { state: AppState; expires: number } | null = null;
 
 // Süresi dolan şarkıyı kapat. Çalan bir istekse "Çalındı"ya düşer
 async function expireNowPlaying(id: string) {
-    const a = await supabaseAdmin
-        .from("requests")
-        .update({ status: "played" })
-        .eq("spotify_id", id)
-        .eq("status", "approved");
-    if (a.error) console.error(a.error);
+    await finishRequest(id).catch((e) => console.error(e));
 
     const b = await supabaseAdmin
         .from("app_state")

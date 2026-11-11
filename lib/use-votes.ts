@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchFirst, startEarly } from "@/lib/early-fetch";
+import { useLive } from "@/lib/live-client";
 
 export type MyVote = -1 | 0 | 1;
 export type VoteState = { likes: number; mine: MyVote };
@@ -42,6 +43,9 @@ export function useVotes() {
             // Sessiz geç, bir sonraki turda tekrar dener
         }
     }, []);
+
+    // Gece başlayınca (oylar sıfırlanır) ve şarkı çalınınca (oylanabilir olur) hemen tazele
+    useLive("state", () => void load());
 
     useEffect(() => {
         const first = setTimeout(() => load(), 0);

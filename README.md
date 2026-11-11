@@ -7,9 +7,9 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 ## Neler var
 
 **Ziyaretçi sayfası (`/`)**
-- Spotify'da şarkı arama ve istek gönderme; aynı şarkıyı isteyenler sayılır (×3)
+- Spotify'da şarkı arama ve istek gönderme; playlistteki ve eski isteklerdeki şarkılar tek dokunuşla istenir; aynı şarkıyı isteyenler sayılır (×3)
 - İstek listesi iki sekme: **Bu gece** (canlı) ve **Eski istekler** (bugüne kadar istenen her şarkı: kaç kez istendi, çalındı, beğenildi; buradan da istenebilir)
-- Şarkı sözleri (LRCLIB), çalınan şarkılara 👍 / 👎, yorum ve puan
+- Şarkı sözleri (LRCLIB), bu gece çalınan şarkılara 👍 / 👎 (çalınmamışlarda oy butonu görünmez), yorum ve puan
 - Gece kapalıyken en üstte "Canlı müzik başlayınca istek yapma ve oy verme açılacak" uyarısı
 
 **Dashboard (`/dashboard`, giriş gerekli)**
@@ -21,7 +21,7 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 
 **Gece akışı**
 - *Geceyi başlat*: istek ve oylama açılır. Önceki geceden kalanlar (liste, oylar, "çalındı" işaretleri) ziyaretçinin ekranından kalkar, istatistikte kalır. "Bu gece" istatistiği bu andan sayılır.
-- *Geceyi bitir*: istek ve oylama kapanır, çalan şarkı durur, bu gecenin istekleri arşive gider (Eski istekler'de ve istatistikte "Son gece" olarak kalır). 10 dakika içinde geri alınabilir.
+- *Geceyi bitir*: istek ve oylama kapanır, çalan şarkı durur, bu gecenin istekleri arşive gider (Eski istekler'de ve istatistikte "Son gece" olarak kalır), playlistteki "Çalındı" işaretleri kalkar. 10 dakika içinde geri alınabilir: sadece o bitişte arşivlenen istekler ve o gecenin "çalındı" işaretleri geri gelir.
 
 ## Teknik yapı
 
@@ -125,8 +125,9 @@ supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)
 
 | Kural | Sınır |
 | --- | --- |
-| İstek | Cihaz başına 10 dakikada 5 (aynı IP'ye 100) |
-| Arama | Cihaz başına dakikada 30 (aynı IP'ye 300) |
+| İstek | Cihaz başına 10 dakikada 5 gerçekleşen istek. Ayrıca kötüye kullanıma karşı 10 dakikada 30 deneme (aynı IP'ye 300) |
+| Tekrar istek | Bu gece çalınan ya da reddedilen şarkı tekrar istenemez (sayaç artmaz, istek hakkı harcanmaz); yeni gecede sıfırlanır |
+| Arama | Cihaz başına dakikada 30 (aynı IP'ye 300; çerezi olmayan ziyaretçiye sadece IP sınırı) |
 | Yorum | Cihaz başına 10 dakikada 3 (aynı IP'ye 60) |
 | Aynı şarkı | Bir cihaz sayacı bir kez artırır |
 | Şarkı sözü | Cihaz başına dakikada 20 (aynı IP'ye 200; çerezi olmayan ziyaretçiye sadece IP sınırı) |
@@ -136,7 +137,9 @@ supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)
 
 İstek sınırı veritabanından (`request_devices`) sayılır, Vercel'in birden çok sunucu örneğinde de doğru çalışır. Diğer hız sınırları sunucu belleğinde tutulur; her sunucu örneği kendi sayacını tutar.
 
-Dashboard'da elle "Çalındı" denen istek de "Çal" gibi çalma geçmişine yazılır ve o gece oylanabilir olur.
+Dashboard'da elle "Çalındı" denen istek de "Çal" gibi çalma geçmişine yazılır ve o gece oylanabilir olur. Çalındı'dan "Bekleyene al" ile geri alınan şarkı yeniden istenebilir.
+
+Arama ve şarkı sözü cevapları herkese ortak önbellekten gittiği için bu iki API ziyaretçiye çerez yazmaz; cihaz çerezi ilk istek, oy ya da yorumda verilir.
 
 Bütün sayfalara temel güvenlik başlıkları eklenir (`next.config.ts`): başka sitelere gömülemez, kamera/mikrofon/konum kapalı.
 

@@ -8,18 +8,10 @@ import { useSystem } from "@/lib/system-context";
 import { sendRequest } from "@/lib/send-request";
 import { useToast } from "./Toast";
 
-type Requested = "pending" | "approved" | "rejected" | null;
-type Result = Track & { inPlaylist?: boolean; requested?: Requested };
-
-// İstek listesinde zaten olan şarkının sağ tarafında görünen yazı
-const REQUESTED_LABEL: Record<Exclude<Requested, null>, string> = {
-    pending: "İstendi",
-    approved: "Onaylandı",
-    rejected: "Reddedildi",
-};
+type Result = Track & { inPlaylist?: boolean };
 
 // Sunucudaki sınırla aynı (app/api/requests: cihaz başına 10 dakikada 5)
-export const LIMIT_NOTE = "Her cihazdan 10 dakikada en fazla 5 istek atılabilir.";
+const LIMIT_NOTE = "Her cihazdan 10 dakikada en fazla 5 istek atılabilir.";
 
 export default function RequestButton() {
     const [open, setOpen] = useState(false);
@@ -200,7 +192,7 @@ export default function RequestButton() {
                                                 <button
                                                     type="button"
                                                     onClick={() => pick(t)}
-                                                    disabled={!!t.requested || played.has(t.id) || sendingId !== null}
+                                                    disabled={played.has(t.id) || sendingId !== null}
                                                     className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     {t.cover ? (
@@ -230,15 +222,13 @@ export default function RequestButton() {
                                                             </span>
                                                         )}
                                                         <span
-                                                            className={`text-xs font-bold ${t.requested || played.has(t.id)
+                                                            className={`text-xs font-bold ${played.has(t.id)
                                                                 ? "text-muted"
                                                                 : "rounded-full bg-accent px-2.5 py-1 text-on-accent"
                                                                 }`}
                                                         >
                                                             {played.has(t.id)
                                                                 ? "Çalındı"
-                                                                : t.requested
-                                                                ? REQUESTED_LABEL[t.requested]
                                                                 : sendingId === t.id
                                                                     ? "Gönderiliyor…"
                                                                     : "İste"}

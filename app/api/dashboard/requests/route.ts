@@ -12,7 +12,8 @@ export async function GET() {
         .select("id, spotify_id, name, artists, cover, status, request_count, created_at, last_requested_at")
         .is("archived_at", null)
         .order("created_at", { ascending: false })
-        .limit(200);
+        // Kalabalık gecede eski bekleyen istekler gözden kaçmasın (PostgREST üst sınırı 1000)
+        .limit(1000);
 
     if (error) {
         console.error(error);

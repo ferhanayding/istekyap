@@ -9,19 +9,14 @@ import { FLAGS_TAG } from "@/lib/app-flags";
 import { getTrackById } from "@/lib/search";
 import type { Track } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
-import { recordPlay } from "@/lib/plays";
+import {
+    clearPlayedTonight,
+    finishRequest,
+    recordPlay,
+    restorePlayedSince,
+} from "@/lib/plays";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
-
-// Çalan şarkı bir istekse, bitince "Çalındı"ya düşer
-async function finishRequest(spotifyId: string) {
-    const { error } = await supabaseAdmin
-        .from("requests")
-        .update({ status: "played" })
-        .eq("spotify_id", spotifyId)
-        .eq("status", "approved");
-    if (error) throw error;
-}
 
 async function setNowPlaying(
     id: string | null,
@@ -118,25 +113,16 @@ async function markNight(at: string) {
     if (error) console.warn("night_started_at yazılamadı:", error.message);
 }
 
-// Son arşivlemeyi ("Geceyi bitir") geri alır. Bir seferde arşivlenenlerin hepsi aynı
-// archived_at'i taşır. Arşivden sonra aynı şarkı yeniden istendiyse ikisi birleşir.
-async function unarchiveLast(): Promise<boolean> {
-    const { data: last, error } = await supabaseAdmin
-        .from("requests")
-        .select("archived_at")
-        .not("archived_at", "is", null)
-        .order("archived_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-    if (error) throw error;
-    if (!last) return false;
-
+// "Geceyi bitir"de arşivlenenleri listeye geri alır. O an arşivlenenlerin hepsi aynı
+// archived_at'i (gecenin bitiş anı) taşır; başka gecelerin arşivine dokunulmaz.
+// Arşivden sonra aynı şarkı yeniden istendiyse ikisi birleşir.
+async function unarchiveAt(stamp: string): Promise<void> {
     const { data: rows, error: e1 } = await supabaseAdmin
         .from("requests")
         .select("id, spotify_id, status, request_count, last_requested_at")
-        .eq("archived_at", last.archived_at);
+        .eq("archived_at", stamp);
     if (e1) throw e1;
-    if (!rows?.length) return false;
+    if (!rows?.length) return;
 
     const { data: active, error: e2 } = await supabaseAdmin
         .from("requests")
@@ -179,7 +165,6 @@ async function unarchiveLast(): Promise<boolean> {
             .in("id", restore);
         if (e5) throw e5;
     }
-    return true;
 }
 
 export async function GET() {
@@ -251,7 +236,7 @@ export async function POST(req: NextRequest) {
                         .is("archived_at", null)
                         .lte("created_at", cutoff),
                     supabaseAdmin.rpc("archive_votes"),
-                    supabaseAdmin.from("played_songs").delete().neq("spotify_id", ""),
+                    clearPlayedTonight().then(() => ({ error: null })),
                 ]);
                 const failed = steps.find((r) => r.error);
                 if (failed?.error) throw failed.error;
@@ -285,6 +270,9 @@ export async function POST(req: NextRequest) {
                     .update({ archived_at: now })
                     .is("archived_at", null);
                 if (e) throw e;
+                // Gece bitti: playlistteki "Çalındı" işaretleri de kalkar (oylar "Geceyi başlat"a
+                // kadar durur, istatistikte "Son gece" olarak görünür)
+                await clearPlayedTonight();
                 break;
             }
 
@@ -299,7 +287,13 @@ export async function POST(req: NextRequest) {
                         { status: 409 }
                     );
                 }
-                await unarchiveLast();
+                // Sadece bu bitişte arşivlenenler ve bu gecenin "çalındı" işaretleri geri gelir
+                await Promise.all([
+                    unarchiveAt(new Date(endedAt).toISOString()),
+                    current.nightStartedAt
+                        ? restorePlayedSince(new Date(current.nightStartedAt).toISOString())
+                        : null,
+                ]);
                 const error = await updateState({ ...NIGHT_ON, night_ended_at: null });
                 if (error) throw error;
                 break;
