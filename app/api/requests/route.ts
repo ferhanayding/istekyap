@@ -197,7 +197,7 @@ export async function GET(req: NextRequest) {
         .select("id, spotify_id, name, artists, cover, status, request_count, created_at, last_requested_at")
         .is("archived_at", null)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(300);
 
     if (error) {
         console.error(error);

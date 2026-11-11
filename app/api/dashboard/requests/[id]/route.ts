@@ -26,6 +26,20 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         return NextResponse.json({ error: "Geçersiz durum." }, { status: 400 });
     }
 
+    // Önceki durum: "Çalındı"dan mı geri alınıyor, bilmek için
+    const { data: before, error: e0 } = await supabaseAdmin
+        .from("requests")
+        .select("status")
+        .eq("id", id)
+        .maybeSingle();
+    if (e0) {
+        console.error(e0);
+        return NextResponse.json({ error: "İşlem yapılamadı." }, { status: 500 });
+    }
+    if (!before) {
+        return NextResponse.json({ error: "İstek bulunamadı." }, { status: 404 });
+    }
+
     const { data: row, error } = await supabaseAdmin
         .from("requests")
         .update({ status })
@@ -57,9 +71,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         }
         clearAppStateCache();
         notifyLive("requests", "state");
-    } else if (status === "pending" || status === "approved") {
+    } else if (before.status === "played" && (status === "pending" || status === "approved")) {
         // Çalındı'dan geri alındıysa (yanlış basıldı ya da tekrar çalınacak) şarkı yine
-        // istenebilir olsun: listede bekleyen ama "zaten çalındı" diye katılınamayan kart kalmasın
+        // istenebilir olsun: listede bekleyen ama "zaten çalındı" diye katılınamayan kart kalmasın.
+        // Normal "Onayla"da işarete dokunulmaz: playlistten çalınmış şarkının işareti silinmesin.
         await unmarkPlayedTonight(row.spotify_id).catch((e) => console.error(e));
         clearAppStateCache();
         notifyLive("requests", "state");

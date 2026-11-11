@@ -35,12 +35,10 @@ async function setNowPlaying(
         .eq("id", 1);
     if (error) throw error;
 }
-// Playlistte olmayan şarkı istek listesine de girer, böylece oylanabilir
+// Çalınan şarkının bu geceki isteği onaylıya alınır (bekliyorsa da): bitince "Çalındı"ya
+// düşer, listede "Bekliyor" diye asılı kalmaz. İsteği yoksa ve playlistte de değilse
+// istek listesine eklenir, böylece oylanabilir.
 async function ensureRequest(id: string, track: Track | null) {
-    if (!track) return;
-    const index = await getPlaylistIndex().catch(() => null);
-    if (index && isInPlaylist(index, track)) return;
-
     const { data: row, error } = await supabaseAdmin
         .from("requests")
         .select("id, status")
@@ -61,6 +59,10 @@ async function ensureRequest(id: string, track: Track | null) {
         }
         return;
     }
+
+    if (!track) return;
+    const index = await getPlaylistIndex().catch(() => null);
+    if (index && isInPlaylist(index, track)) return;
 
     const { error: e } = await supabaseAdmin.from("requests").insert({
         spotify_id: track.id,
@@ -380,6 +382,9 @@ export async function POST(req: NextRequest) {
         });
     } catch (e) {
         console.error(e);
+        // İşlem yarıda kaldıysa durum değişmiş olabilir: dashboard ve ziyaretçiler gerçek hâli görsün
+        clearAppStateCache();
+        notifyLive("state", "requests");
         return NextResponse.json({ error: "İşlem yapılamadı." }, { status: 500 });
     }
 }
