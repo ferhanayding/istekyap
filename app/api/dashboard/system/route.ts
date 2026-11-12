@@ -86,7 +86,8 @@ const UNDO_END_MS = 10 * 60_000;
 function missingColumn(e: { code?: string } | null): boolean {
     return e?.code === "PGRST204" || e?.code === "42703";
 }
-const NEED_SQL = "Önce Supabase'de supabase/gece.sql dosyasını çalıştır.";
+const NIGHT_CLOSED = "Gece kapalı. Önce Sistem sekmesinden geceyi başlat.";
+const NEED_SQL ="Önce Supabase'de supabase/gece.sql dosyasını çalıştır.";
 
 async function updateState(fields: Record<string, unknown>) {
     const { error } = await supabaseAdmin
@@ -314,6 +315,11 @@ export async function POST(req: NextRequest) {
                     getAppState({ fresh: true }),
                     getTrackById(id).catch(() => null),
                 ]);
+                // Gece kapalıyken çalınan şarkı "çalındı" diye işaretlenir ve istatistiğe
+                // hiçbir geceye ait olmadan yazılırdı
+                if (!current.nightOpen) {
+                    return NextResponse.json({ error: NIGHT_CLOSED }, { status: 409 });
+                }
                 await Promise.all([
                     current.nowPlaying && current.nowPlaying !== id
                         ? finishRequest(current.nowPlaying)

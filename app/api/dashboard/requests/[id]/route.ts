@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
-import { clearAppStateCache } from "@/lib/app-state";
+import { clearAppStateCache, getAppState } from "@/lib/app-state";
 import { recordPlay, unmarkPlayedTonight } from "@/lib/plays";
 
 const UUID =
@@ -27,14 +27,20 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
 
     // Önceki durum: "Çalındı"dan mı geri alınıyor, bilmek için
-    const { data: before, error: e0 } = await supabaseAdmin
-        .from("requests")
-        .select("status")
-        .eq("id", id)
-        .maybeSingle();
-    if (e0) {
-        console.error(e0);
+    const [state, { data: before, error: e0 }] = await Promise.all([
+        getAppState({ fresh: true }).catch(() => null),
+        supabaseAdmin.from("requests").select("status").eq("id", id).maybeSingle(),
+    ]);
+    if (e0 || !state) {
+        if (e0) console.error(e0);
         return NextResponse.json({ error: "İşlem yapılamadı." }, { status: 500 });
+    }
+    // Gece kapalıyken onaylama, reddetme, "Çalındı" yapılmaz (silmek serbest)
+    if (!state.nightOpen) {
+        return NextResponse.json(
+            { error: "Gece kapalı. Önce Sistem sekmesinden geceyi başlat." },
+            { status: 409 }
+        );
     }
     if (!before) {
         return NextResponse.json({ error: "İstek bulunamadı." }, { status: 404 });

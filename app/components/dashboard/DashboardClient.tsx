@@ -95,6 +95,8 @@ const EMPTY: Record<Tab, string> = {
     rejected: "Reddedilen istek yok.",
 };
 
+const NIGHT_CLOSED = "Gece kapalı. Önce Sistem sekmesinden geceyi başlat.";
+
 const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
 
 function ago(iso: string, now: number): string {
@@ -219,6 +221,8 @@ function DashboardInner() {
     const toast = useToast();
     const system = useDashboardSystem();
     const nowPlaying = system.state?.nowPlaying ?? null;
+    // Durum yüklenene kadar engelleme: asıl kontrol sunucuda
+    const nightClosed = system.state ? !system.state.nightOpen : false;
 
     // Tüm hata mesajları toast olarak gelir
     const shownError = error ?? system.error;
@@ -326,6 +330,10 @@ function DashboardInner() {
 
     // Çal: öncekini otomatik durdurur, çalan istekse listesi yenilenir
     async function play(id: string, title: string) {
+        if (nightClosed) {
+            toast.error(NIGHT_CLOSED);
+            return;
+        }
         if (await system.act({ action: "play", id, title })) {
             toast.success(`Çalıyor: ${title}`);
             void load();
@@ -340,6 +348,10 @@ function DashboardInner() {
     }
 
     async function changeStatus(id: string, status: Status) {
+        if (nightClosed) {
+            toast.error(NIGHT_CLOSED);
+            return;
+        }
         const row = items?.find((r) => r.id === id);
         setBusyId(id);
         setError(null);
@@ -484,6 +496,18 @@ function DashboardInner() {
             />
 
             <div className="relative flex min-h-0 flex-1 flex-col px-5">
+                {nightClosed && (main === "requests" || main === "playlist") && (
+                    <div className="mb-2 flex shrink-0 items-center justify-between gap-3 rounded-lg bg-danger/15 px-4 py-2.5 text-sm font-bold text-danger">
+                        <span>Gece kapalı: çalma ve onaylama yapılamaz.</span>
+                        <button
+                            type="button"
+                            onClick={() => setMain("system")}
+                            className="shrink-0 rounded-full bg-danger px-3 py-1.5 text-xs font-extrabold text-page"
+                        >
+                            Geceyi başlat
+                        </button>
+                    </div>
+                )}
                 {main === "system" ? (
                     <SystemPanel system={system} onChanged={() => void load()} />
                 ) : main === "comments" ? (
