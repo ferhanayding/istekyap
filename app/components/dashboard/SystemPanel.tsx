@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { BarChart3, ChevronDown, Moon, Play, Square, Trash2, Undo2 } from "lucide-react";
 import type { DashboardSystem, SystemAction } from "@/lib/use-dashboard-system";
+import {
+    DEFAULT_REQUEST_LIMIT,
+    DEFAULT_REQUEST_WINDOW_MIN,
+    MAX_REQUEST_LIMIT,
+    MAX_REQUEST_WINDOW_MIN,
+    validLimitValue,
+} from "@/lib/request-limit";
 import EqBars from "../EqBars";
 
 // "Geceyi bitir"den sonra geri alma süresi (sunucudaki UNDO_END_MS ile aynı)
@@ -61,6 +68,95 @@ function Switch({
     );
 }
 
+const numInput =
+    "h-11 w-full rounded-lg bg-raised px-3 text-base font-bold text-ink outline-none ring-1 ring-line focus:ring-accent disabled:opacity-50";
+
+// İstek sınırı: "kaç dakikada kaç istek". Sadece gece, istek alma ve oylama kapalıyken değişir.
+// Kayıtlı değer değişince (başka telefondan da) key ile yeniden kurulur.
+function LimitCard({
+    limit,
+    minutes,
+    locked,
+    busy,
+    onSave,
+}: {
+    limit: number;
+    minutes: number;
+    locked: boolean;
+    busy: boolean;
+    onSave: (limit: number, minutes: number) => void;
+}) {
+    const [l, setL] = useState(String(limit));
+    const [m, setM] = useState(String(minutes));
+    const nl = Number(l);
+    const nm = Number(m);
+    const valid =
+        l.trim() !== "" &&
+        m.trim() !== "" &&
+        validLimitValue(nl, MAX_REQUEST_LIMIT) &&
+        validLimitValue(nm, MAX_REQUEST_WINDOW_MIN);
+    const changed = nl !== limit || nm !== minutes;
+
+    return (
+        <form
+            className="rounded-lg bg-surface p-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                if (valid && changed && !locked) onSave(nl, nm);
+            }}
+        >
+            <p className="text-base font-bold text-ink">İstek sınırı</p>
+            <p className="mt-1 text-xs text-muted">
+                Şu an: her cihaz {minutes} dakikada en fazla {limit} istek atabilir.
+            </p>
+            <div className="mt-3 flex items-end gap-2">
+                <label className="min-w-0 flex-1">
+                    <span className="mb-1 block text-xs font-bold text-faint">Dakika</span>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={MAX_REQUEST_WINDOW_MIN}
+                        step={1}
+                        value={m}
+                        disabled={locked || busy}
+                        onChange={(e) => setM(e.target.value)}
+                        className={numInput}
+                    />
+                </label>
+                <label className="min-w-0 flex-1">
+                    <span className="mb-1 block text-xs font-bold text-faint">İstek sayısı</span>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={MAX_REQUEST_LIMIT}
+                        step={1}
+                        value={l}
+                        disabled={locked || busy}
+                        onChange={(e) => setL(e.target.value)}
+                        className={numInput}
+                    />
+                </label>
+                <button
+                    type="submit"
+                    disabled={locked || busy || !valid || !changed}
+                    className="h-11 shrink-0 rounded-full bg-accent px-5 text-sm font-extrabold text-on-accent transition active:scale-95 disabled:opacity-40"
+                >
+                    Kaydet
+                </button>
+            </div>
+            <p className="mt-2 text-xs text-faint">
+                {locked
+                    ? "Değiştirmek için gece, istek alma ve oylama kapalı olmalı."
+                    : !valid
+                        ? `Dakika 1-${MAX_REQUEST_WINDOW_MIN}, istek sayısı 1-${MAX_REQUEST_LIMIT} arasında tam sayı olmalı.`
+                        : "Gece başlayınca bu kural kilitlenir."}
+            </p>
+        </form>
+    );
+}
+
 const dangerBtn =
     "flex h-11 items-center justify-center gap-2 rounded-full bg-danger/15 px-4 text-sm font-extrabold text-danger transition active:scale-95 disabled:opacity-50";
 
@@ -96,6 +192,8 @@ export default function SystemPanel({
         return <p className="text-sm text-muted">Yükleniyor…</p>;
     }
 
+    const limit = state.requestLimit ?? DEFAULT_REQUEST_LIMIT;
+    const minutes = state.requestWindowMin ?? DEFAULT_REQUEST_WINDOW_MIN;
     const endedAt = state.nightEndedAt ? new Date(state.nightEndedAt).getTime() : 0;
     const canUndo = !state.nightOpen && endedAt > 0 && now > 0 && now - endedAt < UNDO_MS;
     // Gece 14 saatten uzun açık kaldıysa bitirmeyi unutmuş olabilirsiniz
@@ -216,6 +314,15 @@ export default function SystemPanel({
                     />
                 </div>
             </div>
+
+            <LimitCard
+                key={`${limit}-${minutes}`}
+                limit={limit}
+                minutes={minutes}
+                locked={state.nightOpen || state.requestsOpen || state.votingOpen}
+                busy={busy}
+                onSave={(l, m) => run({ action: "set_limit", limit: l, minutes: m })}
+            />
 
             <div className="rounded-lg bg-surface p-4">
                 <p className="text-base font-bold text-ink">Şu an çalan</p>

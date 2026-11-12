@@ -6,6 +6,7 @@ import type { Track } from "@/lib/spotify";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useSystem } from "@/lib/system-context";
 import { sendRequest } from "@/lib/send-request";
+import { limitNote } from "@/lib/request-limit";
 import { useToast } from "./Toast";
 
 type Result = Track & { inPlaylist?: boolean };
@@ -20,9 +21,6 @@ type Row = Pick<Track, "id" | "name" | "artists" | "cover"> & {
 };
 const SUGGESTION_COUNT = 8;
 
-// Sunucudaki sınırla aynı (app/api/requests: cihaz başına 10 dakikada 5)
-const LIMIT_NOTE = "Her cihazdan 10 dakikada en fazla 5 istek atılabilir.";
-
 export default function RequestButton() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
@@ -35,7 +33,10 @@ export default function RequestButton() {
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [sentCount, setSentCount] = useState<number | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const { loaded, requestsOpen, played, nowPlaying } = useSystem();
+    const { loaded, requestsOpen, played, nowPlaying, requestLimit, requestWindowMin } =
+        useSystem();
+    // Sınır dashboard'dan ayarlanır, not da ona göre yazılır
+    const note = limitNote(requestLimit, requestWindowMin);
     const toast = useToast();
     const closed = loaded && !requestsOpen;
 
@@ -261,7 +262,7 @@ export default function RequestButton() {
                 {/* Kutu açık ama henüz yazılmadı: kuralı göster */}
                 {open && !sent && !active && suggested.length === 0 && (
                     <p className="absolute inset-x-0 top-11 rounded-2xl border border-line bg-surface px-4 py-3 text-xs text-muted shadow-2xl">
-                        {LIMIT_NOTE}
+                        {note}
                     </p>
                 )}
 
@@ -273,7 +274,7 @@ export default function RequestButton() {
                         </p>
                         <ul>{suggested.map(row)}</ul>
                         <p className="border-t border-line px-3 pb-1.5 pt-2.5 text-xs text-faint">
-                            {LIMIT_NOTE}
+                            {note}
                         </p>
                     </div>
                 )}
@@ -302,7 +303,7 @@ export default function RequestButton() {
                                     <p className="p-3 text-sm text-muted">Aranıyor…</p>
                                 )}
                                 <p className="border-t border-line px-3 pb-1.5 pt-2.5 text-xs text-faint">
-                                    {LIMIT_NOTE}
+                                    {note}
                                 </p>
                             </>
                         )}

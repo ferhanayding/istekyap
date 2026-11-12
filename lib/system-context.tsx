@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useLive } from "@/lib/live-client";
 import { fetchFirst, startEarly } from "@/lib/early-fetch";
+import { DEFAULT_REQUEST_LIMIT, DEFAULT_REQUEST_WINDOW_MIN } from "@/lib/request-limit";
 
 type Raw = {
     requestsOpen: boolean;
@@ -21,6 +22,8 @@ type Raw = {
     played: string[];
     playlistVisible?: boolean;
     nowPlayingCover?: string | null;
+    requestLimit?: number;
+    requestWindowMin?: number;
 };
 
 // Sunucunun sayfaya gömdüğü anahtarlar (lib/app-flags)
@@ -29,9 +32,14 @@ export type InitialFlags = {
     requestsOpen: boolean;
     votingOpen: boolean;
     playlistVisible: boolean;
+    requestLimit?: number;
+    requestWindowMin?: number;
 };
 
 export type System = {
+    /** Bir cihaz requestWindowMin dakikada en fazla requestLimit istek atabilir */
+    requestLimit: number;
+    requestWindowMin: number;
     nowPlayingCover: string | null;
     loaded: boolean;
     nightOpen: boolean;
@@ -51,6 +59,8 @@ const STATE_URL = "/api/state";
 startEarly(STATE_URL);
 
 const EMPTY: System = {
+    requestLimit: DEFAULT_REQUEST_LIMIT,
+    requestWindowMin: DEFAULT_REQUEST_WINDOW_MIN,
     loaded: false,
     playlistVisible: true,
     nightOpen: false,
@@ -120,6 +130,8 @@ export function SystemProvider({
             raw
                 ? {
                     loaded: true,
+                    requestLimit: raw.requestLimit ?? DEFAULT_REQUEST_LIMIT,
+                    requestWindowMin: raw.requestWindowMin ?? DEFAULT_REQUEST_WINDOW_MIN,
                     playlistVisible: raw.playlistVisible !== false,
                     // Eski sunucu cevabında yoksa: istek ya da oylama açıksa gece açık
                     nightOpen: raw.nightOpen ?? (raw.requestsOpen || raw.votingOpen),

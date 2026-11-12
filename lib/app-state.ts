@@ -2,6 +2,13 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
 import { finishRequest } from "@/lib/plays";
+import {
+    DEFAULT_REQUEST_LIMIT,
+    DEFAULT_REQUEST_WINDOW_MIN,
+    MAX_REQUEST_LIMIT,
+    MAX_REQUEST_WINDOW_MIN,
+    readLimitValue,
+} from "@/lib/request-limit";
 
 // "Çalıyor" işareti bu süre sonra kendiliğinden kapanır
 export const NOW_PLAYING_MS = 5 * 60_000;
@@ -14,6 +21,9 @@ export type AppState = {
     requestsOpen: boolean;
     votingOpen: boolean;
     playlistVisible: boolean;
+    /** Bir cihaz requestWindowMin dakikada en fazla requestLimit istek atabilir */
+    requestLimit: number;
+    requestWindowMin: number;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     nowPlayingCover: string | null;
@@ -91,6 +101,8 @@ type FlagRow = {
     voting_open?: boolean | null;
     playlist_visible?: boolean | null;
     night_open?: boolean | null;
+    request_limit?: number | null;
+    request_window_min?: number | null;
 } | null;
 
 // Satır yoksa her şey kapalı, playlist açık sayılır. gece.sql çalıştırılmadıysa:
@@ -105,6 +117,13 @@ export function readFlags(row: FlagRow) {
         requestsOpen,
         votingOpen,
         playlistVisible: row?.playlist_visible !== false,
+        // istek-siniri.sql çalıştırılmadıysa sütun yoktur: 5 dakikada 1
+        requestLimit: readLimitValue(row?.request_limit, MAX_REQUEST_LIMIT, DEFAULT_REQUEST_LIMIT),
+        requestWindowMin: readLimitValue(
+            row?.request_window_min,
+            MAX_REQUEST_WINDOW_MIN,
+            DEFAULT_REQUEST_WINDOW_MIN
+        ),
     };
 }
 

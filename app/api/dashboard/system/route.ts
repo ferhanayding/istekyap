@@ -15,6 +15,11 @@ import {
     recordPlay,
     restorePlayedSince,
 } from "@/lib/plays";
+import {
+    MAX_REQUEST_LIMIT,
+    MAX_REQUEST_WINDOW_MIN,
+    validLimitValue,
+} from "@/lib/request-limit";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -77,7 +82,7 @@ async function ensureRequest(id: string, track: Track | null) {
 const NEW_NIGHT = new Set(["reset_requests", "reset_stats"]);
 
 // Ana sayfanın hazır HTML'ine gömülü anahtarları değiştiren işlemler
-const FLAG_ACTIONS = new Set(["set", "start_night", "end_night", "undo_end"]);
+const FLAG_ACTIONS = new Set(["set", "set_limit", "start_night", "end_night", "undo_end"]);
 
 // "Geceyi bitir"den sonra bu süre içinde geri alınabilir
 const UNDO_END_MS = 10 * 60_000;
@@ -87,7 +92,8 @@ function missingColumn(e: { code?: string } | null): boolean {
     return e?.code === "PGRST204" || e?.code === "42703";
 }
 const NIGHT_CLOSED = "Gece kapalı. Önce Sistem sekmesinden geceyi başlat.";
-const NEED_SQL ="Önce Supabase'de supabase/gece.sql dosyasını çalıştır.";
+const NEED_LIMIT_SQL = "Önce Supabase'de supabase/istek-siniri.sql dosyasını çalıştır.";
+const NEED_SQL = "Önce Supabase'de supabase/gece.sql dosyasını çalıştır.";
 
 async function updateState(fields: Record<string, unknown>) {
     const { error } = await supabaseAdmin
@@ -204,6 +210,40 @@ export async function POST(req: NextRequest) {
                 const error = await updateState({ [key]: value });
                 if (missingColumn(error)) {
                     return NextResponse.json({ error: NEED_SQL }, { status: 409 });
+                }
+                if (error) throw error;
+                break;
+            }
+
+            case "set_limit": {
+                const { limit, minutes } = body;
+                if (
+                    !validLimitValue(limit, MAX_REQUEST_LIMIT) ||
+                    !validLimitValue(minutes, MAX_REQUEST_WINDOW_MIN)
+                ) {
+                    return NextResponse.json(
+                        {
+                            error: `İstek 1-${MAX_REQUEST_LIMIT}, dakika 1-${MAX_REQUEST_WINDOW_MIN} arasında tam sayı olmalı.`,
+                        },
+                        { status: 400 }
+                    );
+                }
+                // Gece ortasında kural değişmesin: sadece gece, istek ve oylama kapalıyken
+                const current = await getAppState({ fresh: true });
+                if (current.nightOpen || current.requestsOpen || current.votingOpen) {
+                    return NextResponse.json(
+                        {
+                            error: "İstek sınırı sadece gece, istek alma ve oylama kapalıyken değişir.",
+                        },
+                        { status: 409 }
+                    );
+                }
+                const error = await updateState({
+                    request_limit: limit,
+                    request_window_min: minutes,
+                });
+                if (missingColumn(error)) {
+                    return NextResponse.json({ error: NEED_LIMIT_SQL }, { status: 409 });
                 }
                 if (error) throw error;
                 break;

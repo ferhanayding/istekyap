@@ -125,7 +125,7 @@ supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)
 
 | Kural | Sınır |
 | --- | --- |
-| İstek | Cihaz başına 10 dakikada 5 gerçekleşen istek. Ayrıca kötüye kullanıma karşı 10 dakikada 30 deneme (aynı IP'ye 300) |
+| İstek | Cihaz başına varsayılan 5 dakikada 1 gerçekleşen istek. Dashboard → Sistem → "İstek sınırı"ndan değişir (sadece gece, istek alma ve oylama kapalıyken; `supabase/istek-siniri.sql` gerekir). Ayrıca kötüye kullanıma karşı 10 dakikada en az 30 deneme (aynı IP'ye 10 katı) |
 | Tekrar istek | Bu gece çalınan ya da reddedilen şarkı tekrar istenemez (sayaç artmaz, istek hakkı harcanmaz); yeni gecede sıfırlanır |
 | Arama | Cihaz başına dakikada 30 (aynı IP'ye 300; çerezi olmayan ziyaretçiye sadece IP sınırı) |
 | Yorum | Cihaz başına 10 dakikada 3 (aynı IP'ye 60) |

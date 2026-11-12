@@ -10,6 +10,8 @@ export type SystemState = {
     playlistVisible: boolean;
     requestsOpen: boolean;
     votingOpen: boolean;
+    requestLimit?: number;
+    requestWindowMin?: number;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     nowPlayingCover?: string | null;
@@ -22,6 +24,7 @@ export type SystemAction =
         key: "requests_open" | "voting_open" | "playlist_visible";
         value: boolean;
     }
+    | { action: "set_limit"; limit: number; minutes: number }
     | { action: "start_night" }
     | { action: "end_night" }
     | { action: "undo_end" }

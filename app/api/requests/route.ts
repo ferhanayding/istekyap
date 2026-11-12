@@ -8,26 +8,31 @@ import { notifyLive } from "@/lib/live-server";
 import { isBlocked } from "@/lib/blocklist";
 import { hasRequestableLength } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
+import { MAX_REQUEST_LIMIT, MAX_REQUEST_WINDOW_MIN } from "@/lib/request-limit";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
-const DEVICE_LIMIT = 5;
-const ATTEMPT_LIMIT = 30;
-const DEVICE_WINDOW_MS = 10 * 60_000;
+// Kötüye kullanım emniyeti (bellekte, her denemeyi sayar): 10 dakikalık pencere
+const ATTEMPT_WINDOW_MS = 10 * 60_000;
 
 // Sınıra gelince toast'ta görünen mesaj
-function limitMessage(retryAfterSec: number): string {
+function limitMessage(limit: number, windowMin: number, retryAfterSec: number): string {
     const minutes = Math.max(1, Math.ceil(retryAfterSec / 60));
-    return `10 dakikada ${DEVICE_LIMIT} istek hakkın var, hepsini kullandın. ${minutes} dk sonra tekrar isteyebilirsin.`;
+    return `${windowMin} dakikada ${limit} istek hakkın var, hepsini kullandın. ${minutes} dk sonra tekrar isteyebilirsin.`;
 }
 
-// Bu cihazın son 10 dakikada yaptığı istek ve katılmalar (request_devices'tan)
+// Bu cihazın en uzun pencerede (dashboard'dan ayarlanabilen üst sınır) yaptığı istek ve
+// katılmalar, yeniden eskiye. Asıl pencere çağıran tarafta uygulanır: ayar durumla aynı anda okunur.
 async function recentRequestTimes(deviceId: string): Promise<number[]> {
     const { data, error } = await supabaseAdmin
         .from("request_devices")
         .select("created_at")
         .eq("device_id", deviceId)
-        .gte("created_at", new Date(Date.now() - DEVICE_WINDOW_MS).toISOString())
-        .limit(DEVICE_LIMIT);
+        .gte(
+            "created_at",
+            new Date(Date.now() - MAX_REQUEST_WINDOW_MIN * 60_000).toISOString()
+        )
+        .order("created_at", { ascending: false })
+        .limit(MAX_REQUEST_LIMIT);
     if (error) throw error;
     return (data ?? []).map((r) => new Date(r.created_at).getTime());
 }
@@ -69,10 +74,10 @@ export async function POST(req: NextRequest) {
     const deviceId = await getOrCreateDeviceId();
 
     // Durum, bu cihazın son istekleri ve gövde aynı anda okunur (sırayla beklemek yerine)
-    const [state, recent, body] = await Promise.all([
+    const [state, allRecent, body] = await Promise.all([
         getAppState().catch(() => null),
         // Bellekteki sayaç Vercel'de her sunucu örneğinde ayrı tutulur ve yeniden başlayınca
-        // sıfırlanır. Asıl sınır veritabanından: bu cihazın son 10 dakikadaki istekleri.
+        // sıfırlanır. Asıl sınır veritabanından: bu cihazın son istekleri.
         recentRequestTimes(deviceId).catch((e) => {
             console.error(e);
             return [] as number[];
@@ -87,15 +92,23 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    // Sınır dashboard'dan ayarlanır (Sistem sekmesi): "kaç dakikada kaç istek"
+    const deviceLimit = state.requestLimit;
+    const windowMs = state.requestWindowMin * 60_000;
+    const recent = allRecent.filter((t) => t > Date.now() - windowMs);
+
     // Bellekteki sayaç her denemeyi sayar (başarısızlar dahil), o yüzden sadece kötüye
-    // kullanıma karşı geniş bir emniyet: cihaz başına 10 dakikada 30 deneme, aynı IP'den
-    // (ortak Wi-Fi) 300. Asıl "10 dakikada 5 istek" kuralı aşağıda, gerçekleşen isteklerden sayılır.
+    // kullanıma karşı geniş bir emniyet: cihaz başına 10 dakikada en az 30 deneme (ayarlanan
+    // sınır yüksekse onun 3 katı), aynı IP'den (ortak Wi-Fi) 10 katı. Asıl kural aşağıda,
+    // gerçekleşen isteklerden sayılır.
+    const perTenMin = Math.ceil((deviceLimit * ATTEMPT_WINDOW_MS) / windowMs);
+    const attempts = Math.max(30, perTenMin * 3);
     const limit = limitDeviceAndIp(
         "request",
         deviceId,
         getIp(req),
-        { limit: ATTEMPT_LIMIT, windowMs: DEVICE_WINDOW_MS },
-        { limit: 300, windowMs: DEVICE_WINDOW_MS }
+        { limit: attempts, windowMs: ATTEMPT_WINDOW_MS },
+        { limit: attempts * 10, windowMs: ATTEMPT_WINDOW_MS }
     );
     if (!limit.ok) {
         return NextResponse.json(
@@ -103,13 +116,12 @@ export async function POST(req: NextRequest) {
             { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
         );
     }
-    if (recent.length >= DEVICE_LIMIT) {
-        const retryAfter = Math.max(
-            1,
-            Math.ceil((Math.min(...recent) + DEVICE_WINDOW_MS - Date.now()) / 1000)
-        );
+    if (recent.length >= deviceLimit) {
+        // Hak, penceredeki en eski sayılan istek pencereden çıkınca açılır
+        const oldest = recent[deviceLimit - 1];
+        const retryAfter = Math.max(1, Math.ceil((oldest + windowMs - Date.now()) / 1000));
         return NextResponse.json(
-            { error: limitMessage(retryAfter) },
+            { error: limitMessage(deviceLimit, state.requestWindowMin, retryAfter) },
             { status: 429, headers: { "Retry-After": String(retryAfter) } }
         );
     }
