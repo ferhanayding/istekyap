@@ -90,6 +90,8 @@ Sonradan eklenenler yerel `supabase/` klasöründe durur. Klasör `.gitignore`'d
 2. `supabase/istek-sayaci-2.sql` — `last_requested_at` (1. dosyanın yeni hali bunu zaten içerir; eski kurulumlar için)
 3. `supabase/istatistik.sql` — `play_history`, `vote_history`, `archive_votes()` fonksiyonu
 4. `supabase/gece.sql` — `night_open`, `night_started_at`, `night_ended_at` (Geceyi başlat/bitir)
+5. `supabase/istek-siniri.sql` — `request_limit`, `request_window_min` (dashboard'dan ayarlanan istek sınırı)
+6. `supabase/istek-kilidi.sql` — `make_request_limited()`: sınır veritabanında, cihaza özel kilit altında sayılır (aynı anda giden iki istek ikisi birden geçemez). Çalıştırılmadıysa eski `make_request()` kullanılır
 
 Tarayıcı veritabanına doğrudan yazmaz; tüm okuma ve yazmalar sunucu (`SUPABASE_SECRET_KEY`) üzerinden geçer. Tarayıcı publishable key'i sadece Realtime kanalını dinlemek için kullanır.
 

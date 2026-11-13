@@ -56,11 +56,45 @@ async function blockedTonight(
     return data?.length ? "rejected" : null;
 }
 
-type MakeResult = {
-    result: "created" | "joined" | "already";
-    status: string;
-    count: number;
+type MakeResult =
+    | { result: "created" | "joined" | "already"; status: string; count: number }
+    // Sadece make_request_limited döndürür: sınır veritabanında, kilit altında sayıldı
+    | { result: "limited"; retry_after: number };
+
+type MakeArgs = {
+    p_spotify_id: string;
+    p_name: string;
+    p_artists: string;
+    p_cover: string | null;
+    p_device: string;
 };
+
+// istek-kilidi.sql çalıştırılmadıysa make_request_limited yoktur: bir süre hiç denenmez
+let noLimitedUntil = 0;
+
+// Yeni istek ya da aynı şarkıyı isteyenlere katılma (sayaç cihaz başına bir artar).
+// Sınır veritabanında, cihaza özel kilit altında bir kez daha sayılır: yukarıdaki ön kontrolle
+// kayıt arasına aynı cihazdan ikinci bir istek sığamaz (aynı anda iki dokunuş, iki sekme).
+async function makeRequest(
+    args: MakeArgs,
+    limit: number,
+    windowSec: number
+): Promise<MakeResult> {
+    if (Date.now() > noLimitedUntil) {
+        const { data, error } = await supabaseAdmin.rpc("make_request_limited", {
+            ...args,
+            p_limit: limit,
+            p_window_sec: windowSec,
+        });
+        if (!error) return data as MakeResult;
+        // PGRST202 / 42883: fonksiyon yok. Eski yola düş, 5 dakika sonra yine dene.
+        if (error.code !== "PGRST202" && error.code !== "42883") throw error;
+        noLimitedUntil = Date.now() + 5 * 60_000;
+    }
+    const { data, error } = await supabaseAdmin.rpc("make_request", args);
+    if (error) throw error;
+    return data as MakeResult;
+}
 
 // Listede önce onaylılar, sonra bekleyenler, sonra çalınanlar, en altta reddedilenler
 const RANK: Record<string, number> = {
@@ -164,16 +198,25 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Yeni istek ya da aynı şarkıyı isteyenlere katılma (sayaç cihaz başına bir artar)
-        const { data, error } = await supabaseAdmin.rpc("make_request", {
-            p_spotify_id: track.id,
-            p_name: track.name,
-            p_artists: track.artists,
-            p_cover: track.cover,
-            p_device: deviceId,
-        });
-        if (error) throw error;
-        const r = data as MakeResult;
+        const r = await makeRequest(
+            {
+                p_spotify_id: track.id,
+                p_name: track.name,
+                p_artists: track.artists,
+                p_cover: track.cover,
+                p_device: deviceId,
+            },
+            deviceLimit,
+            state.requestWindowMin * 60
+        );
+
+        // Ön kontrolden sonra aynı cihazdan başka bir istek araya girdi
+        if (r.result === "limited") {
+            return NextResponse.json(
+                { error: limitMessage(deviceLimit, state.requestWindowMin, r.retry_after) },
+                { status: 429, headers: { "Retry-After": String(r.retry_after) } }
+            );
+        }
 
         if (r.result !== "already") notifyLive("requests");
 
