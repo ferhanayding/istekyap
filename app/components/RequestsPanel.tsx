@@ -4,11 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { type RequestFeed, type RequestStatus } from "@/lib/use-request-feed";
 import { useSystem } from "@/lib/system-context";
 import { useSharedVotes } from "@/lib/votes-context";
+import { useMine } from "@/lib/my-requests";
 import { CLEAR_SEARCH_EVENT } from "@/lib/scroll";
 import { LyricsButton } from "./LyricsSheet";
 import EqBars from "./EqBars";
 import LoadingTracks from "./LoadingTracks";
 import RequestHistory from "./RequestHistory";
+import AskButton from "./AskButton";
+import LastNight from "./LastNight";
 import { useToast } from "./Toast";
 import SongRow from "./SongRow";
 import VoteButtons from "./VoteButtons";
@@ -24,7 +27,8 @@ const BADGE: Record<RequestStatus, { text: string; className: string }> = {
         className: "bg-accent/15 text-accent",
     },
     played: { text: "Çalındı", className: "bg-raised text-ink" },
-    rejected: { text: "Reddedildi", className: "bg-danger/15 text-danger" },
+    // Küçük ve sakin: kişi kırılmasın, sebebi anlasın
+    rejected: { text: "Repertuvarımızda yok", className: "bg-raised text-muted text-[11px]" },
 };
 
 function ago(iso: string, now: number): string {
@@ -117,6 +121,13 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
     const { items, now } = feed;
     const system = useSystem();
     const { votes, vote } = useSharedVotes();
+    const mine = useMine();
+    // Katılınabilecek istek var mı (ipucu satırı için)
+    const canJoin =
+        system.requestsOpen &&
+        !!items?.some(
+            (r) => (r.status === "pending" || r.status === "approved") && !mine.ids.has(r.spotify_id)
+        );
 
     return (
         <div
@@ -128,7 +139,10 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
             ) : items.length === 0 ? (
                 <div className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                     {system.requestsOpen ? (
-                        <p>Henüz istek yok. Yukarıdaki butondan ilk isteği sen yap.</p>
+                        <p>
+                            Henüz istek yok. Yukarıdaki &quot;İstek Parça Yap&quot; butonuna dokun,
+                            şarkını ara ve ilk isteği sen yap.
+                        </p>
                     ) : (
                         <>
                             <p>
@@ -146,6 +160,12 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                     )}
                 </div>
             ) : (
+                <>
+                {canJoin && (
+                    <p className="pb-1 text-xs text-faint">
+                        Listedeki bir şarkıyı sen de istiyorsan &quot;Ben de&quot;ye dokun.
+                    </p>
+                )}
                 <ul>
                     {items.map((r, idx) => {
                         const badge = BADGE[r.status] ?? BADGE.pending;
@@ -154,6 +174,12 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                         // Oy sadece çalınmış şarkılara
                         const wasPlayed =
                             r.status === "played" || system.played.has(r.spotify_id);
+                        const isMine = mine.ids.has(r.spotify_id);
+                        // Bekleyen ya da çalınacak isteğe katılınabilir (kendi isteğime değil)
+                        const joinable =
+                            !isMine &&
+                            !wasPlayed &&
+                            (r.status === "pending" || r.status === "approved");
 
                         return (
                             <SongRow
@@ -188,9 +214,15 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                                 ×{r.request_count}
                                             </span>
                                         )}
-                                        <span className="truncate">
-                                            {ago(r.last_requested_at ?? r.created_at, now)}
-                                        </span>
+                                        {isMine ? (
+                                            <span className="truncate font-bold text-accent">
+                                                Senin isteğin
+                                            </span>
+                                        ) : (
+                                            <span className="truncate">
+                                                {ago(r.last_requested_at ?? r.created_at, now)}
+                                            </span>
+                                        )}
                                     </>
                                 }
                                 actions={
@@ -206,6 +238,9 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                                 onVote={vote}
                                             />
                                         )}
+                                        {joinable && (
+                                            <AskButton id={r.spotify_id} name={r.name} join />
+                                        )}
                                         <LyricsButton name={r.name} artists={r.artists} />
                                     </>
                                 }
@@ -213,7 +248,10 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                         );
                     })}
                 </ul>
+                </>
             )}
+            {/* Gece kapalıyken liste boş kalmasın: son gecede çalınanlar */}
+            {items !== null && !system.nightOpen && <LastNight />}
         </div>
     );
 }

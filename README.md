@@ -92,6 +92,16 @@ Sonradan eklenenler yerel `supabase/` klasöründe durur. Klasör `.gitignore`'d
 4. `supabase/gece.sql` — `night_open`, `night_started_at`, `night_ended_at` (Geceyi başlat/bitir)
 5. `supabase/istek-siniri.sql` — `request_limit`, `request_window_min` (dashboard'dan ayarlanan istek sınırı)
 6. `supabase/istek-kilidi.sql` — `make_request_limited()`: sınır veritabanında, cihaza özel kilit altında sayılır (aynı anda giden iki istek ikisi birden geçemez). Çalıştırılmadıysa eski `make_request()` kullanılır
+7. `supabase/yeni-ozellikler.sql` — `next_show` ("Sonraki sahne" yazısı) ve `polls`, `poll_votes` ("Sıradaki şarkıyı siz seçin" anketi). Çalıştırılmadıysa bu iki özellik kapalı kalır, gerisi çalışır
+
+### Ziyaretçi tarafındaki küçük özellikler
+
+- **Ben de**: bu geceki listede bekleyen/çalınacak isteğe tek dokunuşla katılma (istek hakkından düşer).
+- **Senin isteğin**: kişinin kendi istekleri listede işaretlenir; onaylanınca, çalmaya başlayınca ya da reddedilince bildirim gelir. Kaynak `/api/requests/mine` (çerezdeki cihaz kimliği).
+- **Geri sayım**: istek hakkı dolunca ana buton kilitlenir ve "Sonraki istek hakkın 4:32 sonra" yazar.
+- **Repertuvarımızda yok**: reddedilen istek ziyaretçiye böyle görünür (dashboard'da "Reddedildi" kalır).
+- **Anket**: dashboard'da playlist ve istek satırlarındaki oy kutusu simgesiyle 2-4 şarkı seçilir, "Anketi başlat"a basılır; salon telefonundan oylar, sonuç canlı görünür. Cihaz başına tek oy.
+- **Gece kapalıyken**: üstteki şeritte "Sonraki sahne" (dashboard → Sistem), istek listesinde "Son gecede çaldıklarımız".
 
 Tarayıcı veritabanına doğrudan yazmaz; tüm okuma ve yazmalar sunucu (`SUPABASE_SECRET_KEY`) üzerinden geçer. Tarayıcı publishable key'i sadece Realtime kanalını dinlemek için kullanır.
 

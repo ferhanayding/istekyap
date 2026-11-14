@@ -24,6 +24,7 @@ type Raw = {
     nowPlayingCover?: string | null;
     requestLimit?: number;
     requestWindowMin?: number;
+    nextShow?: string | null;
 };
 
 // Sunucunun sayfaya gömdüğü anahtarlar (lib/app-flags)
@@ -34,9 +35,12 @@ export type InitialFlags = {
     playlistVisible: boolean;
     requestLimit?: number;
     requestWindowMin?: number;
+    nextShow?: string | null;
 };
 
 export type System = {
+    /** Gece kapalıyken gösterilen "sonraki sahne" yazısı */
+    nextShow: string | null;
     /** Bir cihaz requestWindowMin dakikada en fazla requestLimit istek atabilir */
     requestLimit: number;
     requestWindowMin: number;
@@ -59,6 +63,7 @@ const STATE_URL = "/api/state";
 startEarly(STATE_URL);
 
 const EMPTY: System = {
+    nextShow: null,
     requestLimit: DEFAULT_REQUEST_LIMIT,
     requestWindowMin: DEFAULT_REQUEST_WINDOW_MIN,
     loaded: false,
@@ -130,6 +135,7 @@ export function SystemProvider({
             raw
                 ? {
                     loaded: true,
+                    nextShow: raw.nextShow ?? null,
                     requestLimit: raw.requestLimit ?? DEFAULT_REQUEST_LIMIT,
                     requestWindowMin: raw.requestWindowMin ?? DEFAULT_REQUEST_WINDOW_MIN,
                     playlistVisible: raw.playlistVisible !== false,

@@ -25,6 +25,7 @@ function setConnected(v: boolean) {
         listeners.forEach((l) => {
             l("requests", v);
             l("state", v);
+            l("poll", v);
         });
     }
     if (v) wasConnected = true;
@@ -51,7 +52,7 @@ function ensureChannel() {
                     if (!Array.isArray(topics)) return;
                     const v = typeof payload?.v === "number" ? payload.v : Date.now();
                     for (const t of topics) {
-                        if (t === "requests" || t === "state") {
+                        if (t === "requests" || t === "state" || t === "poll") {
                             listeners.forEach((l) => l(t, v));
                         }
                     }

@@ -2,7 +2,10 @@
 
 import { REQUEST_SENT_EVENT } from "@/lib/use-request-feed";
 
-export const SEND_ERROR = "İstek gönderilemedi. Tekrar dokun.";
+// Her istek denemesi bitince (lib/my-requests dinler)
+export const REQUEST_DONE_EVENT = "istek:bitti";
+
+export const SEND_ERROR ="İstek gönderilemedi. Tekrar dokun.";
 
 export type SendResult =
     | { ok: true; joined: boolean; count: number | null }
@@ -45,5 +48,7 @@ let last: Promise<unknown> = Promise.resolve();
 export function sendRequest(id: string): Promise<SendResult> {
     const run = last.then(() => post(id));
     last = run;
+    // Başarılı da olsa sınıra da takılsa: "benim isteklerim" ve kalan süre tazelensin
+    void run.then(() => window.dispatchEvent(new Event(REQUEST_DONE_EVENT)));
     return run;
 }

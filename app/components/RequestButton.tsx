@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, Lock, Plus, Search, ThumbsUp, X } from "lucide-react";
+import { Check, ChevronRight, Lock, Plus, Search, ThumbsUp, Timer, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useSystem } from "@/lib/system-context";
 import { sendRequest } from "@/lib/send-request";
 import { limitNote } from "@/lib/request-limit";
+import { formatWait, useMine, useSecondsLeft } from "@/lib/my-requests";
 import { useToast } from "./Toast";
 
 type Result = Track & { inPlaylist?: boolean };
@@ -39,6 +40,10 @@ export default function RequestButton() {
     const note = limitNote(requestLimit, requestWindowMin);
     const toast = useToast();
     const closed = loaded && !requestsOpen;
+    // İstek hakkı dolduysa buton kilitlenir ve kalan süreyi sayar
+    const { waitUntil } = useMine();
+    const waitLeft = useSecondsLeft(waitUntil);
+    const waiting = !closed && waitLeft > 0;
 
     const q = query.trim();
     // Küfürlü/müstehcen kelimeler aranmaz, sunucuya da gitmez
@@ -201,8 +206,8 @@ export default function RequestButton() {
                     type="button"
                     onClick={openPanel}
                     inert={open}
-                    disabled={!loaded || !requestsOpen}
-                    className={`absolute inset-0 flex w-full items-center justify-between rounded-full px-5 text-sm font-extrabold transition duration-300 ease-out motion-reduce:transition-none ${closed
+                    disabled={!loaded || !requestsOpen || waiting}
+                    className={`absolute inset-0 flex w-full items-center justify-between rounded-full px-5 text-sm font-extrabold transition duration-300 ease-out motion-reduce:transition-none ${closed || waiting
                         ? "cursor-not-allowed bg-raised text-muted"
                         : "bg-accent text-on-accent disabled:opacity-70"
                         } ${open ? "scale-95 opacity-0" : "opacity-100 enabled:active:scale-[0.98]"
@@ -211,12 +216,26 @@ export default function RequestButton() {
                     <span className="flex items-center gap-2">
                         {closed ? (
                             <Lock size={17} />
+                        ) : waiting ? (
+                            <Timer size={17} />
                         ) : (
                             <Plus size={18} strokeWidth={2.5} className="text-on-accent" />
                         )}
-                        {closed ? "İstekler şu an kapalı" : "İstek Parça Yap"}
+                        {closed ? (
+                            "İstekler şu an kapalı"
+                        ) : waiting ? (
+                            <span>
+                                Sonraki istek hakkın{" "}
+                                <span className="tabular-nums text-ink">{formatWait(waitLeft)}</span>{" "}
+                                sonra
+                            </span>
+                        ) : (
+                            "İstek Parça Yap"
+                        )}
                     </span>
-                    {!closed && <ChevronRight size={18} className="text-on-accent/60" />}
+                    {!closed && !waiting && (
+                        <ChevronRight size={18} className="text-on-accent/60" />
+                    )}
                 </button>
 
                 {/* Arama kutusu */}

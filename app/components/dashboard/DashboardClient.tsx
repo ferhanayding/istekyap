@@ -33,6 +33,8 @@ import { LyricsProvider, LyricsButton } from "../LyricsSheet";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
 import StatsPanel from "./StatsPanel";
+import PollDash, { PollPickButton, type PollPick } from "./PollDash";
+import { POLL_MAX_OPTIONS } from "@/lib/poll-types";
 
 type Status = "pending" | "approved" | "played" | "rejected";
 type Main = "requests" | "playlist" | "stats" | "comments" | "system";
@@ -217,6 +219,8 @@ function DashboardInner() {
     const [sound, setSound] = useState(false);
     const [now, setNow] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+    // "Sıradaki şarkıyı siz seçin" anketi için seçilen şarkılar (en fazla 4)
+    const [pick, setPick] = useState<PollPick[]>([]);
     const router = useRouter();
     const toast = useToast();
     const system = useDashboardSystem();
@@ -321,6 +325,17 @@ function DashboardInner() {
         setSound(true);
         beep();
     }
+
+    function togglePick(song: PollPick) {
+        if (pick.some((p) => p.id === song.id)) {
+            setPick(pick.filter((p) => p.id !== song.id));
+        } else if (pick.length >= POLL_MAX_OPTIONS) {
+            toast.error(`Ankete en fazla ${POLL_MAX_OPTIONS} şarkı eklenebilir.`);
+        } else {
+            setPick([...pick, song]);
+        }
+    }
+    const pickedIds = new Set(pick.map((p) => p.id));
 
     async function refresh() {
         setRefreshing(true);
@@ -508,6 +523,15 @@ function DashboardInner() {
                         </button>
                     </div>
                 )}
+                {/* Anket: seçim çubuğu ve canlı sonuç (her sekmede görünür) */}
+                <PollDash
+                    pick={pick}
+                    onRemove={(id) => setPick(pick.filter((p) => p.id !== id))}
+                    onClear={() => setPick([])}
+                    nightClosed={nightClosed}
+                    busy={system.busy}
+                    onPlay={play}
+                />
                 {main === "system" ? (
                     <SystemPanel system={system} onChanged={() => void load()} />
                 ) : main === "comments" ? (
@@ -521,6 +545,8 @@ function DashboardInner() {
                         busy={system.busy}
                         onPlay={play}
                         onStop={stop}
+                        picked={pickedIds}
+                        onPick={togglePick}
                     />
                 ) : (
                     <>
@@ -639,6 +665,19 @@ function DashboardInner() {
                                                         </div>
                                                     </div>
 
+                                                    {(r.status === "pending" ||
+                                                        r.status === "approved") && (
+                                                        <PollPickButton
+                                                            name={r.name}
+                                                            picked={pickedIds.has(r.spotify_id)}
+                                                            onToggle={() =>
+                                                                togglePick({
+                                                                    id: r.spotify_id,
+                                                                    name: r.name,
+                                                                })
+                                                            }
+                                                        />
+                                                    )}
                                                     <LyricsButton name={r.name} artists={r.artists} />
                                                 </div>
 

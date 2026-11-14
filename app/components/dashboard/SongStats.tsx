@@ -12,6 +12,7 @@ import LoadingTracks from "../LoadingTracks";
 import EqBars from "../EqBars";
 import { addedInfo } from "@/lib/added";
 import { LyricsButton } from "../LyricsSheet";
+import { PollPickButton } from "./PollDash";
 
 type Song = {
     id: string;
@@ -61,12 +62,17 @@ export default function SongStats({
     busy,
     onPlay,
     onStop,
+    picked,
+    onPick,
 }: {
     nowPlaying: string | null;
     played: string[];
     busy: boolean;
     onPlay: (id: string, title: string) => void;
     onStop: () => void;
+    /** Ankete seçilmiş şarkılar */
+    picked: Set<string>;
+    onPick: (song: { id: string; name: string }) => void;
 }) {
     const [songs, setSongs] = useState<Song[] | null>(null);
     const [filter, setFilter] = useState<Filter>("all");
@@ -277,6 +283,11 @@ export default function SongStats({
                                         </div>
                                     </div>
 
+                                    <PollPickButton
+                                        name={s.name}
+                                        picked={picked.has(s.id)}
+                                        onToggle={() => onPick({ id: s.id, name: s.name })}
+                                    />
                                     <button
                                         type="button"
                                         disabled={busy}

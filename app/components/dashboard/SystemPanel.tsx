@@ -10,6 +10,7 @@ import {
     MAX_REQUEST_WINDOW_MIN,
     validLimitValue,
 } from "@/lib/request-limit";
+import { MAX_NEXT_SHOW } from "@/lib/visitor-types";
 import EqBars from "../EqBars";
 
 // "Geceyi bitir"den sonra geri alma süresi (sunucudaki UNDO_END_MS ile aynı)
@@ -153,6 +154,58 @@ function LimitCard({
                         ? `Dakika 1-${MAX_REQUEST_WINDOW_MIN}, istek sayısı 1-${MAX_REQUEST_LIMIT} arasında tam sayı olmalı.`
                         : "Gece başlayınca bu kural kilitlenir."}
             </p>
+        </form>
+    );
+}
+
+// "Sonraki sahne": gece kapalıyken ziyaretçilerin üstteki şeritte gördüğü kısa yazı.
+// Kayıtlı değer değişince (başka telefondan da) key ile yeniden kurulur.
+function NextShowCard({
+    value,
+    busy,
+    onSave,
+}: {
+    value: string;
+    busy: boolean;
+    onSave: (text: string) => void;
+}) {
+    const [text, setText] = useState(value);
+    const changed = text.trim() !== value;
+
+    return (
+        <form
+            className="rounded-lg bg-surface p-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                if (changed) onSave(text.trim());
+            }}
+        >
+            <label htmlFor="next-show" className="text-base font-bold text-ink">
+                Sonraki sahne
+            </label>
+            <p className="mt-1 text-xs text-muted">
+                Gece kapalıyken ziyaretçilere gösterilir. Boş kaydedersen görünmez.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+                <input
+                    id="next-show"
+                    type="text"
+                    value={text}
+                    maxLength={MAX_NEXT_SHOW}
+                    disabled={busy}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Örn. Cuma 21:30 · Kadıköy Sahne"
+                    autoComplete="off"
+                    className={`${numInput} min-w-0 flex-1 font-semibold placeholder:font-normal placeholder:text-faint`}
+                />
+                <button
+                    type="submit"
+                    disabled={busy || !changed}
+                    className="h-11 shrink-0 rounded-full bg-accent px-5 text-sm font-extrabold text-on-accent transition active:scale-95 disabled:opacity-40"
+                >
+                    Kaydet
+                </button>
+            </div>
         </form>
     );
 }
@@ -322,6 +375,13 @@ export default function SystemPanel({
                 locked={state.nightOpen || state.requestsOpen || state.votingOpen}
                 busy={busy}
                 onSave={(l, m) => run({ action: "set_limit", limit: l, minutes: m })}
+            />
+
+            <NextShowCard
+                key={state.nextShow ?? ""}
+                value={state.nextShow ?? ""}
+                busy={busy}
+                onSave={(text) => run({ action: "set_next_show", text })}
             />
 
             <div className="rounded-lg bg-surface p-4">

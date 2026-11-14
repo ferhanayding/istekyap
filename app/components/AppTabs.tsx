@@ -11,6 +11,7 @@ import {
 import { Bell } from "lucide-react";
 import { useRequestFeed, type RequestItem } from "@/lib/use-request-feed";
 import { useSystem } from "@/lib/system-context";
+import { useMyRequestAlerts } from "@/lib/my-requests";
 import { CLEAR_SEARCH_EVENT, scrollToTrack } from "@/lib/scroll";
 import BottomNav, { type Tab } from "./BottomNav";
 import MiniPlayer from "./MiniPlayer";
@@ -90,6 +91,8 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
     );
 
     const feed = useRequestFeed(handleNew);
+    // "İsteğin onaylandı / şimdi çalıyor / repertuvarımızda yok"
+    useMyRequestAlerts(feed.items, system.nowPlaying);
 
     function openTab(t: Tab) {
         writeTab(t);

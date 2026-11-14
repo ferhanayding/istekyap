@@ -12,6 +12,7 @@ export type SystemState = {
     votingOpen: boolean;
     requestLimit?: number;
     requestWindowMin?: number;
+    nextShow?: string | null;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     nowPlayingCover?: string | null;
@@ -25,6 +26,7 @@ export type SystemAction =
         value: boolean;
     }
     | { action: "set_limit"; limit: number; minutes: number }
+    | { action: "set_next_show"; text: string }
     | { action: "start_night" }
     | { action: "end_night" }
     | { action: "undo_end" }

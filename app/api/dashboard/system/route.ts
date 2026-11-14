@@ -20,6 +20,8 @@ import {
     MAX_REQUEST_WINDOW_MIN,
     validLimitValue,
 } from "@/lib/request-limit";
+import { closeOpenPolls } from "@/lib/poll";
+import { MAX_NEXT_SHOW } from "@/lib/visitor-types";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -82,7 +84,14 @@ async function ensureRequest(id: string, track: Track | null) {
 const NEW_NIGHT = new Set(["reset_requests", "reset_stats"]);
 
 // Ana sayfanın hazır HTML'ine gömülü anahtarları değiştiren işlemler
-const FLAG_ACTIONS = new Set(["set", "set_limit", "start_night", "end_night", "undo_end"]);
+const FLAG_ACTIONS = new Set([
+    "set",
+    "set_limit",
+    "set_next_show",
+    "start_night",
+    "end_night",
+    "undo_end",
+]);
 
 // "Geceyi bitir"den sonra bu süre içinde geri alınabilir
 const UNDO_END_MS = 10 * 60_000;
@@ -92,6 +101,7 @@ function missingColumn(e: { code?: string } | null): boolean {
     return e?.code === "PGRST204" || e?.code === "42703";
 }
 const NIGHT_CLOSED = "Gece kapalı. Önce Sistem sekmesinden geceyi başlat.";
+const NEED_FEATURES_SQL = "Önce Supabase'de supabase/yeni-ozellikler.sql dosyasını çalıştır.";
 const NEED_LIMIT_SQL = "Önce Supabase'de supabase/istek-siniri.sql dosyasını çalıştır.";
 const NEED_SQL = "Önce Supabase'de supabase/gece.sql dosyasını çalıştır.";
 
@@ -249,6 +259,22 @@ export async function POST(req: NextRequest) {
                 break;
             }
 
+            case "set_next_show": {
+                const text = typeof body.text === "string" ? body.text.trim() : null;
+                if (text === null || text.length > MAX_NEXT_SHOW) {
+                    return NextResponse.json(
+                        { error: `Yazı en fazla ${MAX_NEXT_SHOW} karakter olabilir.` },
+                        { status: 400 }
+                    );
+                }
+                const error = await updateState({ next_show: text || null });
+                if (missingColumn(error)) {
+                    return NextResponse.json({ error: NEED_FEATURES_SQL }, { status: 409 });
+                }
+                if (error) throw error;
+                break;
+            }
+
             case "start_night": {
                 const current = await getAppState({ fresh: true });
                 if (current.nightOpen) {
@@ -304,6 +330,8 @@ export async function POST(req: NextRequest) {
                 }
                 if (error) throw error;
 
+                // Açık anket kalmasın (anket tablosu yoksa ya da kapatılamazsa gece yine biter)
+                await closeOpenPolls().catch((e) => console.error(e));
                 // Çalan şarkı bir istekse "Çalındı" olarak arşive girsin
                 if (current.nowPlaying) await finishRequest(current.nowPlaying);
                 // Bu gecenin bütün istekleri (onaylı ama çalınmamışlar dahil) ziyaretçinin
@@ -422,7 +450,9 @@ export async function POST(req: NextRequest) {
         if (FLAG_ACTIONS.has(body.action)) revalidateTag(FLAGS_TAG, { expire: 0 });
 
         clearAppStateCache();
-        notifyLive("state", "requests");
+        // Gece bitince anket de kapanır: telefonlardaki anket kartı hemen kalksın
+        if (body.action === "end_night") notifyLive("state", "requests", "poll");
+        else notifyLive("state", "requests");
         return NextResponse.json(await getAppState({ fresh: true }), {
             headers: NO_STORE,
         });

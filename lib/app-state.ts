@@ -24,6 +24,8 @@ export type AppState = {
     /** Bir cihaz requestWindowMin dakikada en fazla requestLimit istek atabilir */
     requestLimit: number;
     requestWindowMin: number;
+    /** Gece kapalıyken ziyaretçiye gösterilen "sonraki sahne" yazısı */
+    nextShow: string | null;
     nowPlaying: string | null;
     nowPlayingTitle: string | null;
     nowPlayingCover: string | null;
@@ -103,6 +105,7 @@ type FlagRow = {
     night_open?: boolean | null;
     request_limit?: number | null;
     request_window_min?: number | null;
+    next_show?: string | null;
 } | null;
 
 // Satır yoksa her şey kapalı, playlist açık sayılır. gece.sql çalıştırılmadıysa:
@@ -124,6 +127,8 @@ export function readFlags(row: FlagRow) {
             MAX_REQUEST_WINDOW_MIN,
             DEFAULT_REQUEST_WINDOW_MIN
         ),
+        // yeni-ozellikler.sql çalıştırılmadıysa sütun yoktur
+        nextShow: typeof row?.next_show === "string" && row.next_show.trim() ? row.next_show.trim() : null,
     };
 }
 

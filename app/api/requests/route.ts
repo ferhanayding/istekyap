@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
                     error:
                         blocked === "played"
                             ? "Bu şarkı bu gece zaten çalındı."
-                            : "Bu şarkı bu gece için reddedildi.",
+                            : "Bu şarkı repertuvarımızda yok.",
                 },
                 { status: 409 }
             );
@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
         // Kontrolle istek arasında reddedildiyse (çok dar bir an)
         if (r.status === "rejected") {
             return NextResponse.json(
-                { error: "Bu şarkı bu gece için reddedildi.", count: r.count },
+                { error: "Bu şarkı repertuvarımızda yok.", count: r.count },
                 { status: 409 }
             );
         }

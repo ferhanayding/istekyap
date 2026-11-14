@@ -8,6 +8,8 @@ import { ToastProvider } from "./components/Toast";
 import { VotesProvider } from "@/lib/votes-context";
 import { LyricsProvider } from "./components/LyricsSheet";
 import { getAppFlags } from "@/lib/app-flags";
+import { MineProvider } from "@/lib/my-requests";
+import PollCard from "./components/PollCard";
 
 export default async function Home() {
   // İstek/oylama/playlist anahtarları sayfanın hazır HTML'ine gömülür (lib/app-flags):
@@ -24,10 +26,13 @@ export default async function Home() {
           <ToastProvider>
             <VotesProvider>
               <LyricsProvider>
-                <ClosedBanner />
-                <Header />
-                <RequestButton />
-                <AppTabs playlist={<PlaylistSection />} />
+                <MineProvider>
+                  <ClosedBanner />
+                  <Header />
+                  <RequestButton />
+                  <PollCard />
+                  <AppTabs playlist={<PlaylistSection />} />
+                </MineProvider>
               </LyricsProvider>
             </VotesProvider>
           </ToastProvider>
