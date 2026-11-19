@@ -5,7 +5,9 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useMemo,
     useState,
+    type ComponentType,
     type ReactNode,
 } from "react";
 import { Mic, X } from "lucide-react";
@@ -18,10 +20,15 @@ type State =
     | { status: "missing"; instrumental: boolean }
     | { status: "error" };
 
-const LyricsContext = createContext<(song: Song) => void>(() => {});
+// Dashboard'un eklediği parçalar (ziyaretçi sayfasına hiç yüklenmez):
+//   Extra: "Sözler" butonunun yanında (not butonu) · Top: sözlerin üstünde sabit (not)
+type Slot = ComponentType<Song>;
+type Ctx = { open: (song: Song) => void; Extra?: Slot };
+
+const LyricsContext = createContext<Ctx>({ open: () => {} });
 
 // Sayfanın herhangi bir yerinden sözleri açar
-export const useLyrics = () => useContext(LyricsContext);
+export const useLyrics = () => useContext(LyricsContext).open;
 
 // Her yerde aynı: ince, küçük, nane zeminli "Sözler" butonu
 export function LyricsButton({
@@ -30,8 +37,8 @@ export function LyricsButton({
     onOpen,
     className = "",
 }: Song & { onOpen?: () => void; className?: string }) {
-    const open = useLyrics();
-    return (
+    const { open, Extra } = useContext(LyricsContext);
+    const button = (
         <button
             type="button"
             onClick={() => {
@@ -44,19 +51,38 @@ export function LyricsButton({
             Sözler
         </button>
     );
+    if (!Extra) return button;
+    return (
+        <span className="flex shrink-0 items-center gap-1.5">
+            {button}
+            <Extra name={name} artists={artists} />
+        </span>
+    );
 }
 
-export function LyricsProvider({ children }: { children: ReactNode }) {
+export function LyricsProvider({
+    children,
+    extra,
+    top,
+}: {
+    children: ReactNode;
+    /** "Sözler" butonunun yanına (dashboard: not ekle) */
+    extra?: Slot;
+    /** Sözlerin üstünde sabit (dashboard: şarkı notu) */
+    top?: Slot;
+}) {
     const [song, setSong] = useState<Song | null>(null);
     const open = useCallback((s: Song) => setSong(s), []);
+    const value = useMemo<Ctx>(() => ({ open, Extra: extra }), [open, extra]);
 
     return (
-        <LyricsContext.Provider value={open}>
+        <LyricsContext.Provider value={value}>
             {children}
             {song && (
                 <LyricsSheet
                     key={`${song.artists}|${song.name}`}
                     song={song}
+                    Top={top}
                     onClose={() => setSong(null)}
                 />
             )}
@@ -64,7 +90,15 @@ export function LyricsProvider({ children }: { children: ReactNode }) {
     );
 }
 
-function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
+function LyricsSheet({
+    song,
+    Top,
+    onClose,
+}: {
+    song: Song;
+    Top?: Slot;
+    onClose: () => void;
+}) {
     const [state, setState] = useState<State>({ status: "loading" });
 
     useEffect(() => {
@@ -146,6 +180,9 @@ function LyricsSheet({ song, onClose }: { song: Song; onClose: () => void }) {
                         <X size={18} />
                     </button>
                 </div>
+
+                {/* Sözler kayarken yerinde durur */}
+                {Top && <Top name={song.name} artists={song.artists} />}
 
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
                     {state.status === "loading" && (

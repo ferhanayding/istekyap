@@ -32,6 +32,7 @@ import LyricsBar from "./LyricsBar";
 import { LyricsProvider, LyricsButton } from "../LyricsSheet";
 import SongStats from "./SongStats";
 import SystemPanel from "./SystemPanel";
+import { NoteButton, NotePanel, NotesProvider } from "./SongNotes";
 import StatsPanel from "./StatsPanel";
 import PollDash, { PollPickButton, type PollPick } from "./PollDash";
 import { POLL_MAX_OPTIONS } from "@/lib/poll-types";
@@ -839,9 +840,11 @@ function DashboardInner() {
 export default function DashboardClient() {
     return (
         <ToastProvider fixed>
-            <LyricsProvider>
-                <DashboardInner />
-            </LyricsProvider>
+            <NotesProvider>
+                <LyricsProvider extra={NoteButton} top={NotePanel}>
+                    <DashboardInner />
+                </LyricsProvider>
+            </NotesProvider>
         </ToastProvider>
     );
 }
