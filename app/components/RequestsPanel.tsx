@@ -235,7 +235,13 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                             onVote={vote}
                                         />
                                         {joinable && (
-                                            <AskButton id={r.spotify_id} name={r.name} join />
+                                            <AskButton
+                                                id={r.spotify_id}
+                                                name={r.name}
+                                                artists={r.artists}
+                                                cover={r.cover}
+                                                join
+                                            />
                                         )}
                                         <LyricsButton name={r.name} artists={r.artists} />
                                     </>

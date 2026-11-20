@@ -12,6 +12,7 @@ import {
 } from "@/lib/request-limit";
 import { MAX_NEXT_SHOW } from "@/lib/visitor-types";
 import EqBars from "../EqBars";
+import StoryButton from "./StoryButton";
 
 // "Geceyi bitir"den sonra geri alma süresi (sunucudaki UNDO_END_MS ile aynı)
 const UNDO_MS = 10 * 60_000;
@@ -336,6 +337,11 @@ export default function SystemPanel({
                             Geri al
                         </button>
                     </div>
+                )}
+
+                {/* Gece bitti: özeti Instagram hikâyesi olarak paylaş */}
+                {!state.nightOpen && state.nightEndedAt && (
+                    <StoryButton className="mt-2 w-full" />
                 )}
             </div>
 

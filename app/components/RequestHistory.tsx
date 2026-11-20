@@ -204,7 +204,12 @@ export default function RequestHistory({
                                                 onVote={vote}
                                             />
                                             {status !== "rejected" && (
-                                                <AskButton id={s.spotify_id} name={s.name} />
+                                                <AskButton
+                                                    id={s.spotify_id}
+                                                    name={s.name}
+                                                    artists={s.artists}
+                                                    cover={s.cover}
+                                                />
                                             )}
                                             <LyricsButton name={s.name} artists={s.artists} />
                                         </>

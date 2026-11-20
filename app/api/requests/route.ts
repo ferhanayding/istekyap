@@ -5,12 +5,50 @@ import { getTrackById } from "@/lib/search";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAppState } from "@/lib/app-state";
 import { notifyLive } from "@/lib/live-server";
-import { isBlocked } from "@/lib/blocklist";
+import { isBlocked, isBlockedComment } from "@/lib/blocklist";
 import { hasRequestableLength } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { MAX_REQUEST_LIMIT, MAX_REQUEST_WINDOW_MIN } from "@/lib/request-limit";
 import { readAtHeader } from "@/lib/fresh";
+import { MAX_REQUEST_NOTE, cleanNote, hasLink } from "@/lib/visitor-types";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
+
+// İsteğe eklenen not: boşsa null; uygunsuzsa ziyaretçiye gösterilecek hata
+function readNote(raw: unknown): { note: string | null } | { error: string } {
+    if (raw === undefined || raw === null) return { note: null };
+    if (typeof raw !== "string") return { error: "Geçersiz istek." };
+    const note = cleanNote(raw);
+    if (!note) return { note: null };
+    if (note.length > MAX_REQUEST_NOTE) {
+        return { error: `Not en fazla ${MAX_REQUEST_NOTE} karakter olabilir.` };
+    }
+    if (isBlockedComment(note)) return { error: "Notunda uygunsuz bir kelime var." };
+    if (hasLink(note)) return { error: "Nota link eklenemez." };
+    return { note };
+}
+
+// Not, bu cihazın o istekteki kaydına yazılır (aynı şarkıyı isteyen herkesin notu ayrı).
+// istek-notu.sql çalıştırılmadıysa yazılamaz: istek yine de geçerli, hata sadece loglanır.
+async function saveNote(spotifyId: string, deviceId: string, note: string) {
+    const { data, error } = await supabaseAdmin
+        .from("requests")
+        .select("id")
+        .eq("spotify_id", spotifyId)
+        .is("archived_at", null)
+        .in("status", ["pending", "approved", "rejected"])
+        .limit(1)
+        .maybeSingle();
+    if (error || !data) {
+        if (error) console.error(error);
+        return;
+    }
+    const { error: noteError } = await supabaseAdmin
+        .from("request_devices")
+        .update({ note })
+        .eq("request_id", data.id)
+        .eq("device_id", deviceId);
+    if (noteError) console.error(noteError);
+}
 
 // Kötüye kullanım emniyeti (bellekte, her denemeyi sayar): 10 dakikalık pencere
 const ATTEMPT_WINDOW_MS = 10 * 60_000;
@@ -165,6 +203,12 @@ export async function POST(req: NextRequest) {
     if (typeof id !== "string" || !SPOTIFY_ID.test(id)) {
         return NextResponse.json({ error: "Geçersiz şarkı." }, { status: 400 });
     }
+    // Not istekten önce denetlenir: uygunsuz not yüzünden istek hakkı harcanmasın
+    const noteResult = readNote(body?.note);
+    if ("error" in noteResult) {
+        return NextResponse.json({ error: noteResult.error }, { status: 400 });
+    }
+    const { note } = noteResult;
 
     try {
         // Şarkı ve playlist aynı anda (playlist önbellekte, çoğu zaman anında gelir)
@@ -219,7 +263,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (r.result !== "already") notifyLive("requests");
+        if (r.result !== "already") {
+            // Not önce yazılır: dashboard canlı sinyalle listeyi çekince notu da görsün
+            if (note && r.status !== "rejected") {
+                await saveNote(track.id, deviceId, note).catch((e) => console.error(e));
+            }
+            notifyLive("requests");
+        }
 
         // Kontrolle istek arasında reddedildiyse (çok dar bir an)
         if (r.status === "rejected") {

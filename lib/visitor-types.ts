@@ -27,6 +27,16 @@ export const MAX_NEXT_SHOW = 80;
 // Spotify araması en fazla bu kadar karakter (/api/search, istek kutusu, dashboard araması)
 export const MAX_SEARCH_LENGTH = 100;
 
+// İsteğe eklenen not ("Kime ya da neden?"): sadece dashboard'da görünür
+export const MAX_REQUEST_NOTE = 50;
+
+// Not tek satır: kontrol karakterleri ve satır sonları boşluk olur, fazla boşluk teke iner
+export const cleanNote = (s: string) =>
+    s
+        .replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
 // /api/comments (GET): herkese açık yorumlar
 export type PublicComment = {
     id: string;

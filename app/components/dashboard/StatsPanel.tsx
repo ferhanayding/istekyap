@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, RefreshCw, X } from "lucide-react";
 import type { NightSummary, SongStat, Stats, StatsResponse } from "@/lib/stats-types";
+import StoryButton from "./StoryButton";
 
 type Range = "night" | "total";
 type ListKey = "requested" | "liked" | "disliked" | "played" | "artists";
@@ -120,6 +121,9 @@ export default function StatsPanel() {
                             : `Gece başlangıcı: ${fmtDate(data.since)}`}
                 </p>
             )}
+
+            {/* Bu gecenin (ya da son gecenin) özeti, Instagram hikâyesi olarak */}
+            {data?.since && range === "night" && <StoryButton className="w-full" />}
 
             {failed && !data && (
                 <p className="py-10 text-center text-sm text-muted">

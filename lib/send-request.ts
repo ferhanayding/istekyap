@@ -14,7 +14,7 @@ export type SendResult =
 // Bağlantı takılırsa sıradaki istekler sonsuza kadar beklemesin
 const TIMEOUT_MS = 15_000;
 
-async function post(id: string): Promise<SendResult> {
+async function post(id: string, note?: string): Promise<SendResult> {
     // AbortSignal.timeout eski telefonlarda yok, o yüzden elle
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -22,7 +22,7 @@ async function post(id: string): Promise<SendResult> {
         const res = await fetch("/api/requests", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id }),
+            body: JSON.stringify(note ? { id, note } : { id }),
             signal: ctrl.signal,
         });
         const data = await res.json().catch(() => null);
@@ -44,9 +44,9 @@ async function post(id: string): Promise<SendResult> {
 // "henüz isteğin yok" cevabını alıp sınırı aşıyordu (ilk istek daha kaydedilmeden).
 let last: Promise<unknown> = Promise.resolve();
 
-// Arama kutusu, playlist ve "Eski istekler" aynı yoldan istek atar
-export function sendRequest(id: string): Promise<SendResult> {
-    const run = last.then(() => post(id));
+// Arama kutusu, playlist ve "Eski istekler" aynı yoldan istek atar (not: isteğe eklenen kısa yazı)
+export function sendRequest(id: string, note?: string): Promise<SendResult> {
+    const run = last.then(() => post(id, note));
     last = run;
     // Başarılı da olsa sınıra da takılsa: "benim isteklerim" ve kalan süre tazelensin
     void run.then(() => window.dispatchEvent(new Event(REQUEST_DONE_EVENT)));

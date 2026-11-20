@@ -7,9 +7,9 @@ import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { useT } from "@/lib/i18n";
 import { MAX_SEARCH_LENGTH } from "@/lib/visitor-types";
 import { useSystem } from "@/lib/system-context";
-import { sendRequest } from "@/lib/send-request";
 import { formatWait, useMine, useSecondsLeft } from "@/lib/my-requests";
 import { useToast } from "./Toast";
+import RequestSheet, { type SentResult } from "./RequestSheet";
 
 type Result = Track & { inPlaylist?: boolean };
 // Öneri: bugüne kadar en çok beğenilenler (app/api/suggestions)
@@ -30,7 +30,8 @@ export default function RequestButton() {
         null
     );
     const [failedQ, setFailedQ] = useState<string | null>(null);
-    const [sendingId, setSendingId] = useState<string | null>(null);
+    // Seçilen şarkı: not yazılabilen kutu açık, istek oradan gider
+    const [picked, setPicked] = useState<Row | null>(null);
     const [sent, setSent] = useState<Row | null>(null);
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [sentCount, setSentCount] = useState<number | null>(null);
@@ -121,16 +122,11 @@ export default function RequestButton() {
         };
     }, [q, open, sent, blocked, toast, t]);
 
-    async function pick(t: Row) {
-        setSendingId(t.id);
-        const r = await sendRequest(t.id);
-        setSendingId(null);
-        if (!r.ok) {
-            toast.error(r.error);
-            return;
-        }
+    // İstek gitti: kutu kapanır, arama çubuğunda kısa bir onay görünür
+    function onSent(song: Row, r: SentResult) {
+        setPicked(null);
         setSentCount(r.count);
-        setSent(t);
+        setSent(song);
         setTimeout(() => setOpen(false), 2200);
     }
 
@@ -140,8 +136,9 @@ export default function RequestButton() {
                 <li key={s.id}>
                     <button
                         type="button"
-                        onClick={() => pick(s)}
-                        disabled={played.has(s.id) || sendingId !== null}
+                        onClick={() => setPicked(s)}
+                        disabled={played.has(s.id)}
+                        aria-haspopup="dialog"
                         className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {s.cover ? (
@@ -182,11 +179,7 @@ export default function RequestButton() {
                                     : "rounded-full bg-accent px-2.5 py-1 text-on-accent"
                                     }`}
                             >
-                                {played.has(s.id)
-                                    ? t("Çalındı")
-                                    : sendingId === s.id
-                                        ? t("Gönderiliyor…")
-                                        : t("İste")}
+                                {played.has(s.id) ? t("Çalındı") : t("İste")}
                             </span>
                         </span>
                     </button>
@@ -341,6 +334,14 @@ export default function RequestButton() {
                     </div>
                 )}
             </div>
+
+            {picked && (
+                <RequestSheet
+                    song={picked}
+                    onClose={() => setPicked(null)}
+                    onSent={(r) => onSent(picked, r)}
+                />
+            )}
         </section>
     );
 }

@@ -7,15 +7,18 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 ## Neler var
 
 **Ziyaretçi sayfası (`/`)**
-- Spotify'da şarkı arama ve istek gönderme; playlistteki ve eski isteklerdeki şarkılar tek dokunuşla istenir; aynı şarkıyı isteyenler sayılır (×3)
+- Spotify'da şarkı arama ve istek gönderme; playlistteki ve eski isteklerdeki şarkılar da "İste"ye dokunarak istenir; aynı şarkıyı isteyenler sayılır (×3)
+- **İsteğe not**: istek gitmeden önce küçük bir kutu açılır, isteyen en fazla 50 karakterlik bir not yazabilir ("Kime ya da neden?", örn. "Ayşe'nin doğum günü 🎂"). Not küfür ve link filtresinden geçer, sadece dashboard'da isteğin altında görünür. Kutu, yanlışlıkla dokununca istek hakkının boşa gitmesini de önler
 - İstek listesi iki sekme: **Bu gece** (canlı) ve **Eski istekler** (bugüne kadar istenen her şarkı: kaç kez istendi, çalındı, beğenildi; buradan da istenebilir)
 - Şarkı sözleri (LRCLIB) ve her şarkı kartında 👍 / 👎. Sayılar bugüne kadarki toplamdır, gece bitince kaybolmaz; oy sadece bu gece çalınan şarkıya verilebilir (çalınmamışta dokununca neden yazar)
 - **Yorumlar** sekmesi: herkesin yorumu ve ortalama puan. Küfür/hakaret (Türkçe, Azerbaycanca, İngilizce; `lib/blocklist.ts`) ve link içeren yorumlar gönderilemez; listeye takılan eski yorumlar da gösterilmez. Dashboard'dan silinen yorum herkesten anında kalkar. Yorum filtresi (`isBlockedComment`) şarkı filtresinden (`isBlocked`) biraz daha sıkıdır: şarkı adlarında masum geçen kelimeler ("Moby Dick", "Cock Robin") sadece yorumlarda engellenir
 - Dil seçeneği: Türkçe (varsayılan), English, Azərbaycanca. "Yorum yap"ın yanındaki düğmeden seçilir, telefonda hatırlanır. Çeviriler `lib/i18n-dict.ts`'te (anahtar metnin Türkçesi); dashboard hep Türkçe
-- Gece kapalıyken en üstte "Canlı müzik başlayınca istek yapma ve oy verme açılacak" uyarısı
+- Gece kapalıyken en üstte "Canlı müzik başlayınca istek yapma ve oy verme açılacak" uyarısı ve başlığın altında grubun Instagram'ı büyük bir kutuda ("Bizi Instagram'da takip edebilirsiniz 😃"). Gece açılınca kutu kalkar, başlıktaki küçük Instagram düğmesi geri gelir
+- Link paylaşılınca (WhatsApp, Instagram, X) önizleme görseli çıkar: `app/opengraph-image.tsx`, derlemede bir kez üretilir
 
 **Dashboard (`/dashboard`, giriş gerekli)**
-- İstekler: onayla, reddet, sil, çal
+- İstekler: onayla, reddet, sil, çal. İsteyenlerin notları kartın altında; "Ben de" diyen biri not yazınca istek yeni gelmiş gibi vurgulanır ve ses çalar
+- **Gecenin Instagram kartı**: Sistem'de gece bitince, İstatistik'te "Bu gece / Son gece" altında. Hikâye boyutunda (1080×1920) görsel: tarih, kaç şarkı çalındı, kaç istek, kaç kişi, kaç beğeni, en çok istenen ve en çok beğenilen şarkı. Telefonda "Paylaş" ile doğrudan Instagram'a, bilgisayarda "İndir"
 - Playlist: şarkı başına bugüne kadarki beğeni/beğenmeme (sitede görünenle aynı; gecelik döküm İstatistik'te), filtre ve sıralama
 - İstatistik: bu gece / tüm zamanlar, saat saat istekler, en çok istenen / beğenilen / çalınan, geçmiş geceler
 - Yorumlar
@@ -36,6 +39,7 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 | Supabase Realtime (Broadcast) | "Liste değişti" sinyali, `istek-yap` kanalı |
 | Spotify Web API | Şarkı arama ve playlist |
 | LRCLIB | Şarkı sözleri (anahtar istemez) |
+| Google Fonts | Paylaşım görsellerinin yazı tipi (`lib/og.tsx`: sadece görseldeki harfler indirilir, alınamazsa görsel varsayılan yazı tipiyle çıkar) |
 
 Akış: Telefon `/api/requests`'e istek atar → sunucu veritabanına yazar → Realtime kanalına `changed` sinyali (`v` sürüm numarasıyla) gönderir → açık sayfalar ve dashboard listeyi `?v=` ile yeniden çeker; aynı `v`'yi isteyen herkese Vercel CDN tek cevap verir. Canlı bağlantı varken sayfalar sadece dakikada bir yedek kontrol yapar, bağlantı koparsa 5–10 saniyelik yoklamaya döner. Arka plandaki sekme hiç istek atmaz (dashboard hariç: yeni istek sesi için).
 
@@ -98,10 +102,11 @@ Sonradan eklenenler yerel `supabase/` klasöründe durur. Klasör `.gitignore`'d
 8. `supabase/notlar.sql` — `song_notes` (dashboard'da sözlerin üstündeki şarkı notları)
 9. `supabase/oy-toplamlari.sql` — `song_vote_totals` görünümü: şarkı başına bugüne kadarki beğeni/beğenmeme tek sorguda. Çalıştırılmadıysa toplam `vote_history` + `song_vote_counts`'tan uygulamada hesaplanır
 10. `supabase/gece-geri-alma.sql` — `end_requests_open`, `end_voting_open`: "Geceyi bitir" geri alınınca istek alma ve oylama bitirmeden önceki hâline döner. Çalıştırılmadıysa geri alınca ikisi de açılır
+11. `supabase/istek-notu.sql` — `request_devices.note`: isteğe eklenen not (en fazla 50 karakter, isteyen her cihazın notu ayrı). Çalıştırılmadıysa istekler yine gider, sadece notlar kaydedilmez
 
 ### Ziyaretçi tarafındaki küçük özellikler
 
-- **Ben de**: bu geceki listede bekleyen/çalınacak isteğe tek dokunuşla katılma (istek hakkından düşer).
+- **Ben de**: bu geceki listede bekleyen/çalınacak isteğe katılma (istek hakkından düşer). Açılan kutuda katılan da not yazabilir.
 - **Senin isteğin**: kişinin kendi istekleri listede işaretlenir; onaylanınca, çalmaya başlayınca ya da reddedilince bildirim gelir. Kaynak `/api/requests/mine` (çerezdeki cihaz kimliği).
 - **Geri sayım**: istek hakkı dolunca ana buton kilitlenir ve "Sonraki istek hakkın 4:32 sonra" yazar.
 - **Repertuvarımızda yok**: reddedilen istek ziyaretçiye böyle görünür (dashboard'da "Reddedildi" kalır).
@@ -120,7 +125,7 @@ app/
   api/
     requests/  search/  votes/  comments/  lyrics/  state/   herkese açık API
     requests/history/      Eski istekler
-    dashboard/ (requests, songs, stats, system, comments)              giriş gerektiren API
+    dashboard/ (requests, songs, stats, system, comments, story)       giriş gerektiren API (story: gecenin Instagram kartı)
     auth/                  Spotify refresh token alma (sadece npm run dev ile çalışır)
   components/              arayüz bileşenleri (dashboard/ altında panel bileşenleri)
 lib/
@@ -133,6 +138,7 @@ lib/
   playlist.ts              önbellekli playlist ("use cache")
   app-flags.ts             sayfaya gömülen açma/kapama anahtarları
   early-fetch.ts           ilk verileri erken isteme
+  og.tsx                   paylaşım görselleri: renkler, logo, yazı tipi (link önizlemesi, gece kartı, iPhone ikonu)
 proxy.ts                   /dashboard ve /api/dashboard için giriş kontrolü
 scripts/load-test.mjs      yük testi
 supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)
@@ -146,6 +152,7 @@ supabase/                  veritabanı ek SQL dosyaları (yerelde, git'e girmez)
 | Tekrar istek | Bu gece çalınan ya da reddedilen şarkı tekrar istenemez (sayaç artmaz, istek hakkı harcanmaz); yeni gecede sıfırlanır |
 | Arama | Cihaz başına dakikada 30 (aynı IP'ye 300; çerezi olmayan ziyaretçiye sadece IP sınırı) |
 | Yorum | Cihaz başına 10 dakikada 3 (aynı IP'ye 60) |
+| İstek notu | En fazla 50 karakter, tek satır; küfür/hakaret ve link içeremez (yorumla aynı filtre). Uygunsuz notla istek gönderilmez, istek hakkı da harcanmaz |
 | Aynı şarkı | Bir cihaz sayacı bir kez artırır |
 | Şarkı sözü | Cihaz başına dakikada 20 (aynı IP'ye 200; çerezi olmayan ziyaretçiye sadece IP sınırı) |
 | Oy | Cihaz başına dakikada 30; sadece bu gece çalınmış şarkılara |

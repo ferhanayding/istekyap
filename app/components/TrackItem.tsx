@@ -81,7 +81,9 @@ export default memo(function TrackItem({
                         onVote={onVote}
                     />
                     {/* Çalınmış şarkı bu gece tekrar istenemez: "Çalındı" rozeti yeterli */}
-                    {!played && <AskButton id={t.id} name={t.name} />}
+                    {!played && (
+                        <AskButton id={t.id} name={t.name} artists={t.artists} cover={t.cover} />
+                    )}
                     <LyricsButton name={t.name} artists={t.artists} />
                 </>
             }

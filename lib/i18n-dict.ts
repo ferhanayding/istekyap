@@ -20,6 +20,17 @@ export const DICT = {
     },
     "Sonraki sahne: {x}": { en: "Next show: {x}", az: "Növbəti çıxış: {x}" },
 
+    // Gece kapalıyken büyük Instagram kutusu
+    "Bizi Instagram'da takip edebilirsiniz 😃": {
+        en: "Follow us on Instagram 😃",
+        az: "Bizi Instagram-da izləyə bilərsiniz 😃",
+    },
+    "Yeni sahneler, videolar ve duyurular orada 🎶🎤": {
+        en: "New shows, videos and news are there 🎶🎤",
+        az: "Yeni çıxışlar, videolar və elanlar oradadır 🎶🎤",
+    },
+    "Takip et": { en: "Follow", az: "İzlə" },
+
     // Alt menü
     "Ana menü": { en: "Main menu", az: "Əsas menyu" },
     Playlist: { en: "Playlist", az: "Pleylist" },
@@ -66,6 +77,26 @@ export const DICT = {
     "Bu kelimeyle arama yapılamaz.": {
         en: "You can't search with that word.",
         az: "Bu sözlə axtarış etmək olmaz.",
+    },
+
+    // İstek kutusu (not)
+    "Kime ya da neden?": { en: "Who's it for, or why?", az: "Kimə və ya niyə?" },
+    "Örn. Ayşe'nin doğum günü 🎂": {
+        en: "e.g. Happy birthday Sarah 🎂",
+        az: "Məs. Aynurun ad günü 🎂",
+    },
+    "Notu sadece grup görür.": {
+        en: "Only the band sees your note.",
+        az: "Qeydi yalnız qrup görür.",
+    },
+    "Ben de iste": { en: "Request it too", az: "Mən də istə" },
+    "Notunda uygunsuz bir kelime var.": {
+        en: "Your note has an inappropriate word.",
+        az: "Qeydində uyğunsuz söz var.",
+    },
+    "Nota link eklenemez.": {
+        en: "Links aren't allowed in notes.",
+        az: "Qeydə link əlavə etmək olmaz.",
     },
 
     // Şarkı satırları
@@ -357,6 +388,10 @@ export const DICT = {
         en: "A name can be at most {n} characters.",
         az: "Ad ən çox {n} simvol ola bilər.",
     },
+    "Not en fazla {n} karakter olabilir.": {
+        en: "A note can be at most {n} characters.",
+        az: "Qeyd ən çox {n} simvol ola bilər.",
+    },
     "İstek gönderilemedi. Tekrar dene.": {
         en: "Couldn't send the request. Try again.",
         az: "İstək göndərilmədi. Yenidən yoxla.",
@@ -427,6 +462,11 @@ export const SERVER_PATTERNS: {
     {
         re: /^İsim en fazla (\d+) karakter olabilir\.$/,
         key: "İsim en fazla {n} karakter olabilir.",
+        vars: (m) => ({ n: m[1] }),
+    },
+    {
+        re: /^Not en fazla (\d+) karakter olabilir\.$/,
+        key: "Not en fazla {n} karakter olabilir.",
         vars: (m) => ({ n: m[1] }),
     },
 ];

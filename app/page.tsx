@@ -1,6 +1,7 @@
 import Header from "./components/header";
 import RequestButton from "./components/RequestButton";
 import ClosedBanner from "./components/ClosedBanner";
+import FollowUs from "./components/FollowUs";
 import AppTabs from "./components/AppTabs";
 import PlaylistSection from "./components/PlaylistSection";
 import { SystemProvider } from "@/lib/system-context";
@@ -31,6 +32,8 @@ export default async function Home() {
                   <MineProvider>
                     <ClosedBanner />
                     <Header />
+                    {/* Gece kapalıyken grubun Instagram'ı, kocaman */}
+                    <FollowUs />
                     <RequestButton />
                     <PollCard />
                     <AppTabs playlist={<PlaylistSection />} />

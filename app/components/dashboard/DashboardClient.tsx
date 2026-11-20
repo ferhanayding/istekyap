@@ -9,6 +9,7 @@ import {
     CheckCheck,
     ListMusic,
     LogOut,
+    MessageCircleHeart,
     MessageSquareText,
     Music2,
     Play,
@@ -70,6 +71,8 @@ type RequestRow = {
     request_count?: number;
     created_at: string;
     last_requested_at?: string;
+    /** İsteyenlerin yazdığı notlar ("Kime ya da neden?"), eskiden yeniye */
+    notes?: { text: string; at: string }[];
 };
 
 // Yeni istek canlı sinyalle anında gelir; yoklama sadece yedek
@@ -225,8 +228,9 @@ function DashboardInner() {
         if (shownError) toast.error(shownError);
     }, [shownError, toast]);
 
-    // id -> durum: yeni gelen ya da tekrar "Bekliyor"a düşen (çalınmış şarkı yeniden istendi) istek bildirilir
-    const known = useRef<Map<string, Status> | null>(null);
+    // id -> durum ve not sayısı: yeni gelen, tekrar "Bekliyor"a düşen (çalınmış şarkı yeniden istendi)
+    // ya da yeni not eklenen ("Ben de" diyen biri not yazdı) istek bildirilir
+    const known = useRef<Map<string, { status: Status; notes: number }> | null>(null);
     const audio = useRef<AudioContext | null>(null);
     const soundOn = useRef(false);
 
@@ -258,9 +262,17 @@ function DashboardInner() {
             const list = data as RequestRow[];
             const prev = known.current;
             const fresh = prev
-                ? list.filter((r) => r.status === "pending" && prev.get(r.id) !== "pending")
+                ? list.filter((r) => {
+                    const before = prev.get(r.id);
+                    return (
+                        (r.status === "pending" && before?.status !== "pending") ||
+                        (r.notes?.length ?? 0) > (before?.notes ?? 0)
+                    );
+                })
                 : [];
-            known.current = new Map(list.map((r) => [r.id, r.status]));
+            known.current = new Map(
+                list.map((r) => [r.id, { status: r.status, notes: r.notes?.length ?? 0 }])
+            );
 
             setItems(list);
             setNow(Date.now());
@@ -380,7 +392,7 @@ function DashboardInner() {
                 list ? list.map((r) => (r.id === id ? { ...r, status } : r)) : list
             );
             // Kendi değişikliğimiz (örn. "Bekleyene al") yeni istek gibi bildirilmesin
-            known.current?.set(id, status);
+            known.current?.set(id, { status, notes: row?.notes?.length ?? 0 });
             dismiss(id);
             // Çalan istek elle başka duruma alınırsa çalma işareti de kalksın
             if (row && nowPlaying === row.spotify_id) {
@@ -671,6 +683,24 @@ function DashboardInner() {
                                                     )}
                                                     <LyricsButton name={r.name} artists={r.artists} />
                                                 </div>
+
+                                                {/* İsteyenlerin notları: sahnede okunabilsin diye büyük ve tam */}
+                                                {r.notes && r.notes.length > 0 && (
+                                                    <ul className="mt-2.5 space-y-1.5" aria-label="İsteyenlerin notları">
+                                                        {r.notes.map((n, i) => (
+                                                            <li
+                                                                key={`${n.at}-${i}`}
+                                                                className="flex items-start gap-2 rounded-lg bg-accent/10 px-3 py-2 text-sm font-semibold leading-snug text-ink"
+                                                            >
+                                                                <MessageCircleHeart
+                                                                    size={15}
+                                                                    className="mt-0.5 shrink-0 text-accent"
+                                                                />
+                                                                <span className="min-w-0 break-words">{n.text}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
 
                                                 <div className="mt-3 flex gap-2">
                                                     {r.status === "pending" ? (
