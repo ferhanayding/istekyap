@@ -1,30 +1,41 @@
 "use client";
 
-import { ListMusic, Music2 } from "lucide-react";
+import { ListMusic, MessageSquareText, Music2 } from "lucide-react";
+import { useT } from "@/lib/i18n";
+import type { MsgKey } from "@/lib/i18n-dict";
 
-export type Tab = "playlist" | "requests";
+export type Tab = "playlist" | "requests" | "comments";
 
-const ITEMS: { key: Tab; label: string; Icon: typeof Music2 }[] = [
+const ITEMS: { key: Tab; label: MsgKey; Icon: typeof Music2 }[] = [
     { key: "playlist", label: "Playlist", Icon: Music2 },
     { key: "requests", label: "İstek Listesi", Icon: ListMusic },
+    { key: "comments", label: "Yorumlar", Icon: MessageSquareText },
 ];
 
 export default function BottomNav({
     tab,
+    tabs,
     unread,
     onTab,
 }: {
     tab: Tab;
+    /** Görünen sekmeler (playlist kapalıysa o yok) */
+    tabs: Tab[];
     unread: number;
     onTab: (t: Tab) => void;
 }) {
+    const t = useT();
+    const items = ITEMS.filter((i) => tabs.includes(i.key));
     return (
         <nav
-            aria-label="Ana menü"
+            aria-label={t("Ana menü")}
             className="relative z-30 shrink-0 border-t border-line bg-page px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2"
         >
-            <ul className="grid grid-cols-2">
-                {ITEMS.map(({ key, label, Icon }) => {
+            <ul
+                className="grid"
+                style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+            >
+                {items.map(({ key, label, Icon }) => {
                     const active = tab === key;
                     return (
                         <li key={key}>
@@ -49,10 +60,10 @@ export default function BottomNav({
                                     )}
                                 </span>
                                 <span
-                                    className={`text-xs font-bold ${active ? "text-ink" : "text-muted"
+                                    className={`max-w-full truncate text-xs font-bold ${active ? "text-ink" : "text-muted"
                                         }`}
                                 >
-                                    {label}
+                                    {t(label)}
                                 </span>
                             </button>
                         </li>

@@ -5,22 +5,18 @@ import { Plus } from "lucide-react";
 import { useSystem } from "@/lib/system-context";
 import { sendRequest } from "@/lib/send-request";
 import { formatWait, useMine } from "@/lib/my-requests";
+import { useT } from "@/lib/i18n";
 import { useToast } from "./Toast";
-
-const CLOSED_TEXT = "İstekler şu an kapalı. Canlı müzik başlayınca açılacak.";
 
 // Listedeki bir şarkıyı tek dokunuşla isteme (playlist, eski istekler) ya da
 // bu geceki listede başkasının isteğine katılma ("Ben de")
 export default function AskButton({
     id,
     name,
-    rejected = false,
     join = false,
 }: {
     id: string;
     name: string;
-    /** Bu gece reddedildi: tekrar istenemez */
-    rejected?: boolean;
     /** Bu geceki listede: başkasının isteğine katıl */
     join?: boolean;
 }) {
@@ -29,17 +25,18 @@ export default function AskButton({
     // Bu gece çalındı: tekrar istenemez
     const played = playedTonight.has(id);
     const toast = useToast();
+    const t = useT();
     const [state, setState] = useState<"idle" | "sending" | "done">("idle");
 
     async function ask() {
         if (!requestsOpen) {
-            toast.error(CLOSED_TEXT);
+            toast.error(t("İstekler şu an kapalı. Canlı müzik başlayınca açılacak."));
             return;
         }
         // Hakkı dolmuşsa sunucuya gitmeden söyle
         const left = Math.ceil((mine.waitUntil - Date.now()) / 1000);
         if (mine.waiting && left > 0) {
-            toast.info(`Sonraki istek hakkın ${formatWait(left)} sonra açılacak.`);
+            toast.info(t("Sonraki istek hakkın {time} sonra açılacak.", { time: formatWait(left) }));
             return;
         }
         setState("sending");
@@ -52,14 +49,9 @@ export default function AskButton({
         setState("done");
         toast.success(
             r.count
-                ? `İsteğe katıldın · ${r.count} kişi istedi: ${name}`
-                : `İstek gönderildi: ${name}`,
+                ? t("İsteğe katıldın · {n} kişi istedi: {name}", { n: r.count, name })
+                : t("İstek gönderildi: {name}", { name }),
         );
-    }
-
-    // Reddedilen şarkı: buton yerine küçük, sakin bir not
-    if (rejected) {
-        return <span className="shrink-0 text-[11px] text-faint">Repertuvarımızda yok</span>;
     }
 
     const done = state === "done" || mine.ids.has(id);
@@ -69,8 +61,12 @@ export default function AskButton({
             type="button"
             onClick={ask}
             disabled={done || played || state === "sending"}
-            aria-label={join ? `${name} şarkısını ben de istiyorum` : `${name} şarkısını iste`}
-            className={`flex h-7 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-extrabold transition enabled:active:scale-95 ${
+            aria-label={
+                join
+                    ? t("{name} şarkısını ben de istiyorum", { name })
+                    : t("{name} şarkısını iste", { name })
+            }
+            className={`flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-extrabold transition enabled:active:scale-95 ${
                 done
                     ? "bg-accent/15 text-accent"
                     : dim
@@ -79,18 +75,18 @@ export default function AskButton({
             }`}
         >
             {done ? (
-                "İstedin"
+                t("İstedin")
             ) : played ? (
-                "Çalındı"
+                t("Çalındı")
             ) : state === "sending" ? (
                 "…"
             ) : join ? (
                 <>
                     <Plus size={13} strokeWidth={3} />
-                    Ben de
+                    {t("Ben de")}
                 </>
             ) : (
-                "İste"
+                t("İste")
             )}
         </button>
     );

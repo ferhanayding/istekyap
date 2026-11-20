@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppState } from "@/lib/app-state";
+import { readAtHeader } from "@/lib/fresh";
 
 export async function GET(req: NextRequest) {
     // ?v=: canlı sinyalden sonra. Değişiklik yeni olduğu için bellekteki 2 sn'lik kopya atlanır;
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
                 "Cache-Control": v
                     ? "public, s-maxage=30"
                     : "public, s-maxage=2",
+                ...readAtHeader(state.readAt),
             },
         });
     } catch (e) {

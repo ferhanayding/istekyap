@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { getPlaylist } from "@/lib/playlist";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getVoteTotals } from "@/lib/votes";
 
 // Playlist ortak önbellekten gelir (lib/playlist), Spotify'a her turda gidilmez
 const tracks = async () => (await getPlaylist()).tracks;
@@ -12,20 +12,10 @@ export async function GET() {
     }
 
     try {
-        const [list, votes] = await Promise.all([
-            tracks(),
-            supabaseAdmin
-                .from("song_vote_counts")
-                .select("spotify_id, likes, dislikes"),
-        ]);
-        if (votes.error) throw votes.error;
-
-        const counts = new Map(
-            (votes.data ?? []).map((v) => [
-                String(v.spotify_id),
-                { likes: Number(v.likes), dislikes: Number(v.dislikes) },
-            ])
-        );
+        // Beğeni/beğenmeme: bugüne kadarki toplam, ziyaretçinin sitede gördüğüyle aynı
+        // (gecelik döküm İstatistik sekmesinde)
+        const [list, totals] = await Promise.all([tracks(), getVoteTotals()]);
+        const counts = new Map(totals.map((v) => [v.spotify_id, v]));
 
         const out = list.map((t) => ({
             id: t.id,

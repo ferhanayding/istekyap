@@ -5,10 +5,11 @@ import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
 import { requireUser } from "@/lib/auth";
 import { hasRequestableLength } from "@/lib/spotify";
+import { MAX_SEARCH_LENGTH } from "@/lib/visitor-types";
 
 export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
-    if (q.length < 2 || q.length > 100) return NextResponse.json([]);
+    if (q.length < 2 || q.length > MAX_SEARCH_LENGTH) return NextResponse.json([]);
 
     // Dashboard (scope=all, giriş yapmış grup üyesi): filtre yok, her şarkı çıkar
     const wantsAll = req.nextUrl.searchParams.get("scope") === "all";

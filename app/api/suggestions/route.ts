@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { allRows } from "@/lib/all-rows";
 import { isBlocked } from "@/lib/blocklist";
 import { getPlaylist } from "@/lib/playlist";
+import { getVoteTotals } from "@/lib/votes";
 
 // İstek kutusu açılınca gösterilen öneriler: bugüne kadar en çok beğenilen şarkılar
 // (eski gecelerin oyları + bu gecenin oyları). Bu gece çalınanları tarayıcı ayıklar,
@@ -23,9 +24,8 @@ let cache: { list: Suggestion[]; expires: number } | null = null;
 type Meta = { name: string; artists: string; cover: string | null; inPlaylist: boolean };
 
 async function build(): Promise<Suggestion[]> {
-    const [voteHist, votes, reqs, playlist] = await Promise.all([
-        allRows<{ spotify_id: string; likes: number }>("vote_history", "spotify_id, likes"),
-        allRows<{ spotify_id: string; value: number }>("song_votes", "spotify_id, value"),
+    const [totals, reqs, playlist] = await Promise.all([
+        getVoteTotals(),
         allRows<{
             spotify_id: string;
             name: string;
@@ -39,10 +39,7 @@ async function build(): Promise<Suggestion[]> {
             .catch(() => []),
     ]);
 
-    const likes = new Map<string, number>();
-    const add = (id: string, n: number) => likes.set(id, (likes.get(id) ?? 0) + n);
-    for (const v of voteHist) add(String(v.spotify_id), Number(v.likes) || 0);
-    for (const v of votes) if (v.value > 0) add(String(v.spotify_id), 1);
+    const likes = new Map(totals.map((v) => [v.spotify_id, v.likes]));
 
     // Şarkının adı ve kapağı: playlistten, yoksa (reddedilmemiş) isteğinden
     const meta = new Map<string, Meta>();

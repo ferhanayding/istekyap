@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 
-// Bütün listelerde (playlist, bu gece, eski istekler) aynı sıkı satır:
+// Bütün listelerde (playlist, bu gece, eski istekler, son gece) aynı kart:
 //   [kapak]  Şarkı · Sanatçı
-//            bilgi (rozet, tarih)            [butonlar]
+//            rozet (Yeni, Çalındı…)          [👍] [👎] [İste] [Sözler]
+//            alt bilgi (eklenme tarihi, durum, kaç kez istendi)
+// Dar ekranda (ya da uzun İngilizce yazılarla) sığmazsa butonlar rozetin üstüne çıkar,
+// hiçbir şey ezilmez.
 export default function SongRow({
     as: Tag = "div",
     id,
@@ -13,6 +16,7 @@ export default function SongRow({
     playing = false,
     dim = false,
     eager = false,
+    badges,
     meta,
     actions,
 }: {
@@ -28,6 +32,9 @@ export default function SongRow({
     dim?: boolean;
     /** İlk ekranda görünenler hemen, gerisi kaydırdıkça yüklenir */
     eager?: boolean;
+    /** Butonların solunda kısa rozetler (Yeni, Çalındı, ×3) */
+    badges?: ReactNode;
+    /** En alt satır: eklenme tarihi, durum, kaç kez istendi */
     meta?: ReactNode;
     actions?: ReactNode;
 }) {
@@ -35,7 +42,7 @@ export default function SongRow({
         <Tag
             id={id}
             // Satırlar arasında çok silik bir çizgi ve biraz boşluk: liste kalabalık görünmesin
-            className={`flex items-center gap-3 border-b border-line/60 py-2.5 last:border-b-0 ${dim ? "opacity-60" : ""}`}
+            className={`flex items-center gap-3 border-b border-line/60 py-3 last:border-b-0 ${dim ? "opacity-60" : ""}`}
         >
             {cover ? (
                 // Spotify'ın küçük kapakları doğrudan yüklenir (Vercel görsel kotası harcanmaz)
@@ -43,14 +50,14 @@ export default function SongRow({
                 <img
                     src={cover}
                     alt={coverAlt}
-                    width={52}
-                    height={52}
+                    width={56}
+                    height={56}
                     loading={eager ? "eager" : "lazy"}
                     decoding="async"
-                    className={`size-13 shrink-0 rounded-[4px] object-cover ${dim ? "grayscale" : ""}`}
+                    className={`size-14 shrink-0 rounded-[4px] object-cover ${dim ? "grayscale" : ""}`}
                 />
             ) : (
-                <div className="size-13 shrink-0 rounded-[4px] bg-line" />
+                <div className="size-14 shrink-0 rounded-[4px] bg-line" />
             )}
 
             <div className="min-w-0 flex-1">
@@ -60,12 +67,28 @@ export default function SongRow({
                     </span>
                     <span className="text-muted"> · {artists}</span>
                 </p>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-faint">
+
+                {(badges || actions) && (
+                    // Dar ekranda sığmazsa butonlar üste çıkar, rozet tarihin hemen üstünde kalır
+                    <div className="mt-1.5 flex flex-wrap-reverse items-center gap-x-2 gap-y-1.5">
+                        {badges && (
+                            <div className="flex items-center gap-1.5 whitespace-nowrap text-xs">
+                                {badges}
+                            </div>
+                        )}
+                        {actions && (
+                            <div className="ml-auto flex shrink-0 items-center gap-1">
+                                {actions}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {meta && (
+                    <div className="mt-1 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-faint">
                         {meta}
                     </div>
-                    {actions && <div className="flex shrink-0 items-center gap-1.5">{actions}</div>}
-                </div>
+                )}
             </div>
         </Tag>
     );

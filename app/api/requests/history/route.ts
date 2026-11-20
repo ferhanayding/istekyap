@@ -11,17 +11,15 @@ const MAX = 500;
 let cache: { list: HistorySong[]; expires: number } | null = null;
 
 async function build(): Promise<HistorySong[]> {
-    const [reqs, plays, voteHist, votes] = await Promise.all([
+    const [reqs, plays] = await Promise.all([
         allRows<ReqRow>(
             "requests",
             "spotify_id, name, artists, cover, status, request_count, created_at, last_requested_at"
         ),
         allRows<{ spotify_id: string }>("play_history", "spotify_id"),
-        allRows<{ spotify_id: string; likes: number }>("vote_history", "spotify_id, likes"),
-        allRows<{ spotify_id: string; value: number }>("song_votes", "spotify_id, value"),
     ]);
 
-    const songs = aggregate(reqs, plays, voteHist, votes);
+    const songs = aggregate(reqs, plays);
     return songs
         .filter((s) => !isBlocked(`${s.name} ${s.artists}`))
         .sort(

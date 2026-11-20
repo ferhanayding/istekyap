@@ -1,4 +1,5 @@
-// Ziyaretçinin gördüğü "Eski istekler": bugüne kadar istenen her şarkı bir satır
+// Ziyaretçinin gördüğü "Eski istekler": bugüne kadar istenen her şarkı bir satır.
+// Beğeni/beğenmeme ayrıca /api/votes'tan gelir (bütün listelerde aynı kaynak).
 export type HistorySong = {
     spotify_id: string;
     name: string;
@@ -8,7 +9,5 @@ export type HistorySong = {
     requests: number;
     /** Kaç kez çalındı */
     plays: number;
-    /** Toplam beğeni (beğenmeme sayısı ziyaretçiye gösterilmez) */
-    likes: number;
     lastRequested: string;
 };

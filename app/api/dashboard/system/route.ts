@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { clearAppStateCache, getAppState } from "@/lib/app-state";
-import { clearLikeCountsCache } from "@/lib/votes";
+import { clearVoteTotalsCache } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notifyLive } from "@/lib/live-server";
 import { revalidateTag } from "next/cache";
@@ -130,6 +130,21 @@ async function markNight(at: string) {
         .update({ night_started_at: at })
         .eq("id", 1);
     if (error) console.warn("night_started_at yazılamadı:", error.message);
+}
+
+// "Geceyi bitir"e basıldığı anda istek alma ve oylama açık mıydı. Bilinmiyorsa
+// (gece-geri-alma.sql çalıştırılmadı ya da eski bir bitiş) ikisi de açık sayılır.
+async function flagsBeforeEnd(): Promise<{ requestsOpen: boolean; votingOpen: boolean }> {
+    const { data } = await supabaseAdmin
+        .from("app_state")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
+    const row = data as { end_requests_open?: boolean | null; end_voting_open?: boolean | null } | null;
+    return {
+        requestsOpen: typeof row?.end_requests_open === "boolean" ? row.end_requests_open : true,
+        votingOpen: typeof row?.end_voting_open === "boolean" ? row.end_voting_open : true,
+    };
 }
 
 // "Geceyi bitir"de arşivlenenleri listeye geri alır. O an arşivlenenlerin hepsi aynı
@@ -309,7 +324,7 @@ export async function POST(req: NextRequest) {
                 ]);
                 const failed = steps.find((r) => r.error);
                 if (failed?.error) throw failed.error;
-                clearLikeCountsCache();
+                clearVoteTotalsCache();
                 break;
             }
 
@@ -319,12 +334,17 @@ export async function POST(req: NextRequest) {
                     return NextResponse.json({ error: "Gece zaten kapalı." }, { status: 409 });
                 }
                 const now = new Date().toISOString();
-                // Önce her şey kapanır ki bitirirken yeni istek ya da oy gelmesin
-                const error = await updateState({
-                    ...NIGHT_OFF,
-                    ...NO_PLAYING,
-                    night_ended_at: now,
+                // Önce her şey kapanır ki bitirirken yeni istek ya da oy gelmesin.
+                // İstek alma ve oylamanın o anki hâli de aynı satıra yazılır: "Geri al" aynen
+                // döndürsün (molada kapalıyken bitirilip geri alınırsa kapalı kalsın).
+                const ended = { ...NIGHT_OFF, ...NO_PLAYING, night_ended_at: now };
+                let error = await updateState({
+                    ...ended,
+                    end_requests_open: current.requestsOpen,
+                    end_voting_open: current.votingOpen,
                 });
+                // gece-geri-alma.sql çalıştırılmadıysa o iki sütun yoktur: onlarsız bitir
+                if (missingColumn(error)) error = await updateState(ended);
                 if (missingColumn(error)) {
                     return NextResponse.json({ error: NEED_SQL }, { status: 409 });
                 }
@@ -359,13 +379,19 @@ export async function POST(req: NextRequest) {
                     );
                 }
                 // Sadece bu bitişte arşivlenenler ve bu gecenin "çalındı" işaretleri geri gelir
-                await Promise.all([
+                const [, , before] = await Promise.all([
                     unarchiveAt(new Date(endedAt).toISOString()),
                     current.nightStartedAt
                         ? restorePlayedSince(new Date(current.nightStartedAt).toISOString())
                         : null,
+                    flagsBeforeEnd(),
                 ]);
-                const error = await updateState({ ...NIGHT_ON, night_ended_at: null });
+                const error = await updateState({
+                    night_open: true,
+                    requests_open: before.requestsOpen,
+                    voting_open: before.votingOpen,
+                    night_ended_at: null,
+                });
                 if (error) throw error;
                 break;
             }
@@ -422,6 +448,7 @@ export async function POST(req: NextRequest) {
                 ]);
                 const failed = steps.find((r) => r.error);
                 if (failed?.error) throw failed.error;
+                clearVoteTotalsCache();
                 break;
             }
             case "reset_requests": {

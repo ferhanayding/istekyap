@@ -36,6 +36,7 @@ import { NoteButton, NotePanel, NotesProvider } from "./SongNotes";
 import StatsPanel from "./StatsPanel";
 import PollDash, { PollPickButton, type PollPick } from "./PollDash";
 import { POLL_MAX_OPTIONS } from "@/lib/poll-types";
+import { timeAgo, useT } from "@/lib/i18n";
 
 type Status = "pending" | "approved" | "played" | "rejected";
 type Main = "requests" | "playlist" | "stats" | "comments" | "system";
@@ -99,18 +100,6 @@ const EMPTY: Record<Tab, string> = {
 };
 
 const NIGHT_CLOSED = "Gece kapalı. Önce Sistem sekmesinden geceyi başlat.";
-
-const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
-
-function ago(iso: string, now: number): string {
-    const s = Math.min(0, Math.round((new Date(iso).getTime() - now) / 1000));
-    if (Math.abs(s) < 60) return "az önce";
-    const m = Math.round(s / 60);
-    if (Math.abs(m) < 60) return rtf.format(m, "minute");
-    const h = Math.round(m / 60);
-    if (Math.abs(h) < 24) return rtf.format(h, "hour");
-    return rtf.format(Math.round(h / 24), "day");
-}
 
 const btn =
     "flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-extrabold transition active:scale-95 disabled:opacity-50";
@@ -224,6 +213,7 @@ function DashboardInner() {
     const [pick, setPick] = useState<PollPick[]>([]);
     const router = useRouter();
     const toast = useToast();
+    const tr = useT();
     const system = useDashboardSystem();
     const nowPlaying = system.state?.nowPlaying ?? null;
     // Durum yüklenene kadar engelleme: asıl kontrol sunucuda
@@ -661,7 +651,7 @@ function DashboardInner() {
                                                                 </span>
                                                             )}
                                                             <span className="text-xs text-faint">
-                                                                {ago(r.last_requested_at ?? r.created_at, now)}
+                                                                {timeAgo(tr, r.last_requested_at ?? r.created_at, now)}
                                                             </span>
                                                         </div>
                                                     </div>

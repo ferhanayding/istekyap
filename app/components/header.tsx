@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
+import { useT } from "@/lib/i18n";
 import CommentButton from "./CommentButton";
+import LangSwitch from "./LangSwitch";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL, InstagramIcon } from "./Instagram";
 
 export default function Header() {
+    const t = useT();
     return (
         <header className="relative shrink-0 px-5 pb-2 pt-3">
             <div className="flex items-center justify-between gap-3">
@@ -13,9 +18,10 @@ export default function Header() {
 
                 <div className="flex shrink-0 items-center gap-2">
                     <CommentButton />
+                    <LangSwitch />
                     <Link
                         href="/dashboard"
-                        aria-label="Dashboard girişi"
+                        aria-label={t("Dashboard girişi")}
                         className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent transition hover:bg-accent/25 active:scale-95"
                     >
                         <LayoutDashboard size={16} />

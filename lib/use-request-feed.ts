@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLive } from "@/lib/live-client";
 import { fetchFirst, startEarly } from "@/lib/early-fetch";
+import { newestOnly } from "@/lib/fresh";
 
 export type RequestStatus = "pending" | "approved" | "played" | "rejected";
 
@@ -32,6 +33,8 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
     const [now, setNow] = useState(0);
     const known = useRef<Map<string, RequestStatus> | null>(null);
     const onNewRef = useRef(onNew);
+    // Canlı sinyal, yoklama ve kendi isteğim aynı anda istenebilir: en yeni veri kalır
+    const [isNewest] = useState(newestOnly);
 
     useEffect(() => {
         onNewRef.current = onNew;
@@ -49,6 +52,8 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
                         : fetchFirst(REQUESTS_URL));
                 const data: unknown = await res.json();
                 if (!res.ok || !Array.isArray(data)) throw new Error();
+                // CDN'den gelen eski kopya, az önce gelen yeni listeyi ezmesin
+                if (!isNewest(res)) return;
 
                 const list = data as RequestItem[];
                 const prev = known.current;
@@ -66,7 +71,7 @@ export function useRequestFeed(onNew: (fresh: RequestItem[]) => void) {
                 setFailed(true);
             }
         },
-        []
+        [isNewest]
     );
 
     // Biri istek atınca ya da dashboard'dan değişiklik olunca hemen tazele

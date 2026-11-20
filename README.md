@@ -9,19 +9,21 @@ Uygulamanın kullanıcı gözünden anlatımı (nasıl anlatılır, SSS, gece ak
 **Ziyaretçi sayfası (`/`)**
 - Spotify'da şarkı arama ve istek gönderme; playlistteki ve eski isteklerdeki şarkılar tek dokunuşla istenir; aynı şarkıyı isteyenler sayılır (×3)
 - İstek listesi iki sekme: **Bu gece** (canlı) ve **Eski istekler** (bugüne kadar istenen her şarkı: kaç kez istendi, çalındı, beğenildi; buradan da istenebilir)
-- Şarkı sözleri (LRCLIB), bu gece çalınan şarkılara 👍 / 👎 (çalınmamışlarda oy butonu görünmez), yorum ve puan
+- Şarkı sözleri (LRCLIB) ve her şarkı kartında 👍 / 👎. Sayılar bugüne kadarki toplamdır, gece bitince kaybolmaz; oy sadece bu gece çalınan şarkıya verilebilir (çalınmamışta dokununca neden yazar)
+- **Yorumlar** sekmesi: herkesin yorumu ve ortalama puan. Küfür/hakaret (Türkçe, Azerbaycanca, İngilizce; `lib/blocklist.ts`) ve link içeren yorumlar gönderilemez; listeye takılan eski yorumlar da gösterilmez. Dashboard'dan silinen yorum herkesten anında kalkar. Yorum filtresi (`isBlockedComment`) şarkı filtresinden (`isBlocked`) biraz daha sıkıdır: şarkı adlarında masum geçen kelimeler ("Moby Dick", "Cock Robin") sadece yorumlarda engellenir
+- Dil seçeneği: Türkçe (varsayılan), English, Azərbaycanca. "Yorum yap"ın yanındaki düğmeden seçilir, telefonda hatırlanır. Çeviriler `lib/i18n-dict.ts`'te (anahtar metnin Türkçesi); dashboard hep Türkçe
 - Gece kapalıyken en üstte "Canlı müzik başlayınca istek yapma ve oy verme açılacak" uyarısı
 
 **Dashboard (`/dashboard`, giriş gerekli)**
 - İstekler: onayla, reddet, sil, çal
-- Playlist: şarkı başına beğeniler, filtre ve sıralama
+- Playlist: şarkı başına bugüne kadarki beğeni/beğenmeme (sitede görünenle aynı; gecelik döküm İstatistik'te), filtre ve sıralama
 - İstatistik: bu gece / tüm zamanlar, saat saat istekler, en çok istenen / beğenilen / çalınan, geçmiş geceler
 - Yorumlar
 - Sistem: tek buton **Geceyi başlat / Geceyi bitir**, altında elle değiştirilebilen anahtarlar (istek alma, oylama, playlist), "Gelişmiş" altında kalıcı silme butonları
 
 **Gece akışı**
-- *Geceyi başlat*: istek ve oylama açılır. Önceki geceden kalanlar (liste, oylar, "çalındı" işaretleri) ziyaretçinin ekranından kalkar, istatistikte kalır. "Bu gece" istatistiği bu andan sayılır.
-- *Geceyi bitir*: istek ve oylama kapanır, çalan şarkı durur, bu gecenin istekleri arşive gider (Eski istekler'de ve istatistikte "Son gece" olarak kalır), playlistteki "Çalındı" işaretleri kalkar. 10 dakika içinde geri alınabilir: sadece o bitişte arşivlenen istekler ve o gecenin "çalındı" işaretleri geri gelir.
+- *Geceyi başlat*: istek ve oylama açılır. Önceki geceden kalanlar (liste, "çalındı" işaretleri) ziyaretçinin ekranından kalkar, istatistikte kalır. Oylar oy geçmişine taşınır: beğeni toplamları görünmeye devam eder, herkes yeni gecede yeniden oy verebilir. "Bu gece" istatistiği bu andan sayılır.
+- *Geceyi bitir*: istek ve oylama kapanır, çalan şarkı durur, bu gecenin istekleri arşive gider (Eski istekler'de ve istatistikte "Son gece" olarak kalır), playlistteki "Çalındı" işaretleri kalkar. 10 dakika içinde geri alınabilir: sadece o bitişte arşivlenen istekler ve o gecenin "çalındı" işaretleri geri gelir; istek alma ve oylama bitirmeden önceki hâline döner (`supabase/gece-geri-alma.sql` gerekir, yoksa ikisi de açılır).
 
 ## Teknik yapı
 
@@ -93,6 +95,9 @@ Sonradan eklenenler yerel `supabase/` klasöründe durur. Klasör `.gitignore`'d
 5. `supabase/istek-siniri.sql` — `request_limit`, `request_window_min` (dashboard'dan ayarlanan istek sınırı)
 6. `supabase/istek-kilidi.sql` — `make_request_limited()`: sınır veritabanında, cihaza özel kilit altında sayılır (aynı anda giden iki istek ikisi birden geçemez). Çalıştırılmadıysa eski `make_request()` kullanılır
 7. `supabase/yeni-ozellikler.sql` — `next_show` ("Sonraki sahne" yazısı) ve `polls`, `poll_votes` ("Sıradaki şarkıyı siz seçin" anketi). Çalıştırılmadıysa bu iki özellik kapalı kalır, gerisi çalışır
+8. `supabase/notlar.sql` — `song_notes` (dashboard'da sözlerin üstündeki şarkı notları)
+9. `supabase/oy-toplamlari.sql` — `song_vote_totals` görünümü: şarkı başına bugüne kadarki beğeni/beğenmeme tek sorguda. Çalıştırılmadıysa toplam `vote_history` + `song_vote_counts`'tan uygulamada hesaplanır
+10. `supabase/gece-geri-alma.sql` — `end_requests_open`, `end_voting_open`: "Geceyi bitir" geri alınınca istek alma ve oylama bitirmeden önceki hâline döner. Çalıştırılmadıysa geri alınca ikisi de açılır
 
 ### Ziyaretçi tarafındaki küçük özellikler
 

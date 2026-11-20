@@ -11,6 +11,7 @@ import {
     type ReactNode,
 } from "react";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { translateServer, useLang } from "@/lib/i18n";
 
 type Tone = "error" | "info" | "success";
 type Options = {
@@ -71,6 +72,8 @@ export function ToastProvider({
     const list = useRef<Item[]>([]);
     const nextId = useRef(1);
     const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+    // Sunucudan gelen Türkçe hata mesajları seçilen dile çevrilir (dashboard'da hep Türkçe)
+    const lang = useLang();
 
     useEffect(() => {
         const map = timers.current;
@@ -143,7 +146,7 @@ export function ToastProvider({
                         className={`pointer-events-auto flex w-full animate-[toast-in_0.25s_ease-out] items-center gap-2.5 rounded-2xl border px-4 py-3 text-left text-sm font-bold shadow-lg motion-reduce:animate-none ${STYLE[t.tone].box}`}
                     >
                         {t.icon ?? STYLE[t.tone].icon}
-                        <span className="min-w-0 flex-1">{t.text}</span>
+                        <span className="min-w-0 flex-1">{translateServer(lang, t.text)}</span>
                     </button>
                 ))}
             </div>

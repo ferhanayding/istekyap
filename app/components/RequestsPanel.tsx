@@ -6,6 +6,8 @@ import { useSystem } from "@/lib/system-context";
 import { useSharedVotes } from "@/lib/votes-context";
 import { useMine } from "@/lib/my-requests";
 import { CLEAR_SEARCH_EVENT } from "@/lib/scroll";
+import { timeAgo, useT } from "@/lib/i18n";
+import type { MsgKey } from "@/lib/i18n-dict";
 import { LyricsButton } from "./LyricsSheet";
 import EqBars from "./EqBars";
 import LoadingTracks from "./LoadingTracks";
@@ -18,9 +20,7 @@ import VoteButtons from "./VoteButtons";
 
 type View = "night" | "history";
 
-const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
-
-const BADGE: Record<RequestStatus, { text: string; className: string }> = {
+const BADGE: Record<RequestStatus, { text: MsgKey; className: string }> = {
     pending: { text: "Bekliyor", className: "bg-raised text-muted" },
     approved: {
         text: "Çalınacak",
@@ -31,23 +31,13 @@ const BADGE: Record<RequestStatus, { text: string; className: string }> = {
     rejected: { text: "Repertuvarımızda yok", className: "bg-raised text-muted text-[11px]" },
 };
 
-function ago(iso: string, now: number): string {
-    // Telefonun saati geride kalırsa "gelecekte" görünmesin
-    const s = Math.min(0, Math.round((new Date(iso).getTime() - now) / 1000));
-    if (Math.abs(s) < 60) return "az önce";
-    const m = Math.round(s / 60);
-    if (Math.abs(m) < 60) return rtf.format(m, "minute");
-    const h = Math.round(m / 60);
-    if (Math.abs(h) < 24) return rtf.format(h, "hour");
-    return rtf.format(Math.round(h / 24), "day");
-}
-
 export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
     const { items, failed, live } = feed;
     const [view, setView] = useState<View>("night");
     // Eski istekler ilk açılışta yüklenir, sonra açık kalır (arama ve kaydırma kaybolmasın)
     const [historyOpened, setHistoryOpened] = useState(false);
     const toast = useToast();
+    const t = useT();
     const pendingCount = items?.filter((r) => r.status === "pending").length;
 
     const tonight = useMemo(
@@ -56,8 +46,8 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
     );
 
     useEffect(() => {
-        if (failed) toast.error("Liste güncellenemedi, tekrar denenecek.");
-    }, [failed, toast]);
+        if (failed) toast.error(t("Liste güncellenemedi, tekrar denenecek."));
+    }, [failed, toast, t]);
 
     // Mini oynatıcıya basınca çalan şarkı "Bu gece" listesinde görünsün
     useEffect(() => {
@@ -76,13 +66,13 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
             {/* Başlık yerine sekmeler: alan listeye kalsın */}
             <div
                 role="tablist"
-                aria-label="İstek listesi"
+                aria-label={t("İstek Listesi")}
                 className="mb-1.5 flex shrink-0 rounded-full bg-raised p-1"
             >
                 {(
                     [
-                        ["night", "Bu gece"],
-                        ["history", "Eski istekler"],
+                        ["night", t("Bu gece")],
+                        ["history", t("Eski istekler")],
                     ] as const
                 ).map(([key, label]) => (
                     <button
@@ -95,11 +85,13 @@ export default function RequestsPanel({ feed }: { feed: RequestFeed }) {
                             }`}
                     >
                         {key === "night" && live && (
-                            <span className="size-1.5 rounded-full bg-accent" aria-label="canlı" />
+                            <span className="size-1.5 rounded-full bg-accent" aria-label={t("canlı")} />
                         )}
                         {label}
                         {key === "night" && !!pendingCount && (
-                            <span className="opacity-70">· {pendingCount} bekleyen</span>
+                            <span className="opacity-70">
+                                · {t("{n} bekleyen", { n: pendingCount })}
+                            </span>
                         )}
                     </button>
                 ))}
@@ -122,6 +114,7 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
     const system = useSystem();
     const { votes, vote } = useSharedVotes();
     const mine = useMine();
+    const t = useT();
     // Katılınabilecek istek var mı (ipucu satırı için)
     const canJoin =
         system.requestsOpen &&
@@ -140,21 +133,23 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                 <div className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
                     {system.requestsOpen ? (
                         <p>
-                            Henüz istek yok. Yukarıdaki &quot;İstek Parça Yap&quot; butonuna dokun,
-                            şarkını ara ve ilk isteği sen yap.
+                            {t(
+                                'Henüz istek yok. Yukarıdaki "İstek Parça Yap" butonuna dokun, şarkını ara ve ilk isteği sen yap.'
+                            )}
                         </p>
                     ) : (
                         <>
                             <p>
-                                Canlı müzik başlayınca bu gecenin istekleri burada görünecek.
-                                O zamana kadar daha önce istenen şarkılara göz atabilirsin.
+                                {t(
+                                    "Canlı müzik başlayınca bu gecenin istekleri burada görünecek. O zamana kadar daha önce istenen şarkılara göz atabilirsin."
+                                )}
                             </p>
                             <button
                                 type="button"
                                 onClick={onHistory}
                                 className="mt-3 h-9 rounded-full bg-raised px-4 text-xs font-extrabold text-ink transition hover:bg-line"
                             >
-                                Eski isteklere bak
+                                {t("Eski isteklere bak")}
                             </button>
                         </>
                     )}
@@ -163,7 +158,7 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                 <>
                 {canJoin && (
                     <p className="pb-1 text-xs text-faint">
-                        Listedeki bir şarkıyı sen de istiyorsan &quot;Ben de&quot;ye dokun.
+                        {t('Listedeki bir şarkıyı sen de istiyorsan "Ben de"ye dokun.')}
                     </p>
                 )}
                 <ul>
@@ -171,7 +166,7 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                         const badge = BADGE[r.status] ?? BADGE.pending;
                         const playing = system.nowPlaying === r.spotify_id;
 
-                        // Oy sadece çalınmış şarkılara
+                        // Oy sadece çalınmış şarkılara (butonlar ve toplam her kartta görünür)
                         const wasPlayed =
                             r.status === "played" || system.played.has(r.spotify_id);
                         const isMine = mine.ids.has(r.spotify_id);
@@ -192,23 +187,25 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                 playing={playing}
                                 dim={r.status === "rejected"}
                                 eager={idx < 8}
+                                // Durum, kaç kişi istediği ve zaman alt satırda: üstte "Ben de" ile
+                                // dört buton yan yana rahat sığsın
                                 meta={
                                     <>
                                         {playing ? (
                                             <span className="inline-flex items-center gap-1.5 font-bold text-accent">
                                                 <EqBars />
-                                                Çalıyor
+                                                {t("Çalıyor")}
                                             </span>
                                         ) : (
                                             <span
                                                 className={`rounded-full px-2 py-px font-bold ${badge.className}`}
                                             >
-                                                {badge.text}
+                                                {t(badge.text)}
                                             </span>
                                         )}
                                         {(r.request_count ?? 1) > 1 && (
                                             <span
-                                                title={`${r.request_count} kişi istedi`}
+                                                title={t("{n} kişi istedi", { n: r.request_count ?? 1 })}
                                                 className="rounded-full bg-raised px-2 py-px font-extrabold text-ink"
                                             >
                                                 ×{r.request_count}
@@ -216,28 +213,27 @@ function TonightList({ feed, onHistory }: { feed: RequestFeed; onHistory: () => 
                                         )}
                                         {isMine ? (
                                             <span className="truncate font-bold text-accent">
-                                                Senin isteğin
+                                                {t("Senin isteğin")}
                                             </span>
                                         ) : (
                                             <span className="truncate">
-                                                {ago(r.last_requested_at ?? r.created_at, now)}
+                                                {timeAgo(t, r.last_requested_at ?? r.created_at, now)}
                                             </span>
                                         )}
                                     </>
                                 }
                                 actions={
                                     <>
-                                        {wasPlayed && (
-                                            <VoteButtons
-                                                id={r.spotify_id}
-                                                name={r.name}
-                                                likes={votes[r.spotify_id]?.likes ?? 0}
-                                                mine={votes[r.spotify_id]?.mine ?? 0}
-                                                played={wasPlayed}
-                                                votingOpen={system.votingOpen}
-                                                onVote={vote}
-                                            />
-                                        )}
+                                        <VoteButtons
+                                            id={r.spotify_id}
+                                            name={r.name}
+                                            likes={votes[r.spotify_id]?.likes ?? 0}
+                                            dislikes={votes[r.spotify_id]?.dislikes ?? 0}
+                                            mine={votes[r.spotify_id]?.mine ?? 0}
+                                            played={wasPlayed}
+                                            votingOpen={system.votingOpen}
+                                            onVote={vote}
+                                        />
                                         {joinable && (
                                             <AskButton id={r.spotify_id} name={r.name} join />
                                         )}

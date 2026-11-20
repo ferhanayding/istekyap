@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Trophy, Vote, X } from "lucide-react";
 import { useLive } from "@/lib/live-client";
 import { POLL_RESULT_MS, pollWinner, type Poll } from "@/lib/poll-types";
+import { useT } from "@/lib/i18n";
 import { useToast } from "./Toast";
 
 // Hangi ankette neye oy verdim: tarayıcıda durur (oy sayıları herkese aynı gider)
@@ -39,6 +40,7 @@ export default function PollCard() {
     const [sending, setSending] = useState(false);
     const [hidden, setHidden] = useState<string | null>(null);
     const toast = useToast();
+    const t = useT();
 
     // v: canlı sinyalin sürümü (herkes aynı adresi ister, CDN tek cevap verir)
     const load = useCallback(async (v?: number) => {
@@ -110,14 +112,14 @@ export default function PollCard() {
             setTimeout(() => void load(Date.now()), 1200);
         } catch (e) {
             setMyVote(before);
-            toast.error((e as Error).message || "Oy gönderilemedi. Tekrar dokun.");
+            toast.error((e as Error).message || t("Oy gönderilemedi. Tekrar dokun."));
         } finally {
             setSending(false);
         }
     }
 
     return (
-        <section className="relative z-10 shrink-0 px-5 pt-2" aria-label="Sıradaki şarkı oylaması">
+        <section className="relative z-10 shrink-0 px-5 pt-2" aria-label={t("Sıradaki şarkı oylaması")}>
             <div className="rounded-2xl border border-accent/30 bg-accent/[0.07] p-3">
                 <div className="flex items-center gap-2">
                     {closed ? (
@@ -126,14 +128,16 @@ export default function PollCard() {
                         <Vote size={16} className="shrink-0 text-accent" />
                     )}
                     <h2 className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink">
-                        {closed ? "Oylama bitti" : "Sıradaki şarkıyı siz seçin"}
+                        {closed ? t("Oylama bitti") : t("Sıradaki şarkıyı siz seçin")}
                     </h2>
-                    <span className="shrink-0 text-xs font-bold text-muted">{poll.total} oy</span>
+                    <span className="shrink-0 text-xs font-bold text-muted">
+                        {t("{n} oy", { n: poll.total })}
+                    </span>
                     {closed && (
                         <button
                             type="button"
                             onClick={() => setHidden(poll.id)}
-                            aria-label="Kapat"
+                            aria-label={t("Kapat")}
                             className="-mr-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                         >
                             <X size={15} />
@@ -143,11 +147,11 @@ export default function PollCard() {
                 <p className="mt-0.5 text-xs text-muted" role="status">
                     {closed
                         ? winner
-                            ? `Kazanan: ${winner.name}. Birazdan çalıyoruz.`
-                            : "Bu sefer oy çıkmadı."
+                            ? t("Kazanan: {name}. Birazdan çalıyoruz.", { name: winner.name })
+                            : t("Bu sefer oy çıkmadı.")
                         : mine
-                          ? "Oyun alındı. Fikrini değiştirmek için başka şarkıya dokun."
-                          : "Çalmamızı istediğin şarkıya dokun."}
+                          ? t("Oyun alındı. Fikrini değiştirmek için başka şarkıya dokun.")
+                          : t("Çalmamızı istediğin şarkıya dokun.")}
                 </p>
 
                 <ul className="mt-2 space-y-1.5">
@@ -162,7 +166,13 @@ export default function PollCard() {
                                     onClick={() => vote(o.id)}
                                     disabled={closed || sending}
                                     aria-pressed={picked}
-                                    aria-label={`${o.name}, ${o.artists}: yüzde ${pct}${picked ? ", senin oyun" : ""}`}
+                                    aria-label={
+                                        t("{name}, {artists}: yüzde {pct}", {
+                                            name: o.name,
+                                            artists: o.artists,
+                                            pct,
+                                        }) + (picked ? t(", senin oyun") : "")
+                                    }
                                     className={`relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl bg-raised p-1.5 text-left transition enabled:active:scale-[0.99] ${
                                         // Açıkken kendi oyum, bitince sadece kazanan çerçevelenir
                                         (closed ? won : picked) ? "ring-2 ring-accent" : "ring-1 ring-line"
@@ -197,7 +207,7 @@ export default function PollCard() {
                                     {picked && (
                                         <span className="relative flex shrink-0 items-center gap-1 text-xs font-extrabold text-accent">
                                             <Check size={14} strokeWidth={3} />
-                                            Oyun
+                                            {t("Oyun")}
                                         </span>
                                     )}
                                     <span className="relative w-10 shrink-0 text-right text-sm font-extrabold tabular-nums text-ink">

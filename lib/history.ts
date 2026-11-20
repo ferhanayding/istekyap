@@ -13,12 +13,7 @@ export type ReqRow = {
     last_requested_at: string | null;
 };
 
-export function aggregate(
-    reqs: ReqRow[],
-    plays: { spotify_id: string }[],
-    voteHist: { spotify_id: string; likes: number }[],
-    votes: { spotify_id: string; value: number }[]
-): HistorySong[] {
+export function aggregate(reqs: ReqRow[], plays: { spotify_id: string }[]): HistorySong[] {
     const songs = new Map<string, HistorySong>();
     for (const r of reqs) {
         // Reddedilen istekler ziyaretçiye hiç gösterilmez
@@ -33,7 +28,6 @@ export function aggregate(
                 cover: r.cover,
                 requests: r.request_count ?? 1,
                 plays: 0,
-                likes: 0,
                 lastRequested: last,
             });
             continue;
@@ -51,14 +45,6 @@ export function aggregate(
     for (const p of plays) {
         const s = songs.get(p.spotify_id);
         if (s) s.plays++;
-    }
-    for (const v of voteHist) {
-        const s = songs.get(v.spotify_id);
-        if (s) s.likes += Number(v.likes) || 0;
-    }
-    for (const v of votes) {
-        const s = songs.get(v.spotify_id);
-        if (s && v.value > 0) s.likes++;
     }
 
     return [...songs.values()];

@@ -3,9 +3,21 @@
 import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Check, MessageSquareText, Star, X } from "lucide-react";
+import { isBlockedComment } from "@/lib/blocklist";
+import { useT } from "@/lib/i18n";
+import type { MsgKey } from "@/lib/i18n-dict";
+import { COMMENT_SENT_EVENT, hasLink } from "@/lib/visitor-types";
 import { INSTAGRAM_URL, InstagramIcon } from "./Instagram";
 
-const LABELS = ["", "Çok kötü", "Kötü", "Fena değil", "İyi", "Harika"];
+const LABELS: MsgKey[] = ["Çok kötü", "Kötü", "Fena değil", "İyi", "Harika"];
+
+// Yorumlar herkese açık: küfür/hakaret ve link gönderilmeden önce de yakalanır (sunucu da kontrol eder)
+function problem(message: string, name: string): MsgKey | null {
+    if (isBlockedComment(message)) return "Yorumunda uygunsuz bir kelime var, lütfen düzelt.";
+    if (isBlockedComment(name)) return "İsminde uygunsuz bir kelime var.";
+    if (hasLink(message) || hasLink(name)) return "Yoruma link eklenemez.";
+    return null;
+}
 
 export default function CommentButton() {
     const [open, setOpen] = useState(false);
@@ -16,6 +28,10 @@ export default function CommentButton() {
     const [state, setState] = useState<"idle" | "sending" | "done">("idle");
     const [error, setError] = useState<string | null>(null);
     const sheetRef = useRef<HTMLDivElement>(null);
+    // Gönderilen yorumda yazı var mıydı (teşekkür mesajı ona göre)
+    const [sentText, setSentText] = useState(false);
+    const t = useT();
+    const label = (n: number) => (n >= 1 ? t(LABELS[n - 1]) : "");
 
     // Kapatınca (X, Esc, dışarı dokunma) form sıfırlanır: bir sonraki açılış hep boş gelir
     function close() {
@@ -53,7 +69,12 @@ export default function CommentButton() {
         e.preventDefault();
         if (state === "sending") return;
         if (rating === 0) {
-            setError("Önce yıldızlarla bir puan ver.");
+            setError(t("Önce yıldızlarla bir puan ver."));
+            return;
+        }
+        const bad = problem(message.trim(), name.trim());
+        if (bad) {
+            setError(t(bad));
             return;
         }
         setError(null);
@@ -68,12 +89,19 @@ export default function CommentButton() {
                 const data = (await res.json().catch(() => null)) as {
                     error?: string;
                 } | null;
-                throw new Error(data?.error ?? "Gönderilemedi, tekrar dene.");
+                throw new Error(t.server(data?.error ?? ""));
             }
+            setSentText(message.trim() !== "");
             setState("done");
+            // Yorumlar sekmesi açıksa hemen görünsün
+            window.dispatchEvent(new Event(COMMENT_SENT_EVENT));
         } catch (err) {
             setState("idle");
-            setError(err instanceof Error ? err.message : "Gönderilemedi.");
+            setError(
+                err instanceof Error && err.message
+                    ? err.message
+                    : t("Gönderilemedi, tekrar dene.")
+            );
         }
     }
 
@@ -88,9 +116,8 @@ export default function CommentButton() {
                 className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-extrabold text-on-accent transition hover:brightness-105 active:scale-95"
             >
                 <MessageSquareText size={15} />
-                <span>
-                    Yorum<span className="hidden min-[400px]:inline"> yap</span>
-                </span>
+                <span className="min-[400px]:hidden">{t("Yorum")}</span>
+                <span className="hidden min-[400px]:inline">{t("Yorum yap")}</span>
             </button>
 
             {open &&
@@ -113,7 +140,7 @@ export default function CommentButton() {
                             <button
                                 type="button"
                                 onClick={close}
-                                aria-label="Kapat"
+                                aria-label={t("Kapat")}
                                 className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-raised text-muted transition hover:bg-line"
                             >
                                 <X size={17} />
@@ -128,10 +155,12 @@ export default function CommentButton() {
                                         id="yorum-baslik"
                                         className="mt-4 text-xl font-extrabold tracking-tight"
                                     >
-                                        Teşekkürler!
+                                        {t("Teşekkürler!")}
                                     </h2>
                                     <p className="mt-1 text-sm text-muted">
-                                        Yorumun bize ulaştı.
+                                        {sentText
+                                            ? t("Yorumun Yorumlar sekmesinde herkese görünüyor.")
+                                            : t("Puanın bize ulaştı.")}
                                     </p>
                                     <a
                                         href={INSTAGRAM_URL}
@@ -142,14 +171,14 @@ export default function CommentButton() {
                                         <span>
                                             <InstagramIcon size={17} />
                                         </span>
-                                        Bizi Instagram&apos;da takip et
+                                        {t("Bizi Instagram'da takip et")}
                                     </a>
                                     <button
                                         type="button"
                                         onClick={close}
                                         className="mt-3 h-11 rounded-full bg-accent px-8 text-sm font-extrabold text-on-accent transition active:scale-95"
                                     >
-                                        Tamam
+                                        {t("Tamam")}
                                     </button>
                                 </div>
                             ) : (
@@ -158,15 +187,15 @@ export default function CommentButton() {
                                         id="yorum-baslik"
                                         className="pr-10 text-xl font-extrabold tracking-tight"
                                     >
-                                        Bize yorum bırak
+                                        {t("Bize yorum bırak")}
                                     </h2>
                                     <p className="mt-1 text-sm text-muted">
-                                        Bu geceyi nasıl buldun?
+                                        {t("Bu geceyi nasıl buldun?")}
                                     </p>
 
                                     <div
                                         role="radiogroup"
-                                        aria-label="Genel puan"
+                                        aria-label={t("Genel puan")}
                                         className="mt-4 flex items-center gap-1"
                                     >
                                         {[1, 2, 3, 4, 5].map((n) => (
@@ -175,7 +204,10 @@ export default function CommentButton() {
                                                 type="button"
                                                 role="radio"
                                                 aria-checked={rating === n}
-                                                aria-label={`${n} yıldız, ${LABELS[n]}`}
+                                                aria-label={t("{n} yıldız, {label}", {
+                                                    n,
+                                                    label: label(n),
+                                                })}
                                                 onClick={() => {
                                                     setRating(n);
                                                     setError(null);
@@ -193,7 +225,7 @@ export default function CommentButton() {
                                             </button>
                                         ))}
                                         <span className="ml-2 min-w-20 text-sm font-bold text-accent">
-                                            {LABELS[rating]}
+                                            {label(rating)}
                                         </span>
                                     </div>
 
@@ -201,15 +233,18 @@ export default function CommentButton() {
                                         htmlFor="yorum-metin"
                                         className="mt-4 block text-xs font-bold text-muted"
                                     >
-                                        Yorumun
+                                        {t("Yorumun")}
                                     </label>
                                     <textarea
                                         id="yorum-metin"
                                         value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
+                                        onChange={(e) => {
+                                            setMessage(e.target.value);
+                                            setError(null);
+                                        }}
                                         maxLength={500}
                                         rows={4}
-                                        placeholder="Ne düşündüğünü yaz…"
+                                        placeholder={t("Ne düşündüğünü yaz…")}
                                         className="mt-1.5 w-full resize-none rounded-xl bg-raised px-3.5 py-3 text-base text-ink outline-none placeholder:text-faint focus:bg-line"
                                     />
                                     <p className="mt-1 text-right text-xs text-faint">
@@ -220,15 +255,19 @@ export default function CommentButton() {
                                         htmlFor="yorum-isim"
                                         className="mt-2 block text-xs font-bold text-muted"
                                     >
-                                        İsmin <span className="font-normal">(isteğe bağlı)</span>
+                                        {t("İsmin")}{" "}
+                                        <span className="font-normal">{t("(isteğe bağlı)")}</span>
                                     </label>
                                     <input
                                         id="yorum-isim"
                                         value={name}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(e) => {
+                                            setName(e.target.value);
+                                            setError(null);
+                                        }}
                                         maxLength={30}
                                         autoComplete="off"
-                                        placeholder="Boş bırakırsan anonim"
+                                        placeholder={t("Boş bırakırsan anonim")}
                                         className="mt-1.5 h-11 w-full rounded-xl bg-raised px-3.5 text-base text-ink outline-none placeholder:text-faint focus:bg-line"
                                     />
 
@@ -242,6 +281,12 @@ export default function CommentButton() {
                                         aria-hidden
                                         className="absolute -left-[9999px] size-0 opacity-0"
                                     />
+
+                                    <p className="mt-3 text-xs text-faint">
+                                        {t(
+                                            "Yorumlar herkese açık. Küfür ve hakaret içeren yorumlar gönderilemez."
+                                        )}
+                                    </p>
 
                                     {error && (
                                         <p
@@ -257,7 +302,7 @@ export default function CommentButton() {
                                         disabled={state === "sending"}
                                         className="mt-4 h-12 w-full rounded-full bg-accent text-sm font-extrabold text-on-accent transition active:scale-[0.98] disabled:opacity-60"
                                     >
-                                        {state === "sending" ? "Gönderiliyor…" : "Gönder"}
+                                        {state === "sending" ? t("Gönderiliyor…") : t("Gönder")}
                                     </button>
                                 </form>
                             )}

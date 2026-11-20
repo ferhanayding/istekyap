@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { notifyLive } from "@/lib/live-server";
 
 const UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -60,5 +61,7 @@ export async function DELETE(req: NextRequest) {
         console.error(error);
         return NextResponse.json({ error: "Silinemedi." }, { status: 500 });
     }
+    // Yorumlar herkese açık: silinen yorum açık sekmelerden de hemen kalksın
+    notifyLive("comments");
     return NextResponse.json({ ok: true }, { headers: NO_STORE });
 }

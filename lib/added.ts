@@ -1,6 +1,16 @@
-export type AddedInfo = { label: string; isNew: boolean };
+import type { MsgKey } from "@/lib/i18n-dict";
+
+// label: Türkçe (dashboard) · key + n: ziyaretçi sayfasında seçilen dile çevrilir
+export type AddedInfo = { label: string; isNew: boolean; key: MsgKey; n: number };
 
 const DAY = 86_400_000;
+
+const info = (key: MsgKey, n: number, isNew = false): AddedInfo => ({
+    label: key.replace("{n}", String(n)),
+    isNew,
+    key,
+    n,
+});
 
 // Eklenme tarihine göre "Bu hafta", "Geçen hafta", "3 hafta önce", "1 ay önce"...
 export function addedInfo(iso?: string | null, now = Date.now()): AddedInfo | null {
@@ -11,12 +21,12 @@ export function addedInfo(iso?: string | null, now = Date.now()): AddedInfo | nu
 
     const days = Math.max(0, Math.floor((now - t) / DAY));
 
-    if (days < 7) return { label: "Bu hafta", isNew: true };
-    if (days < 14) return { label: "Geçen hafta", isNew: false };
-    if (days < 28) return { label: `${Math.floor(days / 7)} hafta önce`, isNew: false };
+    if (days < 7) return info("Bu hafta", 0, true);
+    if (days < 14) return info("Geçen hafta", 0);
+    if (days < 28) return info("{n} hafta önce", Math.floor(days / 7));
 
     const months = Math.floor(days / 30);
-    if (months < 12) return { label: `${Math.max(1, months)} ay önce`, isNew: false };
+    if (months < 12) return info("{n} ay önce", Math.max(1, months));
 
-    return { label: `${Math.floor(days / 365)} yıl önce`, isNew: false };
+    return info("{n} yıl önce", Math.floor(days / 365));
 }

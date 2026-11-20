@@ -1,12 +1,16 @@
-// Aramada engellenecek müstehcen ve küfürlü kelimeler.
-// Hem tarayıcıda (yazarken) hem sunucuda (/api/search) kullanılır.
+// Engellenecek müstehcen ve küfürlü kelimeler (Türkçe, Azerbaycanca, İngilizce).
+// isBlocked: şarkı araması ve şarkı adları (/api/search, istekler, öneriler, eski istekler).
+// isBlockedComment: yorumlar; aynı liste + şarkı adlarında masum geçen kelimeler (COMMENT_*).
+// Hem tarayıcıda (yazarken) hem sunucuda kullanılır.
 
 export const BLOCKED_MESSAGE = "Bu kelimeyle arama yapılamaz.";
 
-// "ı" harfi bilerek korunur: "sıkıntı" engellenmesin, "sikiş" engellensin
+// "ı" harfi bilerek korunur: "sıkıntı" engellenmesin, "sikiş" engellensin.
+// Azerbaycanca "ə" → "e" (qəhbə → qehbe)
 function fold(s: string): string {
     return s
         .toLocaleLowerCase("tr")
+        .replace(/ə/g, "e")
         .normalize("NFD")
         .replace(/\p{M}/gu, "");
 }
@@ -27,6 +31,10 @@ const collapse = (s: string) => s.replace(/(.)\1+/g, "$1");
 
 // Tam eşleşen kelimeler (kısa ve başka kelimelerle karışabilecekler)
 const EXACT = new Set([
+    // "am" sadece tek başına: "ama", "aman", "amazing" engellenmesin
+    // (İngilizce "I am", "Am I Wrong" de serbest: innocentAm)
+    "am",
+    "amı",
     "sik",
     "sikim",
     "sikime",
@@ -52,6 +60,14 @@ const EXACT = new Set([
     "cunt",
     "pussy",
     "asshole",
+    "twat",
+    // Çift harfli olanlar önek olamaz: sadeleşince "night", "Nigar" de yakalanırdı
+    "nigger",
+    "niggers",
+    "nigga",
+    "niggas",
+    "faggot",
+    "faggots",
 ]);
 
 // Önek eşleşmesi: türevlerini de yakalar (sikiş, siktir, orospunun, pornosu...)
@@ -90,12 +106,41 @@ const PREFIX = [
     "amini",
     "amını",
     "amcig",
-    "am",
     "sikici",
-    "Orospunun",
-    "sikicisi"
-
+    "orospunun",
+    "sikicisi",
+    "gotveren",
+    "kancık",
+    "kancik",
+    "whore",
+    "slut",
+    // Azerbaycanca (ə → e yazılır)
+    "sikd",
+    "amcıq",
+    "amciq",
+    "qehbe",
+    "kahbe",
+    "peyser",
+    "qancıq",
+    "qanciq",
+    "dalbay",
+    "dolbay",
+    "dolboy",
+    "blyat",
+    "blyad",
 ];
+
+// Sadece yorumlarda: şarkı ve grup adlarında masum geçerler ("Moby Dick", "Cock Robin",
+// "Suka Suka", "Bastards of Young"), o yüzden şarkı aramasını engellemezler
+const COMMENT_EXACT = new Set([
+    "dick",
+    "cock",
+    // Azerbaycanca
+    "pox",
+    "poxu",
+    "suka",
+]);
+const COMMENT_PREFIX = ["bastard"];
 
 // Önek listesine takılan ama masum olan kelimeler
 const ALLOW = ["seksen", "seksek"];
@@ -126,16 +171,23 @@ const accentPrefix = (t: string) =>
 
 const PREFIX_FOLDED = PREFIX.map(fold);
 const PREFIX_COLLAPSED = PREFIX_FOLDED.map(collapse);
+const COMMENT_PREFIX_FOLDED = COMMENT_PREFIX.map(fold);
 
 // "book" → "bok" olmasın diye bu kelimeler uzatılmış yazımda aranmaz
 const NO_COLLAPSE = new Set(["bok", "boku", "boktan"]);
 
-function matches(token: string): boolean {
+function matches(token: string, comment: boolean): boolean {
     if (!token) return false;
     // Sadece "siiikiiiş" gibi 3+ tekrarlı harf varsa sadeleştir
     const c = /(.)\1\1/.test(token) ? collapse(token) : token;
     if (EXACT.has(token)) return true;
     if (c !== token && EXACT.has(c) && !NO_COLLAPSE.has(c)) return true;
+    if (comment) {
+        if (COMMENT_EXACT.has(token) || COMMENT_EXACT.has(c)) return true;
+        if (COMMENT_PREFIX_FOLDED.some((p) => token.startsWith(p) || c.startsWith(p))) {
+            return true;
+        }
+    }
     if (ALLOW.some((a) => token.startsWith(a))) return false;
     return (
         PREFIX_FOLDED.some((p) => token.startsWith(p)) ||
@@ -162,14 +214,36 @@ function joinSpaced(tokens: string[]): string[] {
     return out;
 }
 
-function tokensOf(text: string, leet: boolean): string[] {
+// İngilizce "I am", "Am I Wrong", "Where Am I" ve "8 am" masum: yanındaki kelimeye bakılır
+// ("I" Türkçe küçültmede "ı" olur)
+const innocentAm = (tokens: string[], i: number) =>
+    tokens[i] === "am" &&
+    (/^(i|ı|\d+)$/.test(tokens[i - 1] ?? "") || /^(i|ı)$/.test(tokens[i + 1] ?? ""));
+
+function blockedIn(tokens: string[], comment: boolean): boolean {
+    return tokens.some((tok, i) => !innocentAm(tokens, i) && matches(tok, comment));
+}
+
+// Kelimeler ve harfleri ayrılmış yazımların birleşmiş hâli, iki ayrı liste:
+// yanındaki kelimeye bakılırken listeler birbirine karışmasın
+function tokenLists(text: string, leet: boolean): string[][] {
     let s = fold(text);
     if (leet) s = s.replace(/[013457@$]/g, (ch) => LEET[ch] ?? ch);
     const raw = s.split(/[^a-zı0-9]+/).filter(Boolean);
-    return [...raw, ...joinSpaced(raw)];
+    return [raw, joinSpaced(raw)];
 }
 
+// Şarkı araması ve şarkı adları
 export function isBlocked(text: string): boolean {
+    return check(text, false);
+}
+
+// Yorum ve yorumdaki isim: şarkı adlarında masum geçen kelimeler de engellenir
+export function isBlockedComment(text: string): boolean {
+    return check(text, true);
+}
+
+function check(text: string, comment: boolean): boolean {
     if (!text || !text.trim()) return false;
 
     // Aksanlı yazımlar (piç, göt)
@@ -179,7 +253,7 @@ export function isBlocked(text: string): boolean {
         .filter(Boolean);
     if (accent.some((t) => DIACRITIC.has(t) || accentPrefix(t))) return true;
 
-    return (
-        tokensOf(text, false).some(matches) || tokensOf(text, true).some(matches)
+    return [false, true].some((leet) =>
+        tokenLists(text, leet).some((tokens) => blockedIn(tokens, comment))
     );
 }

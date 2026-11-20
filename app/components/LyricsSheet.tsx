@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Mic, X } from "lucide-react";
 import { lyricsUrl } from "@/lib/lyrics";
+import { useT } from "@/lib/i18n";
 
 type Song = { name: string; artists: string };
 type State =
@@ -38,6 +39,7 @@ export function LyricsButton({
     className = "",
 }: Song & { onOpen?: () => void; className?: string }) {
     const { open, Extra } = useContext(LyricsContext);
+    const t = useT();
     const button = (
         <button
             type="button"
@@ -45,10 +47,10 @@ export function LyricsButton({
                 onOpen?.();
                 open({ name, artists });
             }}
-            aria-label={`${name} şarkısının sözlerini aç`}
+            aria-label={t("{name} şarkısının sözlerini aç", { name })}
             className={`relative h-7 shrink-0 rounded-full bg-accent/15 px-2.5 text-xs font-bold leading-none text-accent transition after:absolute after:-inset-1.5 after:content-[''] hover:bg-accent/25 ${className}`}
         >
-            Sözler
+            {t("Sözler")}
         </button>
     );
     if (!Extra) return button;
@@ -100,6 +102,7 @@ function LyricsSheet({
     onClose: () => void;
 }) {
     const [state, setState] = useState<State>({ status: "loading" });
+    const t = useT();
 
     useEffect(() => {
         const ctrl = new AbortController();
@@ -146,7 +149,7 @@ function LyricsSheet({
             rel="noopener noreferrer"
             className="mt-4 inline-flex h-10 items-center rounded-full bg-raised px-4 text-sm font-bold text-ink transition hover:bg-line"
         >
-            Google&apos;da ara
+            {t("Google'da ara")}
         </a>
     );
 
@@ -154,7 +157,7 @@ function LyricsSheet({
         <div
             role="dialog"
             aria-modal="true"
-            aria-label={`${song.name} şarkı sözleri`}
+            aria-label={t("{name} şarkı sözleri", { name: song.name })}
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-6"
             onClick={onClose}
         >
@@ -173,7 +176,7 @@ function LyricsSheet({
                     <button
                         type="button"
                         onClick={onClose}
-                        aria-label="Kapat"
+                        aria-label={t("Kapat")}
                         autoFocus
                         className="flex size-10 shrink-0 items-center justify-center rounded-full bg-raised text-ink transition hover:bg-line"
                     >
@@ -186,7 +189,7 @@ function LyricsSheet({
 
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
                     {state.status === "loading" && (
-                        <div className="space-y-3" aria-label="Sözler yükleniyor">
+                        <div className="space-y-3" aria-label={t("Sözler yükleniyor")}>
                             {[80, 65, 72, 50, 0, 76, 60, 70].map((w, i) => (
                                 <div
                                     key={i}
@@ -200,16 +203,20 @@ function LyricsSheet({
                     {state.status === "ok" && (
                         <>
                             <p className="mb-5 flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-xl bg-surface px-3 py-2 text-xs text-muted">
-                                Bu sözler
-                                <a
-                                    href="https://lrclib.net"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-bold text-ink hover:underline"
-                                >
-                                    lrclib.net
-                                </a>
-                                adresinden alınmıştır.
+                                <span>
+                                    {t.rich("Bu sözler {site} adresinden alınmıştır.", {
+                                        site: (
+                                            <a
+                                                href="https://lrclib.net"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-bold text-ink hover:underline"
+                                            >
+                                                lrclib.net
+                                            </a>
+                                        ),
+                                    })}
+                                </span>
                                 <span aria-hidden>·</span>
                                 <a
                                     href={lyricsUrl(song.name, song.artists)}
@@ -217,7 +224,7 @@ function LyricsSheet({
                                     rel="noopener noreferrer"
                                     className="font-bold text-ink hover:underline"
                                 >
-                                    Yanlışsa Google&apos;da ara
+                                    {t("Yanlışsa Google'da ara")}
                                 </a>
                             </p>
                             <LyricsText text={state.lyrics} />
@@ -228,8 +235,8 @@ function LyricsSheet({
                         <div className="py-10 text-center">
                             <p className="text-sm text-muted">
                                 {state.instrumental
-                                    ? "Bu şarkı enstrümantal, sözü yok."
-                                    : "Bu şarkının sözleri bulunamadı."}
+                                    ? t("Bu şarkı enstrümantal, sözü yok.")
+                                    : t("Bu şarkının sözleri bulunamadı.")}
                             </p>
                             {!state.instrumental && google}
                         </div>
@@ -238,7 +245,7 @@ function LyricsSheet({
                     {state.status === "error" && (
                         <div className="py-10 text-center">
                             <p className="text-sm text-muted">
-                                Sözler şu an alınamadı.
+                                {t("Sözler şu an alınamadı.")}
                             </p>
                             {google}
                         </div>

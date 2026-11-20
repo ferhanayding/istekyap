@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getPlaylist } from "@/lib/playlist";
 import PlaylistPanel from "./PlaylistPanel";
 import LoadingTracks from "./LoadingTracks";
+import T from "./T";
 
 async function PlaylistData() {
     // Spotify geçici olarak cevap vermezse sayfa çökmesin, kısa bir mesaj görünsün
@@ -12,8 +13,7 @@ async function PlaylistData() {
     if (!playlist) {
         return (
             <p className="rounded-lg bg-surface p-4 text-sm text-muted">
-                Playlist şu an yüklenemedi. Birazdan sayfayı yenile; istek listesi çalışmaya
-                devam ediyor.
+                <T k="Playlist şu an yüklenemedi. Birazdan sayfayı yenile; istek listesi çalışmaya devam ediyor." />
             </p>
         );
     }

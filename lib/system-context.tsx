@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useLive } from "@/lib/live-client";
 import { fetchFirst, startEarly } from "@/lib/early-fetch";
+import { newestOnly } from "@/lib/fresh";
 import { DEFAULT_REQUEST_LIMIT, DEFAULT_REQUEST_WINDOW_MIN } from "@/lib/request-limit";
 
 type Raw = {
@@ -94,6 +95,9 @@ export function SystemProvider({
             : null
     );
 
+    // Canlı sinyal ve yedek yoklama aynı anda istenebilir: en yeni durum kalır
+    const [isNewest] = useState(newestOnly);
+
     // v: canlı sinyalin sürümü. Herkes aynı adresi ister, Vercel CDN'den tek cevapla döner
     const load = useCallback(async (v?: number) => {
         try {
@@ -102,11 +106,13 @@ export function SystemProvider({
             if (!res.ok || typeof data !== "object" || data === null) {
                 throw new Error();
             }
+            // CDN'den gelen eski kopya (örn. "Çal"dan önceki hâl) yeni durumu ezmesin
+            if (!isNewest(res)) return;
             setRaw(data as Raw);
         } catch {
             // Sessiz geç, bir sonraki turda tekrar dener
         }
-    }, []);
+    }, [isNewest]);
 
     const live = useLive("state", (v) => load(v));
 

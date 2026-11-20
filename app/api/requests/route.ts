@@ -9,6 +9,7 @@ import { isBlocked } from "@/lib/blocklist";
 import { hasRequestableLength } from "@/lib/spotify";
 import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { MAX_REQUEST_LIMIT, MAX_REQUEST_WINDOW_MIN } from "@/lib/request-limit";
+import { readAtHeader } from "@/lib/fresh";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 // Kötüye kullanım emniyeti (bellekte, her denemeyi sayar): 10 dakikalık pencere
@@ -247,6 +248,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+    // Sorgudan önceki an: telefon daha eski bir önbellek kopyasını bunun üstüne yazmaz (lib/fresh)
+    const readAt = Date.now();
     const { data, error } = await supabaseAdmin
         .from("requests")
         .select("id, spotify_id, name, artists, cover, status, request_count, created_at, last_requested_at")
@@ -274,6 +277,7 @@ export async function GET(req: NextRequest) {
             "Cache-Control": v
                 ? "public, s-maxage=30"
                 : "public, s-maxage=5",
+            ...readAtHeader(readAt),
         },
     });
 }

@@ -7,6 +7,7 @@ import { useSystem } from "@/lib/system-context";
 import { useSharedVotes } from "@/lib/votes-context";
 import { CLEAR_SEARCH_EVENT } from "@/lib/scroll";
 import { fold } from "@/lib/fold";
+import { useT } from "@/lib/i18n";
 import TrackItem from "./TrackItem";
 
 export default function PlaylistPanel({
@@ -28,6 +29,7 @@ export default function PlaylistPanel({
     const inputRef = useRef<HTMLInputElement>(null);
     const { votes, vote } = useSharedVotes();
     const system = useSystem();
+    const tr = useT();
 
     // Mini oynatıcıya basınca arama temizlensin ki çalan şarkı listede görünsün
     useEffect(() => {
@@ -74,8 +76,8 @@ export default function PlaylistPanel({
                         if (e.key === "Escape") setQuery("");
                         if (e.key === "Enter") e.currentTarget.blur(); // telefonda klavye kapansın
                     }}
-                    placeholder={`Playlistte ara · ${tracks.length} şarkı`}
-                    aria-label="Playlistte şarkı ara"
+                    placeholder={tr("Playlistte ara · {n} şarkı", { n: tracks.length })}
+                    aria-label={tr("Playlistte şarkı ara")}
                     enterKeyHint="search"
                     autoComplete="off"
                     maxLength={100}
@@ -89,7 +91,7 @@ export default function PlaylistPanel({
                         <button
                             type="button"
                             onClick={clear}
-                            aria-label="Aramayı temizle"
+                            aria-label={tr("Aramayı temizle")}
                             className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                         >
                             <X size={15} />
@@ -110,6 +112,7 @@ export default function PlaylistPanel({
                                 key={`${t.id}-${i}`}
                                 track={t}
                                 likes={votes[t.id]?.likes ?? 0}
+                                dislikes={votes[t.id]?.dislikes ?? 0}
                                 mine={votes[t.id]?.mine ?? 0}
                                 onVote={vote}
                                 played={system.played.has(t.id)}
@@ -122,8 +125,9 @@ export default function PlaylistPanel({
                     </div>
                 ) : (
                     <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
-                        &quot;{query.trim()}&quot; playlistte yok. &quot;İstek Parça
-                        Yap&quot; butonundan isteyebilirsin.
+                        {tr('"{q}" playlistte yok. "İstek Parça Yap" butonundan isteyebilirsin.', {
+                            q: query.trim(),
+                        })}
                     </p>
                 )}
 

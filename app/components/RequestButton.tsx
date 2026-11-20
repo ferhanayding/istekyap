@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Lock, Plus, Search, ThumbsUp, Timer, X } from "lucide-react";
 import type { Track } from "@/lib/spotify";
 import { BLOCKED_MESSAGE, isBlocked } from "@/lib/blocklist";
+import { useT } from "@/lib/i18n";
+import { MAX_SEARCH_LENGTH } from "@/lib/visitor-types";
 import { useSystem } from "@/lib/system-context";
 import { sendRequest } from "@/lib/send-request";
-import { limitNote } from "@/lib/request-limit";
 import { formatWait, useMine, useSecondsLeft } from "@/lib/my-requests";
 import { useToast } from "./Toast";
 
@@ -36,8 +37,12 @@ export default function RequestButton() {
     const inputRef = useRef<HTMLInputElement>(null);
     const { loaded, requestsOpen, played, nowPlaying, requestLimit, requestWindowMin } =
         useSystem();
+    const t = useT();
     // Sınır dashboard'dan ayarlanır, not da ona göre yazılır
-    const note = limitNote(requestLimit, requestWindowMin);
+    const note = t("Her cihazdan {min} dakikada en fazla {n} istek atılabilir.", {
+        n: requestLimit,
+        min: requestWindowMin,
+    });
     const toast = useToast();
     const closed = loaded && !requestsOpen;
     // İstek hakkı dolduysa buton kilitlenir ve kalan süreyi sayar
@@ -104,7 +109,7 @@ export default function RequestButton() {
                     setFailedQ(q);
                     toast.error(
                         (e as Error).message ||
-                        "Arama yapılamadı. Biraz sonra tekrar dene."
+                        t("Arama yapılamadı. Biraz sonra tekrar dene.")
                     );
                 }
             }
@@ -114,7 +119,7 @@ export default function RequestButton() {
             clearTimeout(timer);
             ctrl.abort();
         };
-    }, [q, open, sent, blocked, toast]);
+    }, [q, open, sent, blocked, toast, t]);
 
     async function pick(t: Row) {
         setSendingId(t.id);
@@ -130,19 +135,19 @@ export default function RequestButton() {
     }
 
     // Arama sonucunda da öneride de aynı satır
-    function row(t: Row) {
+    function row(s: Row) {
         return (
-                <li key={t.id}>
+                <li key={s.id}>
                     <button
                         type="button"
-                        onClick={() => pick(t)}
-                        disabled={played.has(t.id) || sendingId !== null}
+                        onClick={() => pick(s)}
+                        disabled={played.has(s.id) || sendingId !== null}
                         className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition enabled:hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {t.cover ? (
+                        {s.cover ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                                src={t.cover}
+                                src={s.cover}
                                 alt=""
                                 width={40}
                                 height={40}
@@ -153,35 +158,35 @@ export default function RequestButton() {
                         )}
                         <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-bold">
-                                {t.name}
+                                {s.name}
                             </span>
                             <span className="block truncate text-xs text-muted">
-                                {t.artists}
+                                {s.artists}
                             </span>
                         </span>
                         <span className="flex shrink-0 flex-col items-end gap-1">
-                            {t.likes ? (
+                            {s.likes ? (
                                 <span className="flex items-center gap-1 text-xs font-bold text-muted">
                                     <ThumbsUp size={12} />
-                                    {t.likes}
+                                    {s.likes}
                                 </span>
                             ) : null}
-                            {t.inPlaylist && !t.likes && (
+                            {s.inPlaylist && !s.likes && (
                                 <span className="rounded bg-raised px-1.5 py-px text-xs font-bold text-muted">
-                                    Listemizde
+                                    {t("Listemizde")}
                                 </span>
                             )}
                             <span
-                                className={`text-xs font-bold ${played.has(t.id)
+                                className={`text-xs font-bold ${played.has(s.id)
                                     ? "text-muted"
                                     : "rounded-full bg-accent px-2.5 py-1 text-on-accent"
                                     }`}
                             >
-                                {played.has(t.id)
-                                    ? "Çalındı"
-                                    : sendingId === t.id
-                                        ? "Gönderiliyor…"
-                                        : "İste"}
+                                {played.has(s.id)
+                                    ? t("Çalındı")
+                                    : sendingId === s.id
+                                        ? t("Gönderiliyor…")
+                                        : t("İste")}
                             </span>
                         </span>
                     </button>
@@ -222,15 +227,19 @@ export default function RequestButton() {
                             <Plus size={18} strokeWidth={2.5} className="text-on-accent" />
                         )}
                         {closed ? (
-                            "İstekler şu an kapalı"
+                            t("İstekler şu an kapalı")
                         ) : waiting ? (
                             <span>
-                                Sonraki istek hakkın{" "}
-                                <span className="tabular-nums text-ink">{formatWait(waitLeft)}</span>{" "}
-                                sonra
+                                {t.rich("Sonraki istek hakkın {time} sonra", {
+                                    time: (
+                                        <span className="tabular-nums text-ink">
+                                            {formatWait(waitLeft)}
+                                        </span>
+                                    ),
+                                })}
                             </span>
                         ) : (
-                            "İstek Parça Yap"
+                            t("İstek Parça Yap")
                         )}
                     </span>
                     {!closed && !waiting && (
@@ -249,8 +258,11 @@ export default function RequestButton() {
                             <Check size={18} className="shrink-0 text-accent" />
                             <p className="min-w-0 flex-1 truncate text-sm font-semibold">
                                 {sentCount
-                                    ? `İsteğe katıldın · ${sentCount} kişi istedi: ${sent.name}`
-                                    : `İstek gönderildi: ${sent.name}`}
+                                    ? t("İsteğe katıldın · {n} kişi istedi: {name}", {
+                                          n: sentCount,
+                                          name: sent.name,
+                                      })
+                                    : t("İstek gönderildi: {name}", { name: sent.name })}
                             </p>
                         </>
                     ) : (
@@ -261,9 +273,9 @@ export default function RequestButton() {
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-                                placeholder="Şarkı adı yaz"
-                                aria-label="Şarkı ara"
-                                maxLength={100}
+                                placeholder={t("Şarkı adı yaz")}
+                                aria-label={t("Şarkı ara")}
+                                maxLength={MAX_SEARCH_LENGTH}
                                 className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-faint"
                             />
                         </>
@@ -271,7 +283,7 @@ export default function RequestButton() {
                     <button
                         type="button"
                         onClick={() => setOpen(false)}
-                        aria-label="Kapat"
+                        aria-label={t("Kapat")}
                         className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                     >
                         <X size={17} />
@@ -289,7 +301,7 @@ export default function RequestButton() {
                 {open && !sent && !active && suggested.length > 0 && (
                     <div className="absolute inset-x-0 top-11 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-2xl">
                         <p className="px-2 pb-1 pt-1.5 text-xs font-bold uppercase tracking-wider text-faint">
-                            En çok beğenilenler
+                            {t("En çok beğenilenler")}
                         </p>
                         <ul>{suggested.map(row)}</ul>
                         <p className="border-t border-line px-3 pb-1.5 pt-2.5 text-xs text-faint">
@@ -303,7 +315,7 @@ export default function RequestButton() {
                     <div className="absolute inset-x-0 top-11 max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-1.5 shadow-2xl">
                         {blocked ? (
                             <p role="alert" className="p-3 text-sm text-danger">
-                                {BLOCKED_MESSAGE}
+                                {t(BLOCKED_MESSAGE)}
                             </p>
                         ) : (
                             <>
@@ -315,11 +327,11 @@ export default function RequestButton() {
 
                                 {!hasItems && fresh && (
                                     <p className="p-3 text-sm text-muted">
-                                        Sonuç yok. Şarkı adını farklı yazmayı dene.
+                                        {t("Sonuç yok. Şarkı adını farklı yazmayı dene.")}
                                     </p>
                                 )}
                                 {!hasItems && !fresh && (
-                                    <p className="p-3 text-sm text-muted">Aranıyor…</p>
+                                    <p className="p-3 text-sm text-muted">{t("Aranıyor…")}</p>
                                 )}
                                 <p className="border-t border-line px-3 pb-1.5 pt-2.5 text-xs text-faint">
                                     {note}

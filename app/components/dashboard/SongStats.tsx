@@ -171,14 +171,21 @@ export default function SongStats({
                 {songs && (
                     <>
                         <span>{songs.length} şarkı</span>
-                        <span className="flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-accent">
+                        <span
+                            title="Bugüne kadarki toplam (sitede görünen)"
+                            className="flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-accent"
+                        >
                             <ThumbsUp size={12} />
                             {totalLikes}
                         </span>
-                        <span className="flex items-center gap-1 rounded-full bg-danger/15 px-2 py-0.5 text-danger">
+                        <span
+                            title="Bugüne kadarki toplam (sitede görünen)"
+                            className="flex items-center gap-1 rounded-full bg-danger/15 px-2 py-0.5 text-danger"
+                        >
                             <ThumbsDown size={12} />
                             {totalDislikes}
                         </span>
+                        <span className="font-normal text-faint">toplam</span>
                     </>
                 )}
                 <label htmlFor="song-sort" className="sr-only">

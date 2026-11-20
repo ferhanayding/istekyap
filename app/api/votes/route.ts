@@ -3,19 +3,19 @@ import { getIp, rateLimit } from "@/lib/rate-limit";
 import { getOrCreateDeviceId, readDeviceId } from "@/lib/device";
 import { getAppState } from "@/lib/app-state";
 import { getPlaylistIndex } from "@/lib/playlist-index";
-import { clearLikeCountsCache, getLikeCounts } from "@/lib/votes";
+import { clearVoteTotalsCache, getVoteTotals } from "@/lib/votes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
 
 export async function GET() {
     try {
-        const out: Record<string, { likes: number; mine: number }> = {};
+        const out: Record<string, { likes: number; dislikes: number; mine: number }> = {};
 
-        // Toplam beğeniler ve bu cihazın kendi oyları aynı anda okunur
+        // Bugüne kadarki toplamlar ve bu cihazın bu geceki oyları aynı anda okunur
         const deviceId = await readDeviceId();
         const [counts, mine] = await Promise.all([
-            getLikeCounts(),
+            getVoteTotals(),
             deviceId
                 ? supabaseAdmin
                     .from("song_votes")
@@ -29,11 +29,15 @@ export async function GET() {
         ]);
 
         for (const c of counts) {
-            out[c.spotify_id] = { likes: c.likes, mine: 0 };
+            out[c.spotify_id] = { likes: c.likes, dislikes: c.dislikes, mine: 0 };
         }
         for (const v of mine) {
             const id = String(v.spotify_id);
-            out[id] = { likes: out[id]?.likes ?? 0, mine: Number(v.value) };
+            out[id] = {
+                likes: out[id]?.likes ?? 0,
+                dislikes: out[id]?.dislikes ?? 0,
+                mine: Number(v.value),
+            };
         }
 
         return NextResponse.json(out, { headers: { "Cache-Control": "no-store" } });
@@ -140,7 +144,7 @@ export async function POST(req: NextRequest) {
             if (error) throw error;
         }
 
-        clearLikeCountsCache();
+        clearVoteTotalsCache();
         return NextResponse.json({ ok: true });
     } catch (e) {
         console.error(e);

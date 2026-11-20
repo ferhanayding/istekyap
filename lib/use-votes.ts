@@ -5,7 +5,8 @@ import { fetchFirst, startEarly } from "@/lib/early-fetch";
 import { useLive } from "@/lib/live-client";
 
 export type MyVote = -1 | 0 | 1;
-export type VoteState = { likes: number; mine: MyVote };
+// likes/dislikes: bugüne kadarki toplam (geceler boyunca birikir) · mine: bu geceki oyum
+export type VoteState = { likes: number; dislikes: number; mine: MyVote };
 export type VoteMap = Record<string, VoteState>;
 
 // Beğeniler acil değil, dakikada bir bakması yeter
@@ -44,7 +45,7 @@ export function useVotes() {
         }
     }, []);
 
-    // Gece başlayınca (oylar sıfırlanır) ve şarkı çalınınca (oylanabilir olur) hemen tazele
+    // Gece başlayınca (bu geceki oyum sıfırlanır) ve şarkı çalınınca (oylanabilir olur) hemen tazele
     useLive("state", () => void load());
 
     useEffect(() => {
@@ -65,16 +66,17 @@ export function useVotes() {
 
     // Aynı butona tekrar basınca oy geri çekilir
     const vote = useCallback(async (id: string, value: 1 | -1) => {
-        const current: VoteState = votesRef.current[id] ?? { likes: 0, mine: 0 };
+        const current: VoteState = votesRef.current[id] ?? { likes: 0, dislikes: 0, mine: 0 };
         const next: MyVote = current.mine === value ? 0 : value;
-        const likes = Math.max(
-            0,
-            current.likes - (current.mine === 1 ? 1 : 0) + (next === 1 ? 1 : 0)
-        );
+        // Eski oyum toplamdan düşer, yenisi eklenir
+        const shift = (n: number, v: MyVote) =>
+            Math.max(0, n - (current.mine === v ? 1 : 0) + (next === v ? 1 : 0));
+        const likes = shift(current.likes, 1);
+        const dislikes = shift(current.dislikes, -1);
 
         setError(null);
         inFlight.current++;
-        setVotes((m) => ({ ...m, [id]: { likes, mine: next } }));
+        setVotes((m) => ({ ...m, [id]: { likes, dislikes, mine: next } }));
 
         try {
             const res = await fetch(VOTES_URL, {

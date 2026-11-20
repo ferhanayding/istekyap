@@ -15,6 +15,7 @@ import { REQUEST_DONE_EVENT } from "@/lib/send-request";
 import type { RequestItem } from "@/lib/use-request-feed";
 import type { MineResponse } from "@/lib/visitor-types";
 import { useToast } from "../app/components/Toast";
+import { useT } from "@/lib/i18n";
 
 // Ziyaretçinin kendi istekleri ve "sonraki isteğe kalan süre".
 // Kaynak sunucu (/api/requests/mine): çerezdeki cihaz kimliğine göre, sayfa yenilense de doğru kalır.
@@ -114,6 +115,7 @@ export function formatWait(sec: number): string {
 export function useMyRequestAlerts(items: RequestItem[] | null, nowPlaying: string | null) {
     const { ids } = useMine();
     const toast = useToast();
+    const t = useT();
     // şarkı → son bilinen durum ("playing": şu an çalıyor)
     const prev = useRef<Map<string, string> | null>(null);
 
@@ -136,15 +138,18 @@ export function useMyRequestAlerts(items: RequestItem[] | null, nowPlaying: stri
             // Yeni attığım istek (önceki durumu yok) için bildirim gerekmez
             if (!old || old === state) continue;
             if (state === "playing") {
-                toast.show(`İsteğin şimdi çalıyor: ${name}`, { tone: "success", duration: 7000 });
+                toast.show(t("İsteğin şimdi çalıyor: {name}", { name }), { tone: "success", duration: 7000 });
             } else if (state === "approved" && old === "pending") {
-                toast.show(`İsteğin onaylandı, çalınacak: ${name}`, {
+                toast.show(t("İsteğin onaylandı, çalınacak: {name}", { name }), {
                     tone: "success",
                     duration: 6000,
                 });
             } else if (state === "rejected") {
-                toast.show(`İsteğin repertuvarımızda yok: ${name}`, { tone: "info", duration: 6000 });
+                toast.show(t("İsteğin repertuvarımızda yok: {name}", { name }), {
+                    tone: "info",
+                    duration: 6000,
+                });
             }
         }
-    }, [items, ids, nowPlaying, toast]);
+    }, [items, ids, nowPlaying, toast, t]);
 }

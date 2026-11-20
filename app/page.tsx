@@ -10,6 +10,7 @@ import { LyricsProvider } from "./components/LyricsSheet";
 import { getAppFlags } from "@/lib/app-flags";
 import { MineProvider } from "@/lib/my-requests";
 import PollCard from "./components/PollCard";
+import { LangProvider } from "@/lib/i18n";
 
 export default async function Home() {
   // İstek/oylama/playlist anahtarları sayfanın hazır HTML'ine gömülür (lib/app-flags):
@@ -22,21 +23,23 @@ export default async function Home() {
   return (
     <main className="flex h-dvh items-center justify-center bg-page text-ink sm:bg-[#0b0a09] sm:p-6">
       <div className="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden bg-page sm:max-h-[860px] sm:rounded-3xl sm:border sm:border-line">
-        <SystemProvider initial={flags}>
-          <ToastProvider>
-            <VotesProvider>
-              <LyricsProvider>
-                <MineProvider>
-                  <ClosedBanner />
-                  <Header />
-                  <RequestButton />
-                  <PollCard />
-                  <AppTabs playlist={<PlaylistSection />} />
-                </MineProvider>
-              </LyricsProvider>
-            </VotesProvider>
-          </ToastProvider>
-        </SystemProvider>
+        <LangProvider>
+          <SystemProvider initial={flags}>
+            <ToastProvider>
+              <VotesProvider>
+                <LyricsProvider>
+                  <MineProvider>
+                    <ClosedBanner />
+                    <Header />
+                    <RequestButton />
+                    <PollCard />
+                    <AppTabs playlist={<PlaylistSection />} />
+                  </MineProvider>
+                </LyricsProvider>
+              </VotesProvider>
+            </ToastProvider>
+          </SystemProvider>
+        </LangProvider>
       </div>
     </main>
   );

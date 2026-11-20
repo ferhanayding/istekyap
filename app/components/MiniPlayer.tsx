@@ -3,6 +3,7 @@
 import { Music2 } from "lucide-react";
 import { LyricsButton } from "./LyricsSheet";
 import EqBars from "./EqBars";
+import { useT } from "@/lib/i18n";
 
 export default function MiniPlayer({
     title,
@@ -13,9 +14,10 @@ export default function MiniPlayer({
     cover: string | null;
     onClick: () => void;
 }) {
+    const t = useT();
     // Başlık "Şarkı · Sanatçı" biçiminde gelir
     const cut = title ? title.lastIndexOf(" · ") : -1;
-    const name = title ? (cut > 0 ? title.slice(0, cut) : title) : "Şarkı";
+    const name = title ? (cut > 0 ? title.slice(0, cut) : title) : t("Şarkı");
     const artists = title && cut > 0 ? title.slice(cut + 3) : "";
 
     return (
@@ -24,7 +26,7 @@ export default function MiniPlayer({
                 <button
                     type="button"
                     onClick={onClick}
-                    aria-label={`Çalan şarkı: ${name}. Listede göster`}
+                    aria-label={t("Çalan şarkı: {name}. Listede göster", { name })}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
                     {cover ? (
@@ -47,7 +49,7 @@ export default function MiniPlayer({
                         </span>
                         <span className="flex items-center gap-1.5 truncate text-xs text-muted">
                             <EqBars className="shrink-0" />
-                            <span className="shrink-0 font-bold text-accent">Çalıyor</span>
+                            <span className="shrink-0 font-bold text-accent">{t("Çalıyor")}</span>
                             {artists && <span className="truncate">· {artists}</span>}
                         </span>
                     </span>

@@ -26,6 +26,7 @@ function setConnected(v: boolean) {
             l("requests", v);
             l("state", v);
             l("poll", v);
+            l("comments", v);
         });
     }
     if (v) wasConnected = true;
@@ -52,7 +53,7 @@ function ensureChannel() {
                     if (!Array.isArray(topics)) return;
                     const v = typeof payload?.v === "number" ? payload.v : Date.now();
                     for (const t of topics) {
-                        if (t === "requests" || t === "state" || t === "poll") {
+                        if (t === "requests" || t === "state" || t === "poll" || t === "comments") {
                             listeners.forEach((l) => l(t, v));
                         }
                     }

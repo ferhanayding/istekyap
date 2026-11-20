@@ -16,7 +16,9 @@ import { CLEAR_SEARCH_EVENT, scrollToTrack } from "@/lib/scroll";
 import BottomNav, { type Tab } from "./BottomNav";
 import MiniPlayer from "./MiniPlayer";
 import RequestsPanel from "./RequestsPanel";
+import CommentsTab from "./CommentsTab";
 import { useToast } from "./Toast";
+import { useT } from "@/lib/i18n";
 import LoadingTracks from "./LoadingTracks";
 
 // Yenileyince kaldığın sekmede kal
@@ -27,7 +29,7 @@ let memoryTab: Tab = "playlist";
 function readTab(): Tab {
     try {
         const v = sessionStorage.getItem(TAB_KEY);
-        if (v === "requests" || v === "playlist") return v;
+        if (v === "requests" || v === "playlist" || v === "comments") return v;
     } catch {
         // Tarayıcı depolamayı engelliyorsa bellekteki değeri kullan
     }
@@ -56,10 +58,14 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
     const [unread, setUnread] = useState(0);
     const toast = useToast();
     const system = useSystem();
+    const t = useT();
 
-    // Playlist kapalıysa sadece istek listesi var
+    // Playlist kapalıysa istek listesi ve yorumlar kalır
     const showPlaylist = system.playlistVisible;
-    const activeTab: Tab = showPlaylist ? tab : "requests";
+    const activeTab: Tab = !showPlaylist && tab === "playlist" ? "requests" : tab;
+    const tabs: Tab[] = showPlaylist
+        ? ["playlist", "requests", "comments"]
+        : ["requests", "comments"];
     const tabRef = useRef(activeTab);
 
     useEffect(() => {
@@ -75,8 +81,8 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
         (fresh: RequestItem[]) => {
             const text =
                 fresh.length === 1
-                    ? `Yeni istek: ${fresh[0].name}`
-                    : `${fresh.length} yeni istek geldi`;
+                    ? t("Yeni istek: {name}", { name: fresh[0].name })
+                    : t("{n} yeni istek geldi", { n: fresh.length });
 
             toast.show(text, {
                 tone: "info",
@@ -87,7 +93,7 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
 
             if (tabRef.current !== "requests") setUnread((u) => u + fresh.length);
         },
-        [toast, openRequests]
+        [toast, openRequests, t]
     );
 
     const feed = useRequestFeed(handleNew);
@@ -121,7 +127,7 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
 
     return (
         <>
-            {/* İkisi de açık kalır, böylece playlist aramanı kaybetmezsin ve liste güncellenmeye devam eder */}
+            {/* Sekmeler açık kalır, böylece playlist aramanı kaybetmezsin ve liste güncellenmeye devam eder */}
             {showPlaylist && (
                 <div
                     className={
@@ -138,6 +144,13 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
             >
                 <RequestsPanel feed={feed} />
             </div>
+            <div
+                className={
+                    activeTab === "comments" ? "flex min-h-0 flex-1 flex-col" : "hidden"
+                }
+            >
+                <CommentsTab active={activeTab === "comments"} />
+            </div>
 
             {system.nowPlaying && (
                 <MiniPlayer
@@ -148,9 +161,7 @@ export default function AppTabs({ playlist }: { playlist: ReactNode }) {
                 />
             )}
 
-            {showPlaylist && (
-                <BottomNav tab={activeTab} unread={unread} onTab={openTab} />
-            )}
+            <BottomNav tab={activeTab} tabs={tabs} unread={unread} onTab={openTab} />
         </>
     );
 }

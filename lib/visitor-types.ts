@@ -23,3 +23,30 @@ export type LastNightResponse = {
 
 // "Sonraki sahne" yazısının en fazla uzunluğu
 export const MAX_NEXT_SHOW = 80;
+
+// Spotify araması en fazla bu kadar karakter (/api/search, istek kutusu, dashboard araması)
+export const MAX_SEARCH_LENGTH = 100;
+
+// /api/comments (GET): herkese açık yorumlar
+export type PublicComment = {
+    id: string;
+    rating: number;
+    message: string;
+    /** Boşsa "Anonim" görünür */
+    name: string;
+    createdAt: string;
+};
+export type CommentsResponse = {
+    items: PublicComment[];
+    /** Bütün puanlar (sadece yıldız verenler dahil) */
+    count: number;
+    average: number;
+};
+
+// Yorum gönderilince açık "Yorumlar" sekmesi hemen tazelensin
+export const COMMENT_SENT_EVENT = "yorum:gonderildi";
+
+// Yorumda link olmasın (reklam/spam). "güzeldi.Az önce" gibi boşluksuz cümleler takılmasın diye
+// sadece belirgin adresler aranır.
+const LINK = /(https?:\/\/|www\.)|\b[\p{L}\p{N}-]+\.(com|net|org|info|io|ru|xyz|link|ly|site|online|shop)\b/iu;
+export const hasLink = (s: string) => LINK.test(s);

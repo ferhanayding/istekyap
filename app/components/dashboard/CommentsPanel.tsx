@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Star, Trash2 } from "lucide-react";
 import LoadingTracks from "../LoadingTracks";
 import { useToast } from "../Toast";
+import { timeAgo, useT } from "@/lib/i18n";
 
 type Comment = {
     id: string;
@@ -22,18 +23,6 @@ type Data = {
 };
 
 const POLL_MS = 20_000;
-const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
-
-function ago(iso: string, now: number): string {
-    const s = Math.min(0, Math.round((new Date(iso).getTime() - now) / 1000));
-    if (Math.abs(s) < 60) return "az önce";
-    const m = Math.round(s / 60);
-    if (Math.abs(m) < 60) return rtf.format(m, "minute");
-    const h = Math.round(m / 60);
-    if (Math.abs(h) < 24) return rtf.format(h, "hour");
-    return rtf.format(Math.round(h / 24), "day");
-}
-
 function Stars({ value, size }: { value: number; size: number }) {
     return (
         <span className="inline-flex items-center gap-0.5" aria-label={`${value} yıldız`}>
@@ -57,6 +46,7 @@ export default function CommentsPanel() {
     const [busyId, setBusyId] = useState<string | null>(null);
     const router = useRouter();
     const toast = useToast();
+    const t = useT();
 
     useEffect(() => {
         if (error) toast.error(error);
@@ -168,7 +158,7 @@ export default function CommentsPanel() {
                                     </span>
                                     <Stars value={c.rating} size={13} />
                                     <span className="text-xs text-faint">
-                                        {ago(c.created_at, now)}
+                                        {timeAgo(t, c.created_at, now)}
                                     </span>
                                 </div>
                                 {c.message ? (

@@ -18,6 +18,3 @@ export function readLimitValue(n: unknown, max: number, fallback: number): numbe
     return validLimitValue(v, max) ? v : fallback;
 }
 
-export function limitNote(limit: number, minutes: number): string {
-    return `Her cihazdan ${minutes} dakikada en fazla ${limit} istek atılabilir.`;
-}

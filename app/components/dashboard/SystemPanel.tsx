@@ -313,7 +313,7 @@ export default function SystemPanel({
                         onClick={() =>
                             run(
                                 { action: "start_night" },
-                                "Yeni gece başlasın mı? İstek ve oylama açılır. Önceki gecenin istekleri, oyları ve çalındı işaretleri ziyaretçilerin ekranından kalkar (istatistikte kalır)."
+                                "Yeni gece başlasın mı? İstek ve oylama açılır. Önceki gecenin istekleri ve çalındı işaretleri ziyaretçilerin ekranından kalkar (istatistikte kalır). Beğeni toplamları kalır, herkes yeniden oy verebilir."
                             )
                         }
                         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent text-base font-extrabold text-on-accent transition active:scale-[0.98] disabled:opacity-50"

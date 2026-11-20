@@ -6,6 +6,7 @@ import type { Track } from "@/lib/spotify";
 import { lyricsUrl } from "@/lib/lyrics";
 import { useToast } from "../Toast";
 import { LyricsButton } from "../LyricsSheet";
+import { MAX_SEARCH_LENGTH } from "@/lib/visitor-types";
 
 type Result = Track & { inPlaylist?: boolean };
 
@@ -102,7 +103,7 @@ export default function LyricsBar({
                     aria-label="Şarkı ara"
                     enterKeyHint="search"
                     autoComplete="off"
-                    maxLength={150}
+                    maxLength={MAX_SEARCH_LENGTH}
                     className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-faint"
                 />
                 {query && (

@@ -1,15 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, ThumbsUp, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import type { HistorySong } from "@/lib/history-types";
 import type { RequestStatus } from "@/lib/use-request-feed";
 import { useLive } from "@/lib/live-client";
 import { fold } from "@/lib/fold";
+import { useT } from "@/lib/i18n";
+import { useSharedVotes } from "@/lib/votes-context";
+import { useSystem } from "@/lib/system-context";
 import { LyricsButton } from "./LyricsSheet";
 import LoadingTracks from "./LoadingTracks";
 import AskButton from "./AskButton";
 import SongRow from "./SongRow";
+import VoteButtons from "./VoteButtons";
 
 type Sort = "most" | "recent";
 
@@ -29,6 +33,10 @@ export default function RequestHistory({
     const [failed, setFailed] = useState(false);
     const [query, setQuery] = useState("");
     const [sort, setSort] = useState<Sort>("most");
+    const t = useT();
+    // Beğeni/beğenmeme toplamları bütün listelerde aynı kaynaktan (canlı güncellenir)
+    const { votes, vote } = useSharedVotes();
+    const system = useSystem();
 
     // v: canlı sinyalin sürümü (herkes aynı adresi ister, CDN tek cevap verir)
     const load = useCallback(async (v?: number) => {
@@ -79,13 +87,13 @@ export default function RequestHistory({
     if (failed && !list) {
         return (
             <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
-                Eski istekler alınamadı.{" "}
+                {t("Eski istekler alınamadı.")}{" "}
                 <button
                     type="button"
                     onClick={() => void load()}
                     className="font-bold text-ink"
                 >
-                    Tekrar dene
+                    {t("Tekrar dene")}
                 </button>
             </p>
         );
@@ -96,7 +104,7 @@ export default function RequestHistory({
     if (list.length === 0) {
         return (
             <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
-                Henüz eski istek yok. Geceler geçtikçe istenen şarkılar burada birikir.
+                {t("Henüz eski istek yok. Geceler geçtikçe istenen şarkılar burada birikir.")}
             </p>
         );
     }
@@ -113,8 +121,8 @@ export default function RequestHistory({
                             if (e.key === "Escape") setQuery("");
                             if (e.key === "Enter") e.currentTarget.blur();
                         }}
-                        placeholder={`Ara · ${list.length} şarkı`}
-                        aria-label="Eski isteklerde ara"
+                        placeholder={t("Ara · {n} şarkı", { n: list.length })}
+                        aria-label={t("Eski isteklerde ara")}
                         enterKeyHint="search"
                         autoComplete="off"
                         maxLength={100}
@@ -124,7 +132,7 @@ export default function RequestHistory({
                         <button
                             type="button"
                             onClick={() => setQuery("")}
-                            aria-label="Aramayı temizle"
+                            aria-label={t("Aramayı temizle")}
                             className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-line"
                         >
                             <X size={14} />
@@ -134,10 +142,10 @@ export default function RequestHistory({
                 <button
                     type="button"
                     onClick={() => setSort(sort === "most" ? "recent" : "most")}
-                    aria-label="Sıralamayı değiştir"
+                    aria-label={t("Sıralamayı değiştir")}
                     className="h-9 shrink-0 rounded-lg bg-raised px-3 text-xs font-bold text-ink transition hover:bg-line"
                 >
-                    {sort === "most" ? "En çok istenen" : "En yeni"}
+                    {sort === "most" ? t("En çok istenen") : t("En yeni")}
                 </button>
             </div>
 
@@ -147,8 +155,10 @@ export default function RequestHistory({
             >
                 {visible.length === 0 ? (
                     <p className="mt-2 rounded-lg bg-surface p-4 text-sm text-muted">
-                        &quot;{query.trim()}&quot; daha önce istenmemiş. Yukarıdaki &quot;İstek
-                        Parça Yap&quot; butonundan arayabilirsin.
+                        {t(
+                            '"{q}" daha önce istenmemiş. Yukarıdaki "İstek Parça Yap" butonundan arayabilirsin.',
+                            { q: query.trim() }
+                        )}
                     </p>
                 ) : (
                     <ul>
@@ -166,28 +176,36 @@ export default function RequestHistory({
                                     eager={idx < 8}
                                     meta={
                                         <>
-                                            <span className="font-semibold text-muted">
-                                                {s.requests} kez istendi
-                                            </span>
-                                            {s.plays > 0 && <span>{s.plays} kez çalındı</span>}
-                                            {s.likes > 0 && (
-                                                <span className="inline-flex items-center gap-1">
-                                                    <ThumbsUp size={11} />
-                                                    {s.likes}
-                                                </span>
-                                            )}
                                             {inList && (
-                                                <span className="font-bold text-accent">Listede</span>
+                                                <span className="font-bold text-accent">{t("Listede")}</span>
+                                            )}
+                                            <span className="font-semibold text-muted">
+                                                {t("{n} kez istendi", { n: s.requests })}
+                                            </span>
+                                            {s.plays > 0 && (
+                                                <span>{t("{n} kez çalındı", { n: s.plays })}</span>
+                                            )}
+                                            {/* Bu gece reddedildi: tekrar istenemez, buton yerine not */}
+                                            {status === "rejected" && (
+                                                <span className="truncate">{t("Repertuvarımızda yok")}</span>
                                             )}
                                         </>
                                     }
                                     actions={
                                         <>
-                                            <AskButton
+                                            <VoteButtons
                                                 id={s.spotify_id}
                                                 name={s.name}
-                                                rejected={status === "rejected"}
+                                                likes={votes[s.spotify_id]?.likes ?? 0}
+                                                dislikes={votes[s.spotify_id]?.dislikes ?? 0}
+                                                mine={votes[s.spotify_id]?.mine ?? 0}
+                                                played={system.played.has(s.spotify_id)}
+                                                votingOpen={system.votingOpen}
+                                                onVote={vote}
                                             />
+                                            {status !== "rejected" && (
+                                                <AskButton id={s.spotify_id} name={s.name} />
+                                            )}
                                             <LyricsButton name={s.name} artists={s.artists} />
                                         </>
                                     }

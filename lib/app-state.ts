@@ -30,6 +30,8 @@ export type AppState = {
     nowPlayingTitle: string | null;
     nowPlayingCover: string | null;
     played: string[];
+    /** Veritabanından okunduğu an (ms): eski önbellek kopyası yenisini ezmesin (lib/fresh) */
+    readAt: number;
 };
 
 // 2 saniye bellekte durur, her istekte veritabanına gidilmez
@@ -59,6 +61,8 @@ export async function getAppState(
 ): Promise<AppState> {
     if (!opts.fresh && cache && Date.now() < cache.expires) return cache.state;
 
+    // Sorgudan önceki an: bu andan önce yazılan her şey cevapta vardır
+    const readAt = Date.now();
     const [s, p] = await Promise.all([
         supabaseAdmin
             .from("app_state")
@@ -93,6 +97,7 @@ export async function getAppState(
         nowPlayingTitle,
         nowPlayingCover,
         played: (p.data ?? []).map((r) => String(r.spotify_id)),
+        readAt,
     };
     cache = { state, expires: Date.now() + 2_000 };
     return state;

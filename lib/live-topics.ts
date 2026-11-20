@@ -4,4 +4,5 @@ export const LIVE_EVENT = "changed";
 
 // requests: istek listesi değişti · state: istek/oylama açık-kapalı, çalan şarkı
 // poll: "sıradaki şarkıyı siz seçin" anketi başladı, bitti ya da oy geldi
-export type LiveTopic = "requests" | "state" | "poll";
+// comments: yeni yorum geldi ya da dashboard'dan silindi
+export type LiveTopic = "requests" | "state" | "poll" | "comments";

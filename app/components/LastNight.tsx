@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from "react";
 import type { LastNightResponse } from "@/lib/visitor-types";
+import { formatDay, useT } from "@/lib/i18n";
+import { useSystem } from "@/lib/system-context";
+import { useSharedVotes } from "@/lib/votes-context";
 import { LyricsButton } from "./LyricsSheet";
 import SongRow from "./SongRow";
+import VoteButtons from "./VoteButtons";
 
-const DAY_FMT = new Intl.DateTimeFormat("tr-TR", {
-    timeZone: "Europe/Istanbul",
-    day: "numeric",
-    month: "long",
-    weekday: "long",
-});
 
 // Gece kapalıyken: son gecede çaldığımız şarkılar (çalınma sırasıyla)
 export default function LastNight() {
     const [data, setData] = useState<LastNightResponse | null>(null);
+    const t = useT();
+    const { votes, vote } = useSharedVotes();
+    const system = useSystem();
 
     useEffect(() => {
         const ctrl = new AbortController();
@@ -32,9 +33,10 @@ export default function LastNight() {
 
     return (
         <section className="mt-4">
-            <h2 className="text-sm font-extrabold text-ink">Son gecede çaldıklarımız</h2>
+            <h2 className="text-sm font-extrabold text-ink">{t("Son gecede çaldıklarımız")}</h2>
             <p className="mt-0.5 text-xs text-faint">
-                {DAY_FMT.format(new Date(data.date))} · {data.songs.length} şarkı
+                {formatDay(t, data.date)} ·{" "}
+                {t("{n} şarkı", { n: data.songs.length })}
             </p>
             <ul className="mt-1">
                 {data.songs.map((s, idx) => (
@@ -45,8 +47,22 @@ export default function LastNight() {
                         name={s.name}
                         artists={s.artists}
                         eager={idx < 6}
-                        meta={<span>{idx + 1}. şarkı</span>}
-                        actions={<LyricsButton name={s.name} artists={s.artists} />}
+                        meta={<span>{t("{n}. şarkı", { n: idx + 1 })}</span>}
+                        actions={
+                            <>
+                                <VoteButtons
+                                    id={s.id}
+                                    name={s.name}
+                                    likes={votes[s.id]?.likes ?? 0}
+                                    dislikes={votes[s.id]?.dislikes ?? 0}
+                                    mine={votes[s.id]?.mine ?? 0}
+                                    played={system.played.has(s.id)}
+                                    votingOpen={system.votingOpen}
+                                    onVote={vote}
+                                />
+                                <LyricsButton name={s.name} artists={s.artists} />
+                            </>
+                        }
                     />
                 ))}
             </ul>
