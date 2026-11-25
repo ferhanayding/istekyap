@@ -11,7 +11,15 @@ import { getPlaylistIndex, isInPlaylist } from "@/lib/playlist-index";
 import { MAX_REQUEST_LIMIT, MAX_REQUEST_WINDOW_MIN } from "@/lib/request-limit";
 import { readAtHeader } from "@/lib/fresh";
 import { MAX_REQUEST_NOTE, cleanNote, hasLink } from "@/lib/visitor-types";
+import { fold } from "@/lib/fold";
 const SPOTIFY_ID = /^[A-Za-z0-9]{22}$/;
+
+// Özel istek: bu sanatçıların şarkıları (ortak şarkılar dahil) istenemez, yerine şaka mesajı çıkar.
+// Aramada görünmeye devam eder. Spotify'da "Ferhan Aydin" yazıyor; büyük/küçük harf ve ı/i farkı önemsiz.
+const NO_REQUEST_ARTISTS = new Set(["ferhan aydin"]);
+const NO_REQUEST_MESSAGE = "Sen sinemalara git bizsiz.";
+const hasNoRequestArtist = (artists: string) =>
+    artists.split(",").some((a) => NO_REQUEST_ARTISTS.has(fold(a).trim()));
 
 // İsteğe eklenen not: boşsa null; uygunsuzsa ziyaretçiye gösterilecek hata
 function readNote(raw: unknown): { note: string | null } | { error: string } {
@@ -218,6 +226,10 @@ export async function POST(req: NextRequest) {
         ]);
         if (!track) {
             return NextResponse.json({ error: "Şarkı bulunamadı." }, { status: 404 });
+        }
+        // İstek hakkı harcanmadan, diğer kontrollerden önce
+        if (hasNoRequestArtist(track.artists)) {
+            return NextResponse.json({ error: NO_REQUEST_MESSAGE }, { status: 403 });
         }
         // Aramada gizlenen şarkı doğrudan ID ile de istenemesin
         const ours = !!index && isInPlaylist(index, track);
